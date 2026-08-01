@@ -1,0 +1,10 @@
+# 生成产物：figs.py / build_docx.py / export_manuscript.py 跑一遍就有，不入库
+figs/
+vol2/figs/
+vol3/figs/
+*.docx
+数学概念笔记-*-稿件.md
+数学概念笔记-构建源码.tar.gz
+.build-logs/
+__pycache__/
+.DS_Store
