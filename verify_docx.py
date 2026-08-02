@@ -294,6 +294,43 @@ check(not mixed, '没有"汉字 ＝ 符号"式的混写 (%d 处)' % len(mixed))
 for x in mixed[:8]:
     print('        ->', x)
 
+# ---- 3.96 搬家哨兵：引用旁的公式串，必须在被引的那一篇里真的出现
+#   由来（2026-08-01）：把绿盒「不先确认存在，会出人命的」从第二篇搬到第五篇第五节，
+#   第四篇蓝盒里"那就是**第二篇** 1 ＋ 2 ＋ 4 ＋ 8 那个笑话"当场成了悬空指向——
+#   而 [3.9] 一声不吭：第二篇确实存在，只是那个笑话已经不在里面了。这一类是搬家的必然
+#   副作用，靠人 grep 依赖捞出来的，捞漏一次就烂在书里。
+#   **为什么只查公式串**：正文换说法是常事（"最高点存在"写成"最高点真的存在"），
+#   拿正文比对会淹在误报里（试过：25 处嫌疑只有 1 处真错）。公式串不会被换说法，
+#   所以这条几乎不误报。能换说法的那一大类，交给 audit_refs.py 人工过目。
+FORMULA = re.compile(r'\d[\d\s]*(?:[＋－×÷]\s*\d[\d\s]*){2,}')
+bodies = {}
+for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+    b = open(f, encoding='utf-8').read()
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', b)
+    if m:
+        bodies[m.group(1)] = re.sub(r'\s+', '', b)
+stale = []
+for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+    own = None
+    for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+        m = re.match(r'^# (第[一二三四五六七八九十]篇)', line)
+        if m:
+            own = m.group(1)
+        for fm in FORMULA.finditer(line):
+            expr = re.sub(r'\s+', '', fm.group(0))
+            for cm in re.finditer(r'(第[一二三四五六七八九十]篇)', line):
+                ch = cm.group(1)
+                # 跨册引用查不了；指向本篇的不算引用（公式就在眼前）
+                if ch == own or re.search(r'[一二三两上下本]册\s*$', line[:cm.start()]):
+                    continue
+                if ch in bodies and expr not in bodies[ch]:
+                    stale.append('%s:%d  说"%s"在%s里，可%s里没有这个式子'
+                                 % (os.path.basename(f), ln, fm.group(0).strip(), ch, ch))
+print('\n[3.96] 搬家哨兵：引用旁的公式串')
+check(not stale, '每个"第X篇 <公式>"的公式都在那一篇里出现过 (%d 处悬空)' % len(stale))
+for x in sorted(set(stale))[:8]:
+    print('        ->', x)
+
 # ---- 3.97 极限要用极限的语言说，不许"它很小所以不管它"
 #   用户 2026-07-31："'一趋于 0 就没了'应该改成极限的语言，比如'考虑等式左右两边的极限'"。
 HANDWAVE = ['就没了', '可以不管', '忽略不计', '不必理会', '小到可以扔']
