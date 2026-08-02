@@ -849,61 +849,11 @@ def fig27():
     save(fig, 'fig-27-intro-map.png')
 
 
-# ---------------------------------------------------------------- 28（篇五加餐）
-def fig28():
-    """梳子地：分数梳只画得出前几层齿；右侧放大一个格子看"格格沾到、无格装进"。"""
-    from fractions import Fraction as F
-    fig, axs = plt.subplots(1, 2, figsize=(7.2, 4.0),
-                            gridspec_kw={'width_ratios': [1.15, 1]})
-    # 左：整张纸上的分数梳（分母画到 12，越粗的齿分母越小）
-    ax = axs[0]
-    teeth = {}
-    for q in range(1, 17):
-        for p in range(0, q + 1):
-            x = F(p, q)
-            if x not in teeth:
-                teeth[x] = q
-    for x, q in teeth.items():
-        if x == 0 or x == 1:
-            continue                      # 0 和 1 的齿与边框重合，画了只会把框描肥
-        ax.plot([float(x)] * 2, [0, 1], color=NAVY,
-                lw=max(0.5, 2.2 / q), alpha=max(0.25, 1.0 / q ** 0.5), zorder=2)
-    cx, cy = (0.3, 0.4), (0.5, 0.6)      # 待放大的格子
-    ax.add_patch(Rectangle((cx[0], cy[0]), 0.1, 0.1, fill=False,
-                           edgecolor=ORANGE, lw=2.0, zorder=4))
-    ax.plot([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], color=NAVY, lw=1.0, zorder=3)
-    ax.set_title('分数梳：只画到分母 16——它画不完', fontsize=10.5, color=NAVY, pad=8)
-    ax.set_xlim(-0.03, 1.03); ax.set_ylim(-0.03, 1.03)
-    ax.set_xticks([]); ax.set_yticks([]); ax.set_aspect('equal')
-    for s in ax.spines.values():
-        s.set_visible(False)
-    ax.text(0.5, -0.085, '空白处并不空：两把梳子的齿都还在缝里',
-            ha='center', va='top', fontsize=10, color=GREY, transform=ax.transAxes)
-    # 右：把橙色格子放大——底边那一小段里，分数齿细到分母 40 还在冒出来
-    ax = axs[1]
-    for q in range(1, 41):
-        for p in range(q * 3 // 10, q * 4 // 10 + 1):
-            x = F(p, q)
-            if F(3, 10) <= x <= F(4, 10):
-                ax.plot([float(x)] * 2, [0, 1], color=NAVY,
-                        lw=max(0.5, 2.0 / q), alpha=max(0.3, 1.2 / q ** 0.5), zorder=2)
-    ax.plot([0.3, 0.4, 0.4, 0.3, 0.3], [0, 0, 1, 1, 0], color=ORANGE, lw=2.0, zorder=3)
-    ax.set_title('随便放大一个格子', fontsize=10.5, color=ORANGE, pad=8)
-    ax.set_xlim(0.293, 0.407); ax.set_ylim(-0.03, 1.03)
-    ax.set_xticks([]); ax.set_yticks([]); ax.set_aspect(0.114)
-    for s in ax.spines.values():
-        s.set_visible(False)
-    ax.text(0.5, -0.085, '总有分数齿插进来（沾到就算：格格都算）\n也总有不循环的齿画不出来（装进去才算：一个不算）',
-            ha='center', va='top', fontsize=10, color=GREY,
-            transform=ax.transAxes, linespacing=1.5)
-    save(fig, 'fig-28-comb-land.png')
-
-
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27, fig28):
+              fig26, fig27):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
