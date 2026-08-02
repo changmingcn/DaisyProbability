@@ -91,7 +91,10 @@ FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
        vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md)
-COPYFILE_DISABLE=1 tar -czf "$TARBALL" "${FILES[@]}" || die "打包失败"
+# gzip -n 不能省：tar -czf 会把当前时间写进 gzip 头，同样的源码连打两次哈希都不一样，
+# "Drive 和本机是否一致"就没法用 md5 核对了（两个会话的协作全靠这条核对）。
+# -n 去掉时间戳后，内容不变则字节不变。COPYFILE_DISABLE=1 挡 macOS 的 ._ 附加文件。
+COPYFILE_DISABLE=1 tar -cf - "${FILES[@]}" | gzip -n > "$TARBALL" || die "打包失败"
 echo "  ✓ ${TARBALL}（$(tar -tzf "$TARBALL" | grep -c . ) 项，$(du -h "$TARBALL" | cut -f1)）"
 
 # ---------- 九件清单 ----------
