@@ -18,7 +18,17 @@ set -u
 cd "$(dirname "$0")" || exit 1
 ROOT="$PWD"
 LOGDIR="$ROOT/.build-logs"; mkdir -p "$LOGDIR"
-AGENTS="$HOME/.claude/agents"
+# 两本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下只是软链接。
+# 以前手册在 git 之外，两个会话各自整篇写回，覆盖了不留痕迹——收进仓库就看得见了。
+AGENTS="$ROOT/manuals"
+check_manual_links() {
+  local n
+  for n in DaisyCalculus DaisyAlgebra; do
+    [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
+    [ "$(readlink "$HOME/.claude/agents/$n.md")" = "$AGENTS/$n.md" ] \
+      || die "~/.claude/agents/$n.md 不再指向仓库（被谁写成普通文件了？先合并再重建软链）"
+  done
+}
 RCLONE="$HOME/.local/bin/rclone"
 DRIVE_ID=1omcMKl3BdXlDWnWOOJnRPdBHuuSmcvkG
 TARBALL="数学概念笔记-构建源码.tar.gz"
@@ -58,6 +68,7 @@ if [ "${1:-}" = "--vol" ]; then
 fi
 
 # ---------- 三册全量 ----------
+check_manual_links
 for v in "${VOLS[@]}"; do
   IFS=: read -r dir _ sub <<< "$v"
   build_one "$dir" "$sub"
