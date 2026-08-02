@@ -753,10 +753,107 @@ def fig25():
     save(fig, 'fig-25-not-a-fraction.png')
 
 
+# ---------------------------------------------------------------- 26（开篇）
+def fig26():
+    """开篇：数格子量那块弯边的地——两种格宽，少算法与多算法。
+
+    计数规则与正文表格严格同源（用分数精确判定，浮点会在格线上出鬼）：
+    少算法＝整格装进地里（格顶 ≤ 本列曲线最低点）；
+    多算法＝沾到就算（格底 < 本列曲线最高点）。
+    """
+    from fractions import Fraction as F
+    fig, axs = plt.subplots(1, 2, figsize=(7.0, 4.1))
+    plan = ((axs[0], 10, 24, 43, '一格 0.1：装进去 24 格 · 沾到 43 格'),
+            (axs[1], 20, 117, 155, '一格 0.05：装进去 117 格 · 沾到 155 格'))
+    for ax, n, want_in, want_tc, title in plan:
+        ins = tch = 0
+        for k in range(1, n + 1):                      # 第 k 列
+            lo, hi = (F(k - 1, n)) ** 2, (F(k, n)) ** 2
+            for j in range(1, n + 1):                  # 第 j 行
+                bot, top = F(j - 1, n), F(j, n)
+                if top <= lo:
+                    ax.add_patch(Rectangle(((k - 1) / n, (j - 1) / n), 1 / n, 1 / n,
+                                           facecolor=LIGHT, edgecolor='none'))
+                    ins += 1
+                elif bot < hi:
+                    ax.add_patch(Rectangle(((k - 1) / n, (j - 1) / n), 1 / n, 1 / n,
+                                           facecolor=BAND, edgecolor='none'))
+                    tch += 1
+        assert (ins, ins + tch) == (want_in, want_tc), (n, ins, ins + tch)
+        for i in range(n + 1):
+            ax.plot([i / n, i / n], [0, 1], color=GREY, lw=0.5, alpha=0.55, zorder=2)
+            ax.plot([0, 1], [i / n, i / n], color=GREY, lw=0.5, alpha=0.55, zorder=2)
+        xs = np.linspace(0, 1, 300)
+        ax.plot(xs, xs ** 2, color=NAVY, lw=2.4, zorder=3)
+        ax.set_title(title, fontsize=10.5, color=NAVY, pad=8)
+        ax.set_xlim(-0.03, 1.03); ax.set_ylim(-0.03, 1.03)
+        ax.set_xticks([]); ax.set_yticks([]); ax.set_aspect('equal')
+        for s in ax.spines.values():
+            s.set_visible(False)
+        ax.plot([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], color=NAVY, lw=1.0, zorder=2)
+    axs[0].annotate('平方曲线', xy=(0.62, 0.385), xytext=(0.22, 0.62),
+                    fontsize=10.5, color=NAVY,
+                    arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.2))
+    axs[0].text(0.5, -0.10, '深色：整个儿装进去的　　浅色：只沾到一点的',
+                ha='center', va='top', fontsize=10, color=GREY, transform=axs[0].transAxes)
+    axs[1].text(0.5, -0.10, '格子缩小一半，两个数就互相走近一步',
+                ha='center', va='top', fontsize=10, color=GREY, transform=axs[1].transAxes)
+    save(fig, 'fig-26-intro-grid.png')
+
+
+# ---------------------------------------------------------------- 27（开篇）
+def fig27():
+    """开篇：全套书的路线图——每一站都可以回头望一眼那块地。"""
+    fig, ax = plt.subplots(figsize=(7.4, 3.5))
+    xs = [0.05, 0.20, 0.35, 0.50, 0.65, 0.80, 0.95]
+    ys = [0.44, 0.62, 0.40, 0.62, 0.40, 0.62, 0.46]
+    for i in range(6):
+        rad = 0.22 if i % 2 == 0 else -0.22
+        ax.annotate('', xy=(xs[i + 1], ys[i + 1]), xytext=(xs[i], ys[i]),
+                    arrowprops=dict(arrowstyle='-', color=GREY, lw=2.2,
+                                    connectionstyle='arc3,rad=%.2f' % rad))
+    labels = ['那块弯边的地\n到底是多少？',
+              '极限\n（第一篇）',
+              '实数：数轴没有洞\n（第三篇）',
+              '八大定理：存在证书\n（第五篇）',
+              '一把钥匙？\n（第二册第四篇）',
+              '切条与夹逼\n（第二册第八篇）',
+              '结案：到底是几\n（第二册第九篇）']
+    for i, (x, y, lab) in enumerate(zip(xs, ys, labels)):
+        if i == 0:
+            ax.plot([x], [y], 's', ms=11, color=ORANGE, zorder=4)
+            ax.text(x - 0.012, y + 0.10, lab, ha='left', va='bottom',
+                    fontsize=10, color=ORANGE, linespacing=1.5)
+        elif i == 6:
+            ax.plot([x, x], [y, y + 0.13], color=GREEN, lw=2.2, zorder=4)
+            ax.add_patch(Polygon([[x, y + 0.13], [x + 0.045, y + 0.105],
+                                  [x, y + 0.08]], closed=True, color=GREEN, zorder=4))
+            ax.plot([x], [y], 'o', ms=8, color=GREEN, zorder=4)
+            ax.text(x + 0.008, y - 0.09, lab, ha='right', va='top',
+                    fontsize=10, color=GREEN, linespacing=1.5)
+        else:
+            ax.plot([x], [y], 'o', ms=8, color=NAVY, zorder=4)
+            if ys[i] > 0.5:
+                ax.text(x, y + 0.09, lab, ha='center', va='bottom',
+                        fontsize=10, color=NAVY, linespacing=1.5)
+            else:
+                ax.text(x, y - 0.09, lab, ha='center', va='top',
+                        fontsize=10, color=NAVY, linespacing=1.5)
+    ax.annotate('你在这里', xy=(xs[0] + 0.012, ys[0] - 0.03), xytext=(0.13, 0.16),
+                fontsize=10.5, color=ORANGE,
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.4))
+    ax.plot([0.575, 0.575], [0.06, 0.97], color=GREY, lw=1.1, ls=(0, (4, 3)))
+    ax.text(0.565, 0.99, '第一册', ha='right', va='bottom', fontsize=10, color=GREY)
+    ax.text(0.585, 0.99, '第二册', ha='left', va='bottom', fontsize=10, color=GREY)
+    ax.set_xlim(0, 1.0); ax.set_ylim(0.02, 1.10); ax.axis('off')
+    save(fig, 'fig-27-intro-map.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
-              fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25):
+              fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
+              fig26, fig27):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
