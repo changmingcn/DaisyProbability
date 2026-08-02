@@ -125,16 +125,24 @@ COPYFILE_DISABLE=1 tar -cf - "${FILES[@]}" | gzip -n > "$TARBALL" || die "打包
 echo "  ✓ ${TARBALL}（$(tar -tzf "$TARBALL" | grep -c . ) 项，$(du -h "$TARBALL" | cut -f1)）"
 
 # ---------- 九件清单 ----------
+# 2026-08-01 起九件不再散在 Drive「Claude」根目录，统一收进 Claude/数学概念笔记/ 下的四个子目录。
+# DRIVE_ID 仍是 Claude 文件夹（rclone 的 root 就是它），所以 dst 写成相对路径 数学概念笔记/NN-…/文件名。
+# ⚠ 改这里的目录名，Drive 上就会多出一个新目录、旧的留在原地不动（rclone 按路径认文件，不按 id）——
+#   要改名，先在 Drive 上把目录挪好，再改这张表，然后跑一次 --upload 核对没有多出副本。
+D1=数学概念笔记/01-三册成书
+D2=数学概念笔记/02-三份稿件
+D3=数学概念笔记/03-交接手册
+D4=数学概念笔记/04-构建源码
 ITEMS=(
-  "不能做完无穷，怎么谈论无穷.docx|不能做完无穷，怎么谈论无穷.docx|docx"
-  "vol2/变化有多快，面积有多大.docx|变化有多快，面积有多大.docx|docx"
-  "vol3/给小学生讲线性代数.docx|给小学生讲线性代数.docx|docx"
-  "数学概念笔记-上部分-稿件.md|数学概念笔记-上部分-稿件.md|raw"
-  "数学概念笔记-下部分-稿件.md|数学概念笔记-下部分-稿件.md|raw"
-  "数学概念笔记-第三册-稿件.md|数学概念笔记-第三册-稿件.md|raw"
-  "$TARBALL|$TARBALL|raw"
-  "$AGENTS/DaisyCalculus.md|DaisyCalculus.md|raw"
-  "$AGENTS/DaisyAlgebra.md|DaisyAlgebra.md|raw"
+  "不能做完无穷，怎么谈论无穷.docx|$D1/不能做完无穷，怎么谈论无穷.docx|docx"
+  "vol2/变化有多快，面积有多大.docx|$D1/变化有多快，面积有多大.docx|docx"
+  "vol3/给小学生讲线性代数.docx|$D1/给小学生讲线性代数.docx|docx"
+  "数学概念笔记-上部分-稿件.md|$D2/数学概念笔记-上部分-稿件.md|raw"
+  "数学概念笔记-下部分-稿件.md|$D2/数学概念笔记-下部分-稿件.md|raw"
+  "数学概念笔记-第三册-稿件.md|$D2/数学概念笔记-第三册-稿件.md|raw"
+  "$TARBALL|$D4/$TARBALL|raw"
+  "$AGENTS/DaisyCalculus.md|$D3/DaisyCalculus.md|raw"
+  "$AGENTS/DaisyAlgebra.md|$D3/DaisyAlgebra.md|raw"
 )
 
 say "九件齐否"
