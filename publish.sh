@@ -28,26 +28,53 @@ LOGDIR="$ROOT/.build-logs"; mkdir -p "$LOGDIR"
 # 硬链接唯一的破绽是 git 重建文件会断开（checkout / stash / merge 动到 manuals/ 时），
 # 下面这道检查就是为它准备的：断了就中止，别再无声分叉一次。
 AGENTS="$ROOT/manuals"
+
+# die/say 必须定义在任何会调用它们的分支之前 —— --relink 走的是立即执行的分支，
+# 定义放在下面的话，一走到报错路径就是 "die: command not found"。
+die() { echo "✗ $*" >&2; exit 1; }
+say() { echo; echo "──── $* ────"; }
+# ⚠ Claude Code 的 Edit/Write 是"写临时文件再改名"，**每改一次手册就断一次硬链接**。
+# 而改手册的规矩正是"只用 Edit 改局部"——所以断链是常态，不是异常。
+# 光报错会让这道闸变成每次都要人工处理的路障，于是分两种情形：
+#   两边内容相同 → 说明只是文件被重建过（git checkout / 改完又改回），直接重连；
+#   两边内容不同 → 才是真危险（一边的改动会被另一边盖掉），打出 diff 摘要并中止。
 check_manual_links() {
   local n a
   for n in DaisyCalculus DaisyAlgebra; do
     a="$HOME/.claude/agents/$n.md"
     [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
-    [ -e "$a" ] || die "$a 不见了，重建：ln $AGENTS/$n.md $a"
-    [ "$a" -ef "$AGENTS/$n.md" ] || die \
-"$a 和 manuals/$n.md 已经不是同一个文件了（多半是 git 重建过 manuals/）。
-   先 diff 看两边差什么、合并好，再重建硬链：rm $a && ln $AGENTS/$n.md $a"
+    [ -e "$a" ] || { ln "$AGENTS/$n.md" "$a" && echo "  ℹ ${n}：agents/ 那份不见了，已从 manuals/ 重连"; continue; }
+    [ "$a" -ef "$AGENTS/$n.md" ] && continue
+    if diff -q "$a" "$AGENTS/$n.md" >/dev/null; then
+      rm "$a" && ln "$AGENTS/$n.md" "$a"
+      echo "  ℹ ${n}：硬链接断过但两边内容一致，已重连"
+    else
+      echo "  ⚠ $n 两边内容不一致（$(diff "$a" "$AGENTS/$n.md" | grep -c '^[<>]') 行不同）：" >&2
+      diff "$a" "$AGENTS/$n.md" | head -6 >&2
+      die "${n}：agents/ 与 manuals/ 已分叉，别让任何一边被无声盖掉。
+   看全文差异：diff $a $AGENTS/$n.md
+   若 manuals/ 那份对（常见：你刚用 Edit 改了它）：./publish.sh --relink
+   若 agents/ 那份对：先把它的内容 Edit 进 manuals/，再 ./publish.sh --relink"
+    fi
   done
 }
+
+# 认定 manuals/ 为准，强制重连（agents/ 那份会被丢弃）
+if [ "${1:-}" = "--relink" ]; then
+  for n in DaisyCalculus DaisyAlgebra; do
+    a="$HOME/.claude/agents/$n.md"
+    [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
+    if [ -e "$a" ] && [ "$a" -ef "$AGENTS/$n.md" ]; then echo "  ✓ $n 本来就是同一个文件"; continue; fi
+    rm -f "$a" && ln "$AGENTS/$n.md" "$a" && echo "  ✓ $n 已按 manuals/ 重连"
+  done
+  exit 0
+fi
 RCLONE="$HOME/.local/bin/rclone"
 DRIVE_ID=1omcMKl3BdXlDWnWOOJnRPdBHuuSmcvkG
 TARBALL="数学概念笔记-构建源码.tar.gz"
 
 # 分册：目录参数 | docx 所在目录 | 稿件后缀
 VOLS=("::上部分" "vol2:vol2:下部分" "vol3:vol3:第三册")
-
-die() { echo "✗ $*" >&2; exit 1; }
-say() { echo; echo "──── $* ────"; }
 
 # ---------- 一册：生成图 → 构建 → 校验（严格串行） ----------
 build_one() {

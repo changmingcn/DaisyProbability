@@ -32,9 +32,10 @@ Drive 上那两份是交付镜像，**不是源**。
 
 **完整来龙去脉、自检命令和已知坑，见仓库根目录的 `并发会话必读.md`。**
 
-> 注意：`git checkout`／`stash`／`merge` 只要动到 `manuals/`，就会重建文件、**把硬链接断开**。
-> `publish.sh` 每次全量构建都会查这一条，断了当场中止；重建就一句
-> `rm ~/.claude/agents/X.md && ln ~/math-notes/manuals/X.md ~/.claude/agents/X.md`。
+> 注意：**硬链接经常断**——不只是 `git checkout`／`stash`／`merge` 动到 `manuals/` 时，
+> **`Edit`／`Write` 工具本身就是"写临时文件再改名"，你每改一次手册就断一次**。
+> 所以 **改完手册顺手跑一句 `./publish.sh --relink`**（认 `manuals/` 为准重连）。
+> 忘了也不要紧：全量构建会拦住你——两边内容相同就自动重连，不同才中止并打出 diff。
 
 > **这份手册是交接件。**读完它，你不需要原来那次对话的任何上下文就能接着干。
 > 姊妹篇是 `DaisyCalculus.md`（第一、二册的手册），两份都在 `~/math-notes/manuals/`（Drive 上是镜像）。
