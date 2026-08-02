@@ -729,10 +729,66 @@ def figr24():
     save(fig, 'fig-r24-eigen-basis.png')
 
 
+# ---------------------------------------------------------------- r25
+def figr25():
+    """三只厚薄不同的玩偶，拍出同一张照片：被吃掉的正是厚度。"""
+    fig, ax = plt.subplots(figsize=(7.8, 4.2))
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_xlim(-0.5, 14.4)
+    ax.set_ylim(-2.4, 8.2)
+    SC = 0.30
+    # 桌面：让三只玩偶站在同一条线上，"立体"才有落脚点
+    ax.plot([0.2, 8.6], [0.55, 0.55], color=NAVY, lw=1.8, zorder=1)
+    # 厚度＝往右后下方叠几层灰影（2.5D 挤出画法）；层数差得够开，厚薄才看得出
+    toys = [(0.45, 8, '厚玩偶'), (3.45, 4, '薄一点'), (6.45, 1, '最薄的')]
+    for sx, n, lab in toys:
+        for i in range(n, 0, -1):
+            draw_fine(ax, color=GREY, scale=SC,
+                      shift=(sx + i * 0.10, 0.55 - i * 0.02), zorder=2)
+        draw_fine(ax, scale=SC, shift=(sx, 0.55), zorder=4)
+        ax.text(sx + 0.71, 0.15, lab, fontsize=10.5, color=NAVY,
+                ha='center', va='top')
+    # 照片：白底加一圈框
+    fx0, fx1, fy0, fy1 = 10.9, 12.95, 0.55, 3.95
+    ax.add_patch(plt.Rectangle((fx0, fy0), fx1 - fx0, fy1 - fy0,
+                               facecolor='white', edgecolor=NAVY, lw=2.0,
+                               zorder=3))
+    draw_fine(ax, scale=SC, shift=(11.37, 0.80), zorder=4)
+    ax.text((fx0 + fx1) / 2, 0.15, '同一张照片', fontsize=10.5, color=NAVY,
+            ha='center', va='top')
+    # 三支箭头**从头顶上方**走，先汇到一个点，再一支进照片——
+    # 这样"三只拍成同一张"一眼看得出；走兔子身侧会连成一条横线，还压住兔子。
+    JX, JY = 9.35, 4.85
+    for sx, n, lab in toys:
+        ax.annotate('', xy=(JX - 0.15, JY - 0.1), xytext=(sx + 0.71, 3.45),
+                    arrowprops=dict(arrowstyle='-', color=ORANGE, lw=1.3,
+                                    connectionstyle='arc3,rad=-0.16'))
+    ax.plot([JX], [JY], 'o', ms=7, color=ORANGE, zorder=6)
+    ax.annotate('', xy=(fx0 - 0.15, 3.55), xytext=(JX + 0.1, JY - 0.2),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.4))
+    ax.text(JX + 0.15, JY + 0.45, '咔嚓', fontsize=11, color=ORANGE,
+            ha='center')
+    # 倒回去那一箭：画一个叉（中文字体没有 ✗ 的字形，只能用线条画）
+    ax.annotate('', xy=(1.9, 6.85), xytext=(10.7, 6.85),
+                arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.5,
+                                linestyle='--'))
+    for (dx0, dy0), (dx1, dy1) in (((-0.3, -0.3), (0.3, 0.3)),
+                                   ((-0.3, 0.3), (0.3, -0.3))):
+        ax.plot([6.3 + dx0, 6.3 + dx1], [6.85 + dy0, 6.85 + dy1],
+                color=ORANGE, lw=2.8, zorder=6, solid_capstyle='round')
+    ax.text(6.3, 7.55, '照片捏不回玩偶', fontsize=10.5, color=ORANGE,
+            ha='center')
+    ax.text(6.3, -1.15, '正面一模一样，厚薄不一样——拍出来还是一模一样。\n'
+                        '被吃掉的，正是「厚」这个方向。',
+            fontsize=10.5, color=NAVY, ha='center', va='top', linespacing=1.6)
+    save(fig, 'fig-r25-toy-photo.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (figr00, figr01, figr02, figr03, figr04, figr05, figr06,
               figr10, figr11, figr12, figr13, figr15, figr17, figr19,
-              figr20, figr21, figr22, figr23, figr24):
+              figr20, figr21, figr22, figr23, figr24, figr25):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
