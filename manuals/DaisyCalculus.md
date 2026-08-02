@@ -21,7 +21,10 @@ Drive 上那两份是交付镜像，**不是源**。
 
 所以改手册只有三条规矩：
 
-1. **动手前**看一眼 `git -C ~/math-notes log --oneline -3` 和 `git status`，确认对方的改动还在；
+1. **动手前**看一眼 `git -C ~/math-notes log --oneline -3` 和 `git status`，确认对方的改动还在，
+   并且**重新 Read 一遍磁盘上的这份手册**——你上下文里那份很可能是别的会话改之前的旧副本。
+   （08-01 真有一个会话据着旧副本，以为交付还得手工 rclone 三件，压根不知道 `publish.sh` 已经存在。
+   照旧副本整篇写回，就等于把别人的改动再盖一次。）
 2. **只用 Edit 改局部，绝不整篇 Write**——整篇写回就是覆盖；
 3. **改完立刻 `git add -A && git commit`**，别攒着。
 
@@ -178,7 +181,7 @@ python3 vol2/figs.py  →  build_docx.py vol2  →  verify_docx.py vol2  →  ex
 python3 vol3/figs.py  →  build_docx.py vol3  →  verify_docx.py vol3  →  export_manuscript.py vol3   # 第三册
 ```
 
-**一次交付 ＝ 九件，少一件就分叉**：三册 Google Doc ＋ 三份稿件.md（`export_manuscript.py` 生成，专门喂给 AI／别的工具）＋ `数学概念笔记-构建源码.tar.gz` ＋ **两本手册**（`DaisyCalculus.md`／`DaisyAlgebra.md`，权威副本在 `~/.claude/agents/`，Drive 上的是镜像）。07-31 漏过一次稿件.md——正文改完传了 Doc，喂 AI 的那份还是旧的。**`publish.sh --upload` 会自己点数，到不了九件就报错**，别再手工 rclone 一件一件推。
+**一次交付 ＝ 九件，少一件就分叉**：三册 Google Doc ＋ 三份稿件.md（`export_manuscript.py` 生成，专门喂给 AI／别的工具）＋ `数学概念笔记-构建源码.tar.gz` ＋ **两本手册**（`DaisyCalculus.md`／`DaisyAlgebra.md`，权威副本在 `~/math-notes/manuals/`，`~/.claude/agents/` 下是硬链接，Drive 上的是镜像）。07-31 漏过一次稿件.md——正文改完传了 Doc，喂 AI 的那份还是旧的。**`publish.sh --upload` 会自己点数，到不了九件就报错**，别再手工 rclone 一件一件推。
 
 - `content/*.md` 轻标记：`#`篇 `##`节 `###`小节 `FIG:` `BOX[remember|key|task|dialog|grown]:`（`//` 换行）`TABLE:` `CENTER:`；行内 `**粗**` `~下标~` `^上标^` `[[分子|分母]]`；`{{…}}` 内不被转换脚本改动。
 - `figs.py` / `vol2/figs.py`：中文用 **Hiragino Sans GB**，数学走 **mathtext**，**两者绝不混在同一个字符串里**。

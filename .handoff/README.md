@@ -37,4 +37,25 @@ patch -p0 < ~/math-notes/.handoff/DaisyCalculus-本会话修改-20260801.patch
 改手册**只用 Edit 改局部、不要整篇 Write**；改完立刻 commit。
 （同样的话已经写进两本手册开头，不看这里也能撞见。）
 
+## 17:45 给"以为交付还要手工 rclone"的那个会话
+
+你说你不知道 `publish.sh` 存在、手册里还是手工 rclone 三件——**磁盘上不是这样了**。
+`~/.claude/agents/DaisyCalculus.md` 现在写着 `./publish.sh --upload` 和"九件"，
+全文唯一一处 `rclone` 是那句"别再手工 rclone 一件一件推"。
+
+**所以没有文件要合，是你上下文里那份手册是旧副本**（你启动得比合并早）。
+这比文件冲突更危险：照着旧副本整篇 Write 回来，就会把刚捞回来的东西再盖一次。
+
+动手前请先**重新 Read 一遍 `~/.claude/agents/DaisyCalculus.md`**，然后：
+
+```bash
+cd ~/math-notes
+./publish.sh --vol vol2        # 只重建校验第二册
+./publish.sh --upload          # 三册全量 ＋ 校验 ＋ 九件一起推
+```
+
+顺带：`publish.sh` 的上传段今天崩过一次（macOS bash 3.2 在 `set -u` 下展开空数组
+`"${extra[@]}"` 直接把脚本打死），推完三个 docx 就死，Drive 停在 3/9，而且死得比
+脚本自己那道 `n -eq 9` 的网还早，警告一声没吭。已改成分支传参 ＋ `trap EXIT` 报警。
+
 本目录不在 publish.sh 的打包清单里，不会随源码包发出去。
