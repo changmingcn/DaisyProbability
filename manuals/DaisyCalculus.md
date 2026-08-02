@@ -229,34 +229,21 @@ cd ~/math-notes
 
 ### 出 Doc 的固定方式（2026-08-02 用户定，两本手册同款）
 
-**本地生成 → 本地定稿 → 一次性上传并转换 → 只查关键格式。绝不把整篇 Doc 读回来反复改。**
+**Google Doc 就是交付物本身。按改动大小分两档走：**
 
-1. **本地生成**：`build_docx.py` 出 `.docx`，`verify_docx.py` 过 18 项结构检查。
-2. **本地定稿**：用 **LibreOffice 无头模式**把 docx 渲成 PDF，**亲眼看版面**——分页、盒子底色、分数的垂直位置，这几样脚本永远验不了：
-
-   ```bash
-   soffice --headless --convert-to pdf --outdir /tmp/render "不能做完无穷，怎么谈论无穷.docx"
-   ```
-
-   要改就回 `content/*.md` 或 `build_docx.py` 改，**重跑重渲**——**定稿全部在本机完成**。
-3. **一次性上传并转换**：`./publish.sh --upload`。rclone `copyto --drive-import-formats docx` 把 docx 一把推上去，**Drive 端一次转成 Google Doc**。
-4. **上传后只检查关键格式**：九件点齐、三份 Doc 的 id 没变、抽查一两处新改的段落。**到此为止。**
-
-**按改动大小分两档走（2026-08-02 用户定）：**
-
-- **大范围重写 → 全部在本地做完再上传。** 改 `content/*.md` → `build_docx.py` 重编 → **LibreOffice 渲 PDF 定稿** → 确认无误才 `./publish.sh --upload` 一次。**不要把整篇 Doc 读回来逐段改写**：既慢又会漂。
+- **大范围重写 → 全部在本地做完再上传。** 改 `content/*.md` → `build_docx.py` 重编 → `verify_docx.py` 过 18 项 → `./publish.sh --upload` **一次性上传、由 Drive 端转成 Google Doc**。**不要把整篇 Doc 读回来逐段改写**：既慢又会漂。
 - **小范围修改 → 直接改 Google Doc。** 一个错字、一处措辞、挪一行，不值得走整条管线，就在 Doc 上动手。
   **但同一处必须回填本地** `content/*.md` 并 `git commit`。理由是硬的：**Drive 上的 Doc 是产物不是源，下一次 `--upload` 整份覆盖它**——只改 Doc 不回填，那处修改会在下次交付时**无声消失**（九件点数点得齐，内容却退回去了，最难查）。回填一行的代价，远小于一处改动凭空蒸发。
+- **上传后只检查关键格式**：九件点齐、三份 Doc 的 id 没变、抽查一两处新改的段落。**到此为止。**
 - **写 doc 文件用 T3 档便宜模型。** 生成／誊写 doc 这类**机械活**不该占用高档模型：派 T3 档去做（Claude 侧＝`scout` 这类 T3 角色，或显式指定 haiku），主会话只管判断与验收。
+- **排版不归你验，用户自己看。**（2026-08-02 用户原话："也不用验排版了，我自己来。"）分页、盒子底色、分数垂直位置——交付时照旧明说这一项没验，别含糊过去。
 
-> LibreOffice 于 **2026-08-02 装上**（`brew install --cask libreoffice`，26.2.5.2），`soffice` 已链到 `/opt/homebrew/bin`，PATH 里直接可用（别的机器上没有，脚本里别写死）。
->
-> **⚠ 装完还不能用，必须先放行一次。** brew cask 装的 app 带 `com.apple.quarantine`，**从没在 GUI 里打开过的话，`--headless` 转换会直接挂死**：
-> 日志只有一行 `NSXPCSharedListener … Connection interrupted`，**不报错、不退出、等多久都不出 PDF**（08-02 实测挂满 7 分钟；
-> 连一个 6 字节的 txt 都转不出来，**关掉沙箱重试同样挂——所以不是沙箱的锅，别往那儿查**）。
-> 放行办法二选一：请用户 `open -a LibreOffice` 打开一次并同意，或 `xattr -dr com.apple.quarantine /Applications/LibreOffice.app`。
->
-> **在放行之前，第 2 步"渲 PDF 亲眼看版面"做不了**——那就照旧明说"这一轮排版没验"，**不许假装验过**。手册里那句"本机没有 LibreOffice"已作废，但"排版验没验"仍要如实报。
+> **别再去试用 LibreOffice 自动渲 PDF 验排版了——08-02 试过，死路。**
+> 装是装上了（`brew install --cask libreoffice` 26.2.5.2，`soffice` 已在 `/opt/homebrew/bin`），但**从 agent 的 shell 里跑 `--headless --convert-to pdf` 必挂**。
+> `sample` 抓到的栈是决定性的：`AquaSalInstance::SVMainHook → NSApplicationMain → [NSApplication run] → nextEventMatchingMask`——
+> **macOS 版即使给了 `--headless` 也照样拉起 Aqua 后端、进 Cocoa 事件循环，没有 GUI 会话就永远等下去**（连一个 6 字节的 txt 都转不出来，也不派生 `soffice.bin` 子进程）。
+> **三条错误猜想已排除，别重走**：不是沙箱（关掉沙箱一样挂）／不是 quarantine（`xattr -dr` 清干净后一样挂）／不是首次运行慢（挂满 7 分钟零输出）。`SAL_USE_VCLPLUGIN=svp` 也无效。
+> 真要渲，只能**由用户在自己的终端里跑**（那儿才有 GUI 会话）。**这台机器上的教训：`--headless` 不等于不需要 GUI 会话。**
 
 手工跑也行，但**顺序不能乱**——`figs.py` 生成图，`build_docx.py` 消费图，`verify_docx.py` 读 docx，三步必须串行（并发跑过一次，校验读到写了一半的 docx，字数漂了 37 个字）：
 
@@ -355,5 +342,5 @@ python3 audit_refs.py            # 三册；--vol vol2 单册；--all 连 ok 也
 - 他会问很尖的具体问题（"第二节末尾有提到夹逼吗？"）。**先去查，不要先辩解。** 查出来是错就认，改掉，并**尽量把它变成一条能自动失败的检查**。
 - 他改方向时改得很彻底。**不要心疼已写的内容**，按新方向重做。
 - 汇报时**先说没做到的、没验的、最可能出错的**，再说做了什么。
-- **排版现在自己验得了（2026-08-02 起装了 LibreOffice）。** 结构、字形、交叉引用照旧自动验；**分页、盒子底色、分数的垂直位置，渲成 PDF 亲眼看**——做法见 §四「出 Doc 的固定方式」第 2 步。以前那句"本机没有 LibreOffice，排版验不了"**不能再拿来当免责声明**：验得了就得验，没验就明说没验，别含糊过去。
+- **排版验不了，也不用你验——用户自己看。** 结构、字形、交叉引用照旧自动验；**分页、盒子底色、分数的垂直位置，请用户翻一遍 Doc**（2026-08-02 用户原话："也不用验排版了，我自己来。"）。**每次交付仍要明说这一项没验**，别含糊过去。试过用 LibreOffice 自动渲 PDF，是死路，见 §四那个提示框。
 - 每一轮结尾给一条**具体的减负建议**（"如果读着还是重，最容易切的是 X，因为它不伤主线"）——用户多次据此做决定。
