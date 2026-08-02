@@ -261,7 +261,7 @@ cd ~/math-notes
 - **排版不归你验，用户自己看。**（2026-08-02 用户原话："也不用验排版了，我自己来。"）分页、盒子底色、矩阵与分数的垂直位置——交付时照旧明说这一项没验，别含糊过去。
 
 > **别再去试用 LibreOffice 自动渲 PDF 验排版了——08-02 试过，死路。**
-> 装是装上了（`brew install --cask libreoffice` 26.2.5.2，`soffice` 已在 `/opt/homebrew/bin`），但**从 agent 的 shell 里跑 `--headless --convert-to pdf` 必挂**。
+> 当天装过 26.2.5.2 又**当天卸了**（`brew uninstall --cask libreoffice`）——**这台机器上现在没有 LibreOffice，`soffice` 不在 PATH 里**。卸的原因就是下面这条：**从 agent 的 shell 里跑 `--headless --convert-to pdf` 必挂**。
 > `sample` 抓到的栈是决定性的：`AquaSalInstance::SVMainHook → NSApplicationMain → [NSApplication run] → nextEventMatchingMask`——
 > **macOS 版即使给了 `--headless` 也照样拉起 Aqua 后端、进 Cocoa 事件循环，没有 GUI 会话就永远等下去**（连一个 6 字节的 txt 都转不出来，也不派生 `soffice.bin` 子进程）。
 > **三条错误猜想已排除，别重走**：不是沙箱（关掉沙箱一样挂）／不是 quarantine（`xattr -dr` 清干净后一样挂）／不是首次运行慢（挂满 7 分钟零输出）。`SAL_USE_VCLPLUGIN=svp` 也无效。
