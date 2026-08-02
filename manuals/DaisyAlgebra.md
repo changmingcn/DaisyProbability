@@ -30,6 +30,8 @@ Drive 上那两份是交付镜像，**不是源**。
 
 真撞了也不怕：`git log -p -- manuals/` 看得出谁改了什么，`git checkout <commit> -- <文件>` 捞得回来。
 
+**完整来龙去脉、自检命令和已知坑，见仓库根目录的 `并发会话必读.md`。**
+
 > 注意：`git checkout`／`stash`／`merge` 只要动到 `manuals/`，就会重建文件、**把硬链接断开**。
 > `publish.sh` 每次全量构建都会查这一条，断了当场中止；重建就一句
 > `rm ~/.claude/agents/X.md && ln ~/math-notes/manuals/X.md ~/.claude/agents/X.md`。

@@ -18,6 +18,8 @@ set -u
 cd "$(dirname "$0")" || exit 1
 ROOT="$PWD"
 LOGDIR="$ROOT/.build-logs"; mkdir -p "$LOGDIR"
+# 跑管线的会话一定看得见这一行——并发覆盖就是这么发生的
+[ -f "$ROOT/并发会话必读.md" ] && echo "ℹ 另一个 Claude 会话可能也在这棵树上：先读 ~/math-notes/并发会话必读.md"
 # 两本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下是**硬链接**到同一个文件。
 # 以前手册在 git 之外，两个会话各自整篇写回，覆盖了不留痕迹——收进仓库就看得见了。
 #
