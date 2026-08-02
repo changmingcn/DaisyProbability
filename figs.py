@@ -596,29 +596,110 @@ def fig20():
 
 # ---------------------------------------------------------------- 21
 def fig21():
-    """八大定理：八种说法，一件事。"""
-    fig, ax = plt.subplots(figsize=(6.4, 5.0))
-    names = ['① 确界原理', '② 单调有界', '③ 区间套', '④ 有限覆盖',
-             '⑤ 聚点定理', '⑥ 致密性', '⑦ 柯西准则', '⑧ 戴德金分割']
-    R = 1.62
-    ax.add_patch(Circle((0, 0), 0.70, fc=BAND, ec=ORANGE, lw=2.0, zorder=3))
-    ax.text(0, 0.14, '数轴上', ha='center', va='center', fontsize=12.5,
-            color=ORANGE, fontweight='bold', zorder=4)
-    ax.text(0, -0.16, '没有洞', ha='center', va='center', fontsize=12.5,
-            color=ORANGE, fontweight='bold', zorder=4)
-    for i, nm in enumerate(names):
-        th = np.pi / 2 - i * 2 * np.pi / 8
-        x, y = R * np.cos(th), R * np.sin(th)
-        ax.plot([0.72 * np.cos(th), (R - 0.42) * np.cos(th)],
-                [0.72 * np.sin(th), (R - 0.42) * np.sin(th)],
-                color=GREY, lw=1.2, ls=':', zorder=1)
-        ax.text(x, y, nm, ha='center', va='center', fontsize=10.5, color=NAVY,
-                bbox=dict(boxstyle='round,pad=0.34', fc=LIGHT, ec=NAVY, lw=1.4),
-                zorder=4)
-    ax.text(0, -2.42, '任意一个成立，其余七个都跟着成立', ha='center',
-            fontsize=11, color=NAVY)
-    ax.set_xlim(-2.45, 2.45); ax.set_ylim(-2.70, 2.25)
-    ax.set_aspect('equal'); ax.axis('off')
+    """八大定理＝同一条街的八种体检（长街与砖缝）。"""
+    fig, axs = plt.subplots(2, 4, figsize=(7.5, 4.4))
+    Y0, Y1, YT = 0.22, 0.34, 0.40          # 街面板条上下缘、街面（放点的高度）
+
+    def street(ax):
+        ax.add_patch(Rectangle((0.04, Y0), 0.92, Y1 - Y0,
+                               facecolor=LIGHT, edgecolor=NAVY, lw=1.0, zorder=1))
+        for bx in np.arange(0.155, 0.96, 0.115):
+            ax.plot([bx, bx], [Y0, Y1], color=GREY, lw=0.7, zorder=2)
+
+    P = list(axs.flat)
+    for ax in P:
+        street(ax)
+        ax.set_xlim(0, 1); ax.set_ylim(0.05, 1.02)
+        ax.axis('off')
+
+    # ① 贴墙检：人群前的挡墙里，必有贴得最紧的一道
+    ax = P[0]; ax.set_title('① 贴墙检', fontsize=10.5, color=NAVY, pad=3)
+    for x in (0.10, 0.16, 0.23, 0.29, 0.34, 0.38, 0.41):
+        ax.plot([x], [YT], 'o', ms=4.5, color=NAVY, zorder=3)
+    for x in (0.68, 0.80, 0.90):
+        ax.plot([x, x], [YT, 0.82], color=GREY, lw=1.6, zorder=3)
+    ax.plot([0.55, 0.55], [YT, 0.82], color=ORANGE, lw=2.6, zorder=4)
+
+    # ② 行军检：只进不退、前有墙拦，必定抵达
+    ax = P[1]; ax.set_title('② 行军检', fontsize=10.5, color=NAVY, pad=3)
+    xs = [0.08, 0.24, 0.38, 0.49, 0.57, 0.62, 0.65]
+    for i, x in enumerate(xs):
+        ax.plot([x], [YT], 'o', ms=4.5, color=NAVY, zorder=3)
+        if i:
+            ax.annotate('', xy=(x, 0.55), xytext=(xs[i - 1], 0.55),
+                        arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.0,
+                                        connectionstyle='arc3,rad=-0.4'))
+    ax.plot([0.67], [YT], 'o', ms=6.5, color=ORANGE, zorder=4)
+    ax.plot([0.88, 0.88], [YT, 0.82], color=GREY, lw=1.6, zorder=3)
+
+    # ③ 包围检：包围圈越缩越小，恰好圈住一个点
+    ax = P[2]; ax.set_title('③ 包围检', fontsize=10.5, color=NAVY, pad=3)
+    for (a, b), y in zip(((0.15, 0.90), (0.27, 0.77), (0.37, 0.65), (0.43, 0.56)),
+                         (0.88, 0.75, 0.62, 0.51)):
+        ax.plot([a, b], [y, y], color=NAVY, lw=1.6, zorder=3)
+        ax.plot([a, a], [y - 0.028, y + 0.028], color=NAVY, lw=1.6, zorder=3)
+        ax.plot([b, b], [y - 0.028, y + 0.028], color=NAVY, lw=1.6, zorder=3)
+    ax.plot([0.485], [YT], 'o', ms=6.5, color=ORANGE, zorder=4)
+
+    # ④ 撑伞检：无限把伞，挑有限几把照样盖住
+    ax = P[3]; ax.set_title('④ 撑伞检', fontsize=10.5, color=NAVY, pad=3)
+    ax.plot([0.15, 0.88], [YT, YT], color=NAVY, lw=2.6, zorder=3)
+    ax.plot([0.15], [YT], 'o', ms=4.5, color=NAVY, zorder=4)
+    ax.plot([0.88], [YT], 'o', ms=4.5, color=NAVY, zorder=4)
+    for c, r in ((0.20, 0.09), (0.30, 0.07), (0.44, 0.08), (0.56, 0.06),
+                 (0.68, 0.07), (0.79, 0.06), (0.86, 0.05)):
+        ax.add_patch(Arc((c, YT), 2 * r, 1.6 * r, theta1=0, theta2=180,
+                         edgecolor=GREY, lw=1.1, zorder=3))
+    for c, r in ((0.26, 0.17), (0.55, 0.19), (0.81, 0.13)):
+        ax.add_patch(Arc((c, YT), 2 * r, 1.9 * r, theta1=0, theta2=180,
+                         edgecolor=ORANGE, lw=2.0, zorder=4))
+
+    # ⑤ 拥挤检：有限街段塞进无限多人，必有一处挤爆
+    ax = P[4]; ax.set_title('⑤ 拥挤检', fontsize=10.5, color=NAVY, pad=3)
+    for x in (0.18, 0.82):
+        ax.plot([x, x], [YT, 0.74], color=GREY, lw=1.6, zorder=3)
+    for x in (0.24, 0.33, 0.41, 0.48, 0.54, 0.585, 0.615, 0.635, 0.648, 0.656):
+        ax.plot([x], [YT], 'o', ms=4.0, color=NAVY, zorder=3)
+    ax.add_patch(Circle((0.645, YT), 0.055, fill=False, edgecolor=ORANGE,
+                        lw=2.0, zorder=4))
+
+    # ⑥ 突围检：被围住的无限队伍，挑出一支小队齐奔一点
+    ax = P[5]; ax.set_title('⑥ 突围检', fontsize=10.5, color=NAVY, pad=3)
+    ax.add_patch(Rectangle((0.13, YT), 0.74, 0.42, fill=False,
+                           edgecolor=GREY, lw=1.3, ls=(0, (4, 3)), zorder=2))
+    pts = ((0.20, 0.66), (0.33, 0.50), (0.46, 0.70), (0.58, 0.55),
+           (0.71, 0.68), (0.80, 0.49), (0.26, 0.46), (0.66, 0.44))
+    for x, y in pts:
+        ax.plot([x], [y], 'o', ms=4.0, color=NAVY, zorder=3)
+    tgt = (0.52, 0.44)
+    for x, y in (pts[0], pts[2], pts[4], pts[5]):
+        ax.annotate('', xy=tgt, xytext=(x, y),
+                    arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.1))
+    ax.plot([tgt[0]], [tgt[1]], 'o', ms=6.0, color=ORANGE, zorder=4)
+
+    # ⑦ 收拢检：队伍自我收拢，脚下必有砖接住
+    ax = P[6]; ax.set_title('⑦ 收拢检', fontsize=10.5, color=NAVY, pad=3)
+    ax.add_patch(Rectangle((0.475, Y0), 0.115, Y1 - Y0, facecolor=BAND,
+                           edgecolor=ORANGE, lw=1.6, zorder=2))
+    for x in (0.10, 0.22, 0.33, 0.42):
+        ax.plot([x], [YT], 'o', ms=4.0, color=NAVY, zorder=3)
+    for x in (0.92, 0.82, 0.73, 0.66):
+        ax.plot([x], [YT], 'o', ms=4.0, color=NAVY, zorder=3)
+    ax.annotate('', xy=(0.50, 0.60), xytext=(0.16, 0.60),
+                arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.2))
+    ax.annotate('', xy=(0.57, 0.60), xytext=(0.88, 0.60),
+                arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.2))
+
+    # ⑧ 切割检：一刀下去，刀刃必落在砖上
+    ax = P[7]; ax.set_title('⑧ 切割检', fontsize=10.5, color=NAVY, pad=3)
+    ax.plot([0.57, 0.57], [0.46, 0.88], color=RED, lw=2.4, zorder=3)
+    ax.add_patch(Polygon([[0.57, 0.46], [0.545, 0.40], [0.595, 0.40]],
+                         closed=True, color=RED, zorder=3))
+    ax.plot([0.57], [YT - 0.02], 'o', ms=6.5, color=ORANGE, zorder=4)
+
+    fig.text(0.5, 0.015, '把数轴当成一条铺满砖的长街：八条定理，是查"砖缝里掉不掉东西"的八种体检',
+             ha='center', fontsize=10.5, color=NAVY)
+    fig.subplots_adjust(hspace=0.42, wspace=0.12, bottom=0.09)
     save(fig, 'fig-21-eight-theorems.png')
 
 
