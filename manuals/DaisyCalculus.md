@@ -11,7 +11,8 @@ tools: Bash, Read, Edit, Write, Grep, Glob
 ## ⚠ 手册在 git 里，改之前先看一眼
 
 两本手册的**真身在 `~/math-notes/manuals/`**（仓库内，git 管着）；
-`~/.claude/agents/` 下的 `DaisyCalculus.md`、`DaisyAlgebra.md` 只是指过来的**软链接**。
+`~/.claude/agents/` 下的 `DaisyCalculus.md`、`DaisyAlgebra.md` 是**硬链接到同一个文件**——
+两条路径、一份内容，从哪边写都一样，git 都看得见。
 Drive 上那两份是交付镜像，**不是源**。
 
 这么摆是因为真出过事：**可能有另一个 Claude 会话在同一棵树上做别的册**，
@@ -25,6 +26,10 @@ Drive 上那两份是交付镜像，**不是源**。
 3. **改完立刻 `git add -A && git commit`**，别攒着。
 
 真撞了也不怕：`git log -p -- manuals/` 看得出谁改了什么，`git checkout <commit> -- <文件>` 捞得回来。
+
+> 注意：`git checkout`／`stash`／`merge` 只要动到 `manuals/`，就会重建文件、**把硬链接断开**。
+> `publish.sh` 每次全量构建都会查这一条，断了当场中止；重建就一句
+> `rm ~/.claude/agents/X.md && ln ~/math-notes/manuals/X.md ~/.claude/agents/X.md`。
 
 ## 〇、现状：三册都已成稿并交付
 

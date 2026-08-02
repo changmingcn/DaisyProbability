@@ -25,10 +25,13 @@ patch -p0 < ~/math-notes/.handoff/DaisyCalculus-本会话修改-20260801.patch
 **根因是手册在 git 之外**，谁都能整篇写回而不留痕迹。已经改掉：
 
 - 两本手册的真身移到 **`~/math-notes/manuals/`**（仓库内，git 管着）；
-- `~/.claude/agents/` 下两个同名文件改成**指过来的软链接**——路径不变，
-  你照旧读写 `~/.claude/agents/DaisyCalculus.md` 就行，写穿到仓库里，git 看得见；
+- `~/.claude/agents/` 下两个同名文件改成**硬链接到同一个文件**——路径不变，
+  你照旧读写 `~/.claude/agents/DaisyCalculus.md` 就行，写的就是仓库里那份，git 看得见。
+  （没用软链接：Claude Code 认不认软链的 agent 文件没法在会话里验证，不赌；
+  硬链接就是普通文件，不存在这个问题。）
 - `publish.sh` 改从 `manuals/` 取件，并加了一道 `check_manual_links`：
-  软链要是被谁写成了普通文件，全量构建**当场中止**，不会又一次悄悄分叉。
+  两条路径要是不再是同一个文件（git 重建过 manuals/，或者谁把它换掉了），
+  全量构建**当场中止**，不会又一次悄悄分叉。
 
 **请你照着做三件事**：动手前 `git -C ~/math-notes log --oneline -3` 看一眼；
 改手册**只用 Edit 改局部、不要整篇 Write**；改完立刻 commit。

@@ -18,15 +18,23 @@ set -u
 cd "$(dirname "$0")" || exit 1
 ROOT="$PWD"
 LOGDIR="$ROOT/.build-logs"; mkdir -p "$LOGDIR"
-# 两本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下只是软链接。
+# 两本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下是**硬链接**到同一个文件。
 # 以前手册在 git 之外，两个会话各自整篇写回，覆盖了不留痕迹——收进仓库就看得见了。
+#
+# 为什么用硬链接不用软链接：agents 目录里必须是货真价实的文件，
+# Claude Code 认不认软链接没法在会话里验（agent 列表是启动时缓存的），不赌。
+# 硬链接唯一的破绽是 git 重建文件会断开（checkout / stash / merge 动到 manuals/ 时），
+# 下面这道检查就是为它准备的：断了就中止，别再无声分叉一次。
 AGENTS="$ROOT/manuals"
 check_manual_links() {
-  local n
+  local n a
   for n in DaisyCalculus DaisyAlgebra; do
+    a="$HOME/.claude/agents/$n.md"
     [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
-    [ "$(readlink "$HOME/.claude/agents/$n.md")" = "$AGENTS/$n.md" ] \
-      || die "~/.claude/agents/$n.md 不再指向仓库（被谁写成普通文件了？先合并再重建软链）"
+    [ -e "$a" ] || die "$a 不见了，重建：ln $AGENTS/$n.md $a"
+    [ "$a" -ef "$AGENTS/$n.md" ] || die \
+"$a 和 manuals/$n.md 已经不是同一个文件了（多半是 git 重建过 manuals/）。
+   先 diff 看两边差什么、合并好，再重建硬链：rm $a && ln $AGENTS/$n.md $a"
   done
 }
 RCLONE="$HOME/.local/bin/rclone"
@@ -124,13 +132,27 @@ for v in "${VOLS[@]}"; do
 done
 
 say "推 Drive（九件）"
+
+# 别用 extra=() 数组攒参数：macOS 自带 bash 3.2 在 set -u 下，
+# 展开空数组 "${extra[@]}" 会当成未定义变量直接把脚本打死。
+# 08-01 就是这么崩的：前三件 docx 数组非空所以过了，第四件稿件.md 一到就死，
+# 而且死得比下面 n -eq 9 那道网还早，"只传了 3/9"根本没打印出来。
+push_one() {
+  if [ "$3" = docx ]; then
+    "$RCLONE" copyto "$1" "Gdrive:$2" --drive-root-folder-id="$DRIVE_ID" --drive-import-formats docx
+  else
+    "$RCLONE" copyto "$1" "Gdrive:$2" --drive-root-folder-id="$DRIVE_ID"
+  fi
+}
+
+# 上面那次教训：安全网只挂在正常出口上，是拦不住半路暴毙的。这个 trap 挂在所有出口。
 n=0
+trap '[ "${n:-0}" -gt 0 ] && [ "${n:-0}" -lt 9 ] && echo "
+⚠ 只推上去 $n/9 件，Drive 现在是分叉的 —— 重跑 ./publish.sh --upload 补齐" >&2' EXIT
+
 for it in "${ITEMS[@]}"; do
   IFS='|' read -r src dst kind <<< "$it"
-  extra=()
-  [ "$kind" = "docx" ] && extra=(--drive-import-formats docx)
-  if "$RCLONE" copyto "$src" "Gdrive:$dst" \
-        --drive-root-folder-id="$DRIVE_ID" "${extra[@]}"; then
+  if push_one "$src" "$dst" "$kind"; then
     n=$((n+1)); echo "  ✓ $dst"
   else
     echo "  ✗ $dst"
