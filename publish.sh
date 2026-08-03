@@ -1,8 +1,8 @@
 #!/bin/bash
-# 《数学概念笔记》三册 —— 本机构建与交付管线
+# 《数学概念笔记》四册 —— 本机构建与交付管线
 #
 #   ./publish.sh            重建 + 校验 + 打包（**不碰 Drive**，日常改稿用这个）
-#   ./publish.sh --upload   上面全做完，再把十件一起推到 Drive
+#   ./publish.sh --upload   上面全做完，再把十二件一起推到 Drive
 #   ./publish.sh --vol vol2 只重建校验某一册（不打包、不上传）
 #
 # 权威源是本机 ~/math-notes。Drive 只是交付镜像，改完不必每次都推。
@@ -12,7 +12,7 @@
 #      字数读数漂了 37 个字，白查半小时。
 #   2. 校验不过就不许上传。曾经写成 `verify | grep && 上传`，grep 成功让上传照跑。
 #      这里一律用 if 判真退出码，且上传前重跑一次全量校验。
-#   3. 十件一起推。曾经 Doc 传了、喂 AI 的稿件.md 还是旧的，两边分叉。
+#   3. 十二件一起推。曾经 Doc 传了、喂 AI 的稿件.md 还是旧的，两边分叉。
 
 set -u
 cd "$(dirname "$0")" || exit 1
@@ -74,7 +74,7 @@ DRIVE_ID=1omcMKl3BdXlDWnWOOJnRPdBHuuSmcvkG
 TARBALL="数学概念笔记-构建源码.tar.gz"
 
 # 分册：目录参数 | docx 所在目录 | 稿件后缀
-VOLS=("::上部分" "vol2:vol2:下部分" "vol3:vol3:第三册")
+VOLS=("::上部分" "vol2:vol2:下部分" "vol3:vol3:第三册" "vol4:vol4:第四册")
 
 # ---------- 一册：生成图 → 构建 → 校验（严格串行） ----------
 build_one() {
@@ -99,7 +99,8 @@ if [ "${1:-}" = "--vol" ]; then
     vol1|"") build_one "" "上部分" ;;
     vol2)    build_one vol2 "下部分" ;;
     vol3)    build_one vol3 "第三册" ;;
-    *) die "未知分册 ${2:-}（可用：vol1 vol2 vol3）" ;;
+    vol4)    build_one vol4 "第四册" ;;
+    *) die "未知分册 ${2:-}（可用：vol1 vol2 vol3 vol4）" ;;
   esac
   echo; echo "✓ 单册完成（未打包、未上传）"; exit 0
 fi
@@ -119,14 +120,15 @@ FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        slash_fractions.py verify_docx.py publish.sh export_html.py audit_refs.py
        TITLE content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
-       vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md)
+       vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md
+       vol4/TITLE vol4/figs.py vol4/content/*.md)
 # gzip -n 不能省：tar -czf 会把当前时间写进 gzip 头，同样的源码连打两次哈希都不一样，
 # "Drive 和本机是否一致"就没法用 md5 核对了（两个会话的协作全靠这条核对）。
 # -n 去掉时间戳后，内容不变则字节不变。COPYFILE_DISABLE=1 挡 macOS 的 ._ 附加文件。
 COPYFILE_DISABLE=1 tar -cf - "${FILES[@]}" | gzip -n > "$TARBALL" || die "打包失败"
 echo "  ✓ ${TARBALL}（$(tar -tzf "$TARBALL" | grep -c . ) 项，$(du -h "$TARBALL" | cut -f1)）"
 
-# ---------- 交付清单（当前十件；第四册成稿后变十二件）----------
+# ---------- 交付清单（十二件）----------
 # 2026-08-01 起交付件不再散在 Drive「Claude」根目录，统一收进 Claude/数学概念笔记/ 下的四个子目录。
 # DRIVE_ID 仍是 Claude 文件夹（rclone 的 root 就是它），所以 dst 写成相对路径 数学概念笔记/NN-…/文件名。
 # ⚠ 改这里的目录名，Drive 上就会多出一个新目录、旧的留在原地不动（rclone 按路径认文件，不按 id）——
@@ -139,23 +141,25 @@ ITEMS=(
   "给小学生讲微积分（上）.docx|$D1/给小学生讲微积分（上）.docx|docx"
   "vol2/给小学生讲微积分（下）.docx|$D1/给小学生讲微积分（下）.docx|docx"
   "vol3/给小学生讲线性代数.docx|$D1/给小学生讲线性代数.docx|docx"
+  "vol4/给小学生讲概率论.docx|$D1/给小学生讲概率论.docx|docx"
   "数学概念笔记-上部分-稿件.md|$D2/数学概念笔记-上部分-稿件.md|raw"
   "数学概念笔记-下部分-稿件.md|$D2/数学概念笔记-下部分-稿件.md|raw"
   "数学概念笔记-第三册-稿件.md|$D2/数学概念笔记-第三册-稿件.md|raw"
+  "数学概念笔记-第四册-稿件.md|$D2/数学概念笔记-第四册-稿件.md|raw"
   "$TARBALL|$D4/$TARBALL|raw"
   "$AGENTS/DaisyCalculus.md|$D3/DaisyCalculus.md|raw"
   "$AGENTS/DaisyAlgebra.md|$D3/DaisyAlgebra.md|raw"
   "$AGENTS/DaisyProbability.md|$D3/DaisyProbability.md|raw"
 )
 
-say "十件齐否"
+say "十二件齐否"
 missing=0
 for it in "${ITEMS[@]}"; do
   IFS='|' read -r src _ _ <<< "$it"
   [ -f "$src" ] || { echo "  ✗ 缺 $src"; missing=1; }
 done
-[ $missing -eq 0 ] || die "十件不齐，拒绝上传"
-echo "  ✓ 十件齐（三册 Doc ＋ 三份稿件 ＋ 源码包 ＋ 三本手册）"
+[ $missing -eq 0 ] || die "十二件不齐，拒绝上传"
+echo "  ✓ 十二件齐（四册 Doc ＋ 四份稿件 ＋ 源码包 ＋ 三本手册）"
 
 if [ "${1:-}" != "--upload" ]; then
   echo
@@ -174,12 +178,12 @@ for v in "${VOLS[@]}"; do
   fi
 done
 
-say "推 Drive（十件）"
+say "推 Drive（十二件）"
 
 # 别用 extra=() 数组攒参数：macOS 自带 bash 3.2 在 set -u 下，
 # 展开空数组 "${extra[@]}" 会当成未定义变量直接把脚本打死。
 # 08-01 就是这么崩的：前三件 docx 数组非空所以过了，第四件稿件.md 一到就死，
-# 而且死得比下面 n -eq 10 那道网还早，"只传了 3/10"根本没打印出来。
+# 而且死得比下面 n -eq 12 那道网还早，"只传了 3/12"根本没打印出来。
 push_one() {
   if [ "$3" = docx ]; then
     "$RCLONE" copyto "$1" "Gdrive:$2" --drive-root-folder-id="$DRIVE_ID" --drive-import-formats docx
@@ -190,8 +194,8 @@ push_one() {
 
 # 上面那次教训：安全网只挂在正常出口上，是拦不住半路暴毙的。这个 trap 挂在所有出口。
 n=0
-trap '[ "${n:-0}" -gt 0 ] && [ "${n:-0}" -lt 10 ] && echo "
-⚠ 只推上去 $n/10 件，Drive 现在是分叉的 —— 重跑 ./publish.sh --upload 补齐" >&2' EXIT
+trap '[ "${n:-0}" -gt 0 ] && [ "${n:-0}" -lt 12 ] && echo "
+⚠ 只推上去 $n/12 件，Drive 现在是分叉的 —— 重跑 ./publish.sh --upload 补齐" >&2' EXIT
 
 for it in "${ITEMS[@]}"; do
   IFS='|' read -r src dst kind <<< "$it"
@@ -202,4 +206,4 @@ for it in "${ITEMS[@]}"; do
   fi
 done
 echo
-[ "$n" -eq 10 ] && echo "✓ 十件全部上传" || die "只上传了 $n/10 件 —— Drive 现在是分叉状态，务必补齐"
+[ "$n" -eq 12 ] && echo "✓ 十二件全部上传" || die "只上传了 $n/12 件 —— Drive 现在是分叉状态，务必补齐"

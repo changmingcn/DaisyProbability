@@ -22,7 +22,7 @@ BOOK_TITLE = (open(TITLE_FILE, encoding='utf-8').read().strip()
               if os.path.exists(TITLE_FILE) else DEFAULT_TITLE)
 CONTENT = os.path.join(BOOK, 'content')
 # 按分册映射，不能写死"有参数即下部分"——vol3 曾差点覆盖第二册的稿件
-PART = ({'vol2': '下部分', 'vol3': '第三册'}.get(sys.argv[1], sys.argv[1])
+PART = ({'vol2': '下部分', 'vol3': '第三册', 'vol4': '第四册'}.get(sys.argv[1], sys.argv[1])
         if len(sys.argv) > 1 else '上部分')
 OUT = os.path.join(HERE, '数学概念笔记-%s-稿件.md' % PART)
 
