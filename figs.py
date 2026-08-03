@@ -991,11 +991,48 @@ def fig28():
     save(fig, 'fig-28-three-moves.png')
 
 
+
+# ---------------------------------------------------------------- 29（第三篇）
+def fig29():
+    """半衰期：整数天好算，可钟表照样会走到 √2 天那一刻。"""
+    import math
+    fig, ax = plt.subplots(figsize=(6.6, 3.7))
+    xs = [k / 200 for k in range(0, 601)]
+    ys = [2 ** (-t) for t in xs]
+    ax.plot(xs, ys, color=NAVY, lw=2.0)
+    for d, lab in ((1, '1 天'), (2, '2 天'), (3, '3 天')):
+        v = 2 ** (-d)
+        ax.plot([d, d], [0, v], color=GREY, lw=1.0, ls=(0, (3, 3)))
+        ax.plot([0, d], [v, v], color=GREY, lw=1.0, ls=(0, (3, 3)))
+        ax.plot([d], [v], 'o', ms=6, color=NAVY, zorder=4)
+        ax.text(d, -0.055, lab, ha='center', va='top', fontsize=10, color=NAVY)
+    ax.text(0.06, 0.5, '剩一半', va='bottom', fontsize=9.5, color=GREY)
+    ax.text(0.06, 0.25, '剩四分之一', va='bottom', fontsize=9.5, color=GREY)
+
+    r2 = math.sqrt(2)
+    v2 = 2 ** (-r2)
+    ax.plot([r2, r2], [0, v2], color=ORANGE, lw=1.6)
+    ax.plot([0, r2], [v2, v2], color=ORANGE, lw=1.6, ls=(0, (4, 3)))
+    ax.plot([r2], [v2], 'o', ms=8, color=ORANGE, zorder=5)
+    ax.text(r2 + 0.08, v2 + 0.055, '这一刻也会到', fontsize=10.5, color=ORANGE)
+    ax.text(r2, -0.055, '第 √2 天', ha='center', va='top', fontsize=10, color=ORANGE)
+    ax.text(0.06, v2 + 0.012, '剩 0.375 左右', va='bottom', fontsize=9.5, color=ORANGE)
+
+    ax.set_xlim(-0.08, 3.35); ax.set_ylim(0, 1.06)
+    ax.set_xticks([]); ax.set_yticks([])
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+    ax.spines['left'].set_color(GREY); ax.spines['bottom'].set_color(GREY)
+    ax.text(-0.05, 1.02, '还剩多少', fontsize=10.5, color=NAVY)
+    ax.text(1.7, -0.20, '过了多少天', ha='center', fontsize=10.5, color=NAVY)
+    save(fig, 'fig-29-halflife.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27, fig28):
+              fig26, fig27, fig28, fig29):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
