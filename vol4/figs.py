@@ -669,6 +669,20 @@ assert [match_value(*s) for s in
        [32, 44, 20, 32, 56, 48, 16]
 
 
+# ---------------------------------------------------------------- 36 格上的三块
+# 尾声第一节：同一张 36 格的单子，圈法有多少种、三件事各圈住几格。
+# 正文印的是 6、11、15 三个格数和「六百八十七亿多」种圈法，全由下面这几行卡着。
+DICE = [(r, b) for r in range(1, 7) for b in range(1, 7)]
+BLOCKS = (('两个加起来小于 5', lambda r, b: r + b < 5),
+          ('至少有一个 6', lambda r, b: r == 6 or b == 6),
+          ('红的比蓝的大', lambda r, b: r > b))
+BLOCK_COUNTS = [sum(1 for r, b in DICE if hit(r, b)) for _, hit in BLOCKS]
+assert len(DICE) == 36
+assert BLOCK_COUNTS == [6, 11, 15], BLOCK_COUNTS
+WAYS = 2 ** 36                       # 每格可圈可不圈
+assert WAYS == 68719476736, WAYS     # 正文说的「六百八十七亿多」
+
+
 # ---------------------------------------------------------------- p14
 def fig_p14():
     """造点的机器：正面留左半、反面留右半，剩下的段一半一半地短下去。"""
@@ -790,12 +804,47 @@ def fig_p16():
     save(fig, 'fig-p16-split-fair.png')
 
 
+# ---------------------------------------------------------------- p17
+def fig_p17():
+    """同一张 36 格的单子，圈出三件不同的事——圈法换了，数格子的办法没换。"""
+    from matplotlib.patches import Rectangle
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 4.0))
+    for k, (ax, (name, hit), n) in enumerate(zip(axes, BLOCKS, BLOCK_COUNTS)):
+        for r in range(6):
+            for b in range(6):
+                on = hit(r + 1, b + 1)
+                ax.add_patch(Rectangle((b, 5 - r), 1, 1,
+                                       facecolor=BAND if on else 'white',
+                                       edgecolor=GREY, lw=0.7))
+        for i in range(6):
+            ax.text(i + 0.5, 6.14, str(i + 1), ha='center', fontsize=8.5,
+                    color=GREY)
+            ax.text(-0.18, 5 - i + 0.5, str(i + 1), ha='right', va='center',
+                    fontsize=8.5, color=GREY)
+        if k == 0:
+            ax.text(3, 6.78, '蓝骰子', ha='center', fontsize=9.5, color=GREY)
+            ax.text(-1.0, 3, '红\n骰\n子', ha='center', va='center',
+                    fontsize=9.5, color=GREY, linespacing=1.35)
+        ax.text(3, 7.72, name, ha='center', fontsize=12, color=NAVY)
+        ax.text(3, -0.62, '圈住 ' + str(n) + ' 格', ha='center', fontsize=11.5,
+                color=ORANGE)
+        ax.set_xlim(-1.35, 6.3)
+        ax.set_ylim(-1.2, 8.2)
+        ax.set_aspect('equal')
+        ax.axis('off')
+    fig.text(0.5, 0.02, '同一张单子，圈法多到数不过来 —— 每一种圈法，'
+                        '都是一个答得出来的问题',
+             ha='center', fontsize=11.5, color=NAVY)
+    save(fig, 'fig-p17-three-blocks.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     print('  30 次：', THIRTY, ' 一万次：', TEN_K, ' 分金重打 40 遍：', SPLIT40)
     print('  翻倍下注 200 回合：赔光', DBL_CRASHES, '回，净', DBL_PATH[-1])
+    print('  36 格上三块：', BLOCK_COUNTS, ' 圈法：', WAYS)
     for f in (fig_p00, fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
               fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13,
-              fig_p14, fig_p15, fig_p16):
+              fig_p14, fig_p15, fig_p16, fig_p17):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
