@@ -90,6 +90,15 @@ build_one() {
     grep -E "FAIL" "$LOGDIR/verify-${dir:-vol1}.log"
     die "${dir:-vol1} 校验未通过 —— 完整日志 $LOGDIR/verify-${dir:-vol1}.log"
   fi
+  # 节号对账：`第X篇第Y节` 指到的那一节，真的在讲被引的那个词吗？
+  # （2026-08-03 加。起因：第四篇 C7 把"第三篇第六节的上确界"写成了第五节，
+  #   audit_refs 抓不到——它只查引号里的承诺，那个词是加粗的。）
+  local sv="${dir:-vol1}"
+  if ! python3 audit_sections.py --vol "$sv" > "$LOGDIR/sections-$sv.log" 2>&1; then
+    grep -E "^\s*\[S" "$LOGDIR/sections-$sv.log"
+    die "$sv 节号对账未通过 —— 完整日志 $LOGDIR/sections-$sv.log"
+  fi
+  echo "  ✓ $sv 节号对账通过（$(sed -n '1s/.*：\([0-9]*\) 处.*/\1/p' "$LOGDIR/sections-$sv.log") 处引用）"
   python3 export_manuscript.py $dir >/dev/null || die "${dir:-vol1} 稿件导出失败"
 }
 
@@ -118,6 +127,7 @@ say "打包源码"
 #   包照样"成功"、件数照样对得上，交付出去的源码包却缺工具（打包不会因为漏文件而报错）。
 FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        slash_fractions.py verify_docx.py publish.sh export_html.py audit_refs.py
+       audit_sections.py
        TITLE content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
        vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md
