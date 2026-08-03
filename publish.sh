@@ -128,6 +128,7 @@ say "打包源码"
 FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        slash_fractions.py verify_docx.py publish.sh export_html.py audit_refs.py
        audit_sections.py
+       CLAUDE.md 并发会话必读.md README.md
        TITLE content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
        vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md
