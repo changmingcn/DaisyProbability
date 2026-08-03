@@ -624,10 +624,178 @@ def fig_p13():
 
     save(fig, 'fig-p13-three-answers.png')
 
+# ================================================================ 尾声
+def double_bet_run(rounds, seed):
+    """翻倍下注，口袋 7 块（最多押 1、2、4 三把）：赢一把收手赚 1，三连输赔 7。
+
+    返回每回合结束后的累计净赚（开头补一个 0），和赔光的回合数。
+    """
+    rng = random.Random(seed)
+    net, path, crashes = 0, [0], 0
+    for _ in range(rounds):
+        won = False
+        for _bet in (1, 2, 4):
+            if rng.random() < 0.5:
+                won = True
+                break
+        if won:
+            net += 1
+        else:
+            net -= 7
+            crashes += 1
+        path.append(net)
+    return path, crashes
+
+
+DBL_PATH, DBL_CRASHES = double_bet_run(200, 8)   # 种子定在 8，没有挑：跑出净赔就印净赔
+# 尾声正文印着这四个数：171 回赚 1、29 回赔 7、最后净赔 32、路上最高赚到 40
+assert DBL_CRASHES == 29, DBL_CRASHES
+assert DBL_PATH[-1] == -32, DBL_PATH[-1]
+assert (min(DBL_PATH), max(DBL_PATH)) == (-44, 40), (min(DBL_PATH), max(DBL_PATH))
+
+
+def match_value(a, b):
+    """分金：比分 a 比 b（先到 3 分、每局各半、赌注 64）时这个局面值多少。"""
+    if a >= 3:
+        return 64
+    if b >= 3:
+        return 0
+    return (match_value(a + 1, b) + match_value(a, b + 1)) / 2
+
+
+# 尾声那张树印着这些价：0比0=32、1比0=44、0比1=20、1比1=32、2比0=56、2比1=48、1比2=16
+assert [match_value(*s) for s in
+        ((0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (2, 1), (1, 2))] == \
+       [32, 44, 20, 32, 56, 48, 16]
+
+
+# ---------------------------------------------------------------- p14
+def fig_p14():
+    """造点的机器：正面留左半、反面留右半，剩下的段一半一半地短下去。"""
+    fig, ax = plt.subplots(figsize=(7.4, 4.4))
+    segs = ((0.0, 1.0, '开始', '1 米'),
+            (0.0, 0.5, '第一次：正——留左半', '50 厘米'),
+            (0.25, 0.5, '第二次：反——留右半', '25 厘米'),
+            (0.25, 0.375, '第三次：正——留左半', '12.5 厘米'),
+            (0.3125, 0.375, '第四次：反——留右半', '6.25 厘米'))
+    for k, (a, b, lab, ln) in enumerate(segs):
+        y = 4.4 - k
+        ax.plot([0, 1], [y, y], color=GREY, lw=1.2, ls=(0, (2, 3)))
+        ax.plot([a, b], [y, y], color=GREEN if k else NAVY, lw=5.0,
+                solid_capstyle='butt')
+        for e in (a, b):
+            ax.plot([e, e], [y - 0.09, y + 0.09],
+                    color=GREEN if k else NAVY, lw=1.6)
+        ax.text(-0.04, y, lab, ha='right', va='center', fontsize=10.5,
+                color=NAVY if k == 0 else GREEN)
+        ax.text(1.04, y, ln, ha='left', va='center', fontsize=10, color=GREY)
+    ax.text(-0.04, -0.6, '……一直抛下去', ha='right', va='center',
+            fontsize=10.5, color=GREY)
+    ax.plot([1 / 3], [-0.6], 'o', ms=8, color=ORANGE, zorder=4)
+    ax.annotate('最后只剩一个点', xy=(1 / 3, -0.6), xytext=(0.62, -0.6),
+                ha='left', va='center', fontsize=10.5, color=ORANGE,
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.2))
+    ax.text(0.5, -1.45, '剩下的段：要多短有多短 —— 零件全是互不影响的硬币',
+            ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-1.45, 1.55); ax.set_ylim(-1.8, 4.9)
+    ax.axis('off')
+    save(fig, 'fig-p14-rope-halving.png')
+
+
+# ---------------------------------------------------------------- p15
+def fig_p15():
+    """翻倍下注 200 回合的账：缓坡一块一块赚，悬崖一把赔 7。"""
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    ax.plot(range(len(DBL_PATH)), DBL_PATH, color=NAVY, lw=1.5)
+    ax.axhline(0, color=ORANGE, lw=1.4, ls=(0, (5, 3)))
+    top = max(DBL_PATH)
+    k_top = DBL_PATH.index(top)
+    ax.plot([k_top], [top], 'o', ms=6, color=GREEN, zorder=4)
+    ax.annotate('一度赚到 40', xy=(k_top, top), xytext=(k_top - 52, top + 9),
+                fontsize=10, color=GREEN,
+                arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=1.1))
+    ax.plot([200], [DBL_PATH[-1]], 'o', ms=6, color=RED, zorder=4)
+    ax.annotate('200 回合后：赔 32', xy=(200, DBL_PATH[-1]),
+                xytext=(132, DBL_PATH[-1] - 13), fontsize=10, color=RED,
+                arrowprops=dict(arrowstyle='-|>', color=RED, lw=1.1))
+    ax.set_yticks([-40, -20, 0, 20, 40])
+    ax.set_yticklabels(['赔 40', '赔 20', '0', '赚 20', '赚 40'],
+                       fontsize=9.5, color=GREY)
+    ax.set_xticks([0, 50, 100, 150, 200])
+    ax.tick_params(axis='x', labelsize=9.5, colors=GREY)
+    ax.text(4, 46, '口袋里的总账', fontsize=10.5, color=NAVY)
+    ax.text(100, -66, '玩了多少回合', ha='center', fontsize=10.5, color=NAVY)
+    ax.set_xlim(0, 232); ax.set_ylim(-56, 54)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+    ax.spines['left'].set_color(GREY); ax.spines['bottom'].set_color(GREY)
+    save(fig, 'fig-p15-double-bet.png')
+
+
+# ---------------------------------------------------------------- p16
+def fig_p16():
+    """分金价钱的树：每个局面的价 ＝ 下一局两种明天的平均。"""
+    from matplotlib.patches import Rectangle
+
+    fig, ax = plt.subplots(figsize=(8.0, 4.6))
+
+    def node(cx, cy, score, val, on_path):
+        w, h = 1.24, 0.86
+        ax.add_patch(Rectangle((cx - w / 2, cy - h / 2), w, h,
+                               facecolor=LIGHT if on_path else 'white',
+                               edgecolor=NAVY if on_path else GREY,
+                               lw=1.5 if on_path else 1.1))
+        col = NAVY if on_path else GREY
+        ax.text(cx, cy + 0.17, score, ha='center', va='center',
+                fontsize=11 if on_path else 10, color=col)
+        ax.text(cx, cy - 0.21, '值 %d' % val, ha='center', va='center',
+                fontsize=10 if on_path else 9.5, color=ORANGE if on_path else GREY)
+
+    def arrow(x0, y0, x1, y1, mark, strong):
+        ax.annotate('', xy=(x1, y1), xytext=(x0, y0),
+                    arrowprops=dict(arrowstyle='-|>',
+                                    color=NAVY if strong else GREY,
+                                    lw=1.5 if strong else 1.0))
+        ax.text((x0 + x1) / 2 - 0.1, (y0 + y1) / 2 + 0.18, mark,
+                ha='center', fontsize=10, color=ORANGE if strong else GREY)
+
+    P = ((0.0, 1.6), (1.9, 2.6), (3.8, 1.6), (5.7, 2.6))       # 路径上的四个局面
+    node(*P[0], '0 比 0', 32, True)
+    node(*P[1], '1 比 0', 44, True)
+    node(*P[2], '1 比 1', 32, True)
+    node(*P[3], '2 比 1', 48, True)
+    node(1.9, 0.5, '0 比 1', 20, False)
+    node(3.8, 3.7, '2 比 0', 56, False)
+    node(5.7, 0.5, '1 比 2', 16, False)
+    node(7.6, 3.7, '姐姐 3 分', 64, False)
+    node(7.6, 1.6, '2 比 2', 32, False)
+
+    arrow(0.66, 1.85, 1.24, 2.42, '正', True)
+    arrow(0.66, 1.35, 1.24, 0.72, '反', False)
+    arrow(2.56, 2.85, 3.14, 3.48, '正', False)
+    arrow(2.56, 2.35, 3.14, 1.82, '反', True)
+    arrow(4.46, 1.85, 5.04, 2.42, '正', True)
+    arrow(4.46, 1.35, 5.04, 0.72, '反', False)
+    arrow(6.36, 2.85, 6.94, 3.48, '正', False)
+    arrow(6.36, 2.35, 6.94, 1.82, '反', False)
+
+    ax.annotate('妈妈在这儿喊停\n按 48 分钱', xy=(5.7, 3.05), xytext=(4.55, 4.35),
+                ha='center', fontsize=9.5, color=RED, linespacing=1.5,
+                arrowprops=dict(arrowstyle='-|>', color=RED, lw=1.0,
+                                ls=(0, (3, 3))))
+    ax.text(3.8, -0.55, '每个价都是两种明天的平均：56 和 32 平均是 44，48 和 16 平均是 32，64 和 32 平均是 48',
+            ha='center', fontsize=10.5, color=NAVY)
+    ax.set_xlim(-0.85, 8.55); ax.set_ylim(-1.0, 5.0)
+    ax.axis('off')
+    save(fig, 'fig-p16-split-fair.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     print('  30 次：', THIRTY, ' 一万次：', TEN_K, ' 分金重打 40 遍：', SPLIT40)
+    print('  翻倍下注 200 回合：赔光', DBL_CRASHES, '回，净', DBL_PATH[-1])
     for f in (fig_p00, fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
-              fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13):
+              fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13,
+              fig_p14, fig_p15, fig_p16):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
