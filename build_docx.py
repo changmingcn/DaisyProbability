@@ -256,8 +256,10 @@ def add_rich(par, text, size=11, color=BLACK, bold_all=False):
             r = par.add_run(piece); style_run(r, size, bold_all, color)
 
 
+# 行距（2026-08-03 用户说"略微减少一点"，整档下调：正文 1.5→1.4、
+# 盒子正文与列表 1.45→1.38、盒子标题 1.3→1.25、表格 1.25→1.2）
 def para(doc, text='', size=11, color=BLACK, space_after=8, space_before=0,
-         align=None, indent=0, line=1.5, bold_all=False):
+         align=None, indent=0, line=1.4, bold_all=False):
     p = doc.add_paragraph()
     pf = p.paragraph_format
     pf.space_after = Pt(space_after)
@@ -326,12 +328,12 @@ def box(doc, kind, title, body_lines):
         p = cell.add_paragraph()
         p.paragraph_format.space_after = Pt(3)
         p.paragraph_format.space_before = Pt(6)
-        p.paragraph_format.line_spacing = 1.3
+        p.paragraph_format.line_spacing = 1.25
         add_rich(p, title, 11, color, bold_all=True)
     for i, line in enumerate(body_lines):
         p = cell.add_paragraph()
         p.paragraph_format.space_after = Pt(6 if i == len(body_lines) - 1 else 3)
-        p.paragraph_format.line_spacing = 1.45
+        p.paragraph_format.line_spacing = 1.38
         add_rich(p, line, 10.5, BLACK)
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
@@ -352,7 +354,7 @@ def table(doc, rows):
             c = tbl.cell(i, j)
             c.paragraphs[0].paragraph_format.space_after = Pt(2)
             c.paragraphs[0].paragraph_format.space_before = Pt(2)
-            c.paragraphs[0].paragraph_format.line_spacing = 1.25
+            c.paragraphs[0].paragraph_format.line_spacing = 1.2
             add_rich(c.paragraphs[0], txt, 10, BLACK)
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
@@ -360,7 +362,7 @@ def table(doc, rows):
 def bullet(doc, text):
     p = doc.add_paragraph(style='List Bullet')
     p.paragraph_format.space_after = Pt(4)
-    p.paragraph_format.line_spacing = 1.45
+    p.paragraph_format.line_spacing = 1.38
     add_rich(p, text, 11, BLACK)
 
 
