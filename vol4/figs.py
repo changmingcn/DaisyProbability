@@ -112,6 +112,82 @@ assert COIN_MARKS == {10: 7, 100: 54, 1000: 537, 10000: 5030, 100000: 50039}, CO
 assert [round(GAPS[m], 1) for m in (10, 100, 1000, 10000)] == [2.6, 8.3, 26.5, 72.1], GAPS
 
 
+# ---------------------------------------------------------------- 分金问题
+def replay_match(rounds, seed):
+    """从 2 比 1 开始，把剩下的局打完，重复若干遍，数姐姐赢了几遍。"""
+    rng = random.Random(seed)
+    won = 0
+    for _ in range(rounds):
+        a, b = 2, 1
+        while a < 3 and b < 3:
+            if rng.random() < 0.5:
+                a += 1
+            else:
+                b += 1
+        won += a == 3
+    return won
+
+
+SPLIT40 = replay_match(40, 4)      # 4 ＝ 第四册；没有挑种子
+assert SPLIT40 == 31, SPLIT40      # 开篇正文印的就是它
+
+
+# ---------------------------------------------------------------- p00
+def fig_p00():
+    """分金：把没打完的两局补完，四条路，姐姐赢三条。
+
+    两组分叉之间要留出空档，好让"这一局其实不会打"那句注解有地方站，
+    并且用一条虚线牵到它说的那支箭头上——第一版它悬在中间，指向不明。
+    """
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(7.6, 4.2))
+    ROOT_Y, UP_Y, DN_Y = 1.45, 2.45, 0.60
+    LEAF = (2.80, 2.10, 1.10, 0.10)
+
+    ax.add_patch(Rectangle((-0.05, ROOT_Y - 0.31), 1.05, 0.62, facecolor=LIGHT,
+                           edgecolor=NAVY, lw=1.4))
+    ax.text(0.475, ROOT_Y, '2 比 1', ha='center', va='center', fontsize=13, color=NAVY)
+
+    for y, mark in ((UP_Y, '正'), (DN_Y, '反')):
+        ax.annotate('', xy=(2.32, y), xytext=(1.05, ROOT_Y),
+                    arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.3))
+        ax.text(1.62, (ROOT_Y + y) / 2 + 0.16, mark, ha='center',
+                fontsize=11.5, color=ORANGE)
+
+    plan = ((LEAF[0], UP_Y, '正', '姐姐', False, False),
+            (LEAF[1], UP_Y, '反', '姐姐', False, True),
+            (LEAF[2], DN_Y, '正', '姐姐', False, False),
+            (LEAF[3], DN_Y, '反', '妹妹', True, False))
+    for y, ytop, mark, who, is_b, dashed in plan:
+        ax.annotate('', xy=(4.42, y), xytext=(2.42, ytop),
+                    arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.3,
+                                    ls='--' if dashed else '-'))
+        ax.text(3.4, (ytop + y) / 2 + 0.15, mark, ha='center', fontsize=11.5,
+                color=ORANGE)
+        ax.add_patch(Rectangle((4.5, y - 0.31), 1.5, 0.62,
+                               facecolor=BAND if is_b else LIGHT,
+                               edgecolor=RED if is_b else NAVY, lw=1.4))
+        ax.text(5.25, y, who + '拿走', ha='center', va='center', fontsize=12,
+                color=RED if is_b else NAVY)
+
+    ax.text(6.22, (LEAF[0] + LEAF[2]) / 2, '姐姐赢' + chr(10) + '三条',
+            ha='left', va='center', fontsize=11, color=NAVY, linespacing=1.5)
+    ax.text(6.22, LEAF[3], '妹妹赢' + chr(10) + '一条', ha='left', va='center',
+            fontsize=11, color=RED, linespacing=1.5)
+
+    ax.annotate('这一局其实不会打' + chr(10) + '（姐姐已经够 3 分了）',
+                xy=(3.75, (UP_Y + LEAF[1]) / 2 - 0.03), xytext=(3.15, 1.42),
+                ha='center', va='center', fontsize=9.5, color=GREY,
+                linespacing=1.5,
+                arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.0,
+                                ls=(0, (3, 3))))
+    ax.text(3.3, -0.55, '把两局都补满，四条路才一样可能', ha='center',
+            fontsize=11.5, color=NAVY)
+    ax.set_xlim(-0.4, 7.7); ax.set_ylim(-1.0, 3.35)
+    ax.axis('off')
+    save(fig, 'fig-p00-split.png')
+
+
 # ---------------------------------------------------------------- p01
 def fig_p01():
     """弦是什么、内接正三角形是什么、什么叫"比它长"。"""
@@ -550,8 +626,8 @@ def fig_p13():
 
 if __name__ == '__main__':
     print('generating figures ->', OUT)
-    print('  30 次：', THIRTY, ' 一万次：', TEN_K)
-    for f in (fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
+    print('  30 次：', THIRTY, ' 一万次：', TEN_K, ' 分金重打 40 遍：', SPLIT40)
+    for f in (fig_p00, fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
               fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
