@@ -293,7 +293,7 @@ def main():
     content, figdir = os.path.join(book, 'content'), os.path.join(book, 'figs')
     tpath = os.path.join(book, 'TITLE')
     booktitle = (open(tpath, encoding='utf-8').read().strip()
-                 if os.path.exists(tpath) else '不能做完无穷，怎么谈论无穷')
+                 if os.path.exists(tpath) else '给小学生讲微积分（上）')
 
     if a.file:
         files = [os.path.join(content, os.path.basename(a.file))]

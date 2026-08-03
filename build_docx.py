@@ -34,7 +34,7 @@ FIGDIR = os.path.join(BOOK, 'figs')
 FRACDIR = os.path.join(BOOK, 'figs', 'frac')
 CONTENT = os.path.join(BOOK, 'content')
 TITLE = (open(os.path.join(BOOK, 'TITLE'), encoding='utf-8').read().strip()
-         if os.path.exists(os.path.join(BOOK, 'TITLE')) else '不能做完无穷，怎么谈论无穷')
+         if os.path.exists(os.path.join(BOOK, 'TITLE')) else '给小学生讲微积分（上）')
 OUTPUT = os.path.join(BOOK, TITLE + '.docx')
 
 # 行内分数图片的总高 = 字号 × 这个倍数。分数是上下两层，本来就比一行字高。

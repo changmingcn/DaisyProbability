@@ -17,7 +17,7 @@ import glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 BOOK = os.path.join(HERE, sys.argv[1]) if len(sys.argv) > 1 else HERE
 TITLE_FILE = os.path.join(BOOK, 'TITLE')
-DEFAULT_TITLE = '不能做完无穷，怎么谈论无穷'
+DEFAULT_TITLE = '给小学生讲微积分（上）'
 BOOK_TITLE = (open(TITLE_FILE, encoding='utf-8').read().strip()
               if os.path.exists(TITLE_FILE) else DEFAULT_TITLE)
 CONTENT = os.path.join(BOOK, 'content')

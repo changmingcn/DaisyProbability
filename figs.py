@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成《不能做完无穷，怎么谈论无穷》全部插图。
+"""生成《给小学生讲微积分（上）》全部插图。
 
 约定：中文标签用 Hiragino Sans GB；数学符号一律走 mathtext（DejaVu），
 两者绝不混在同一个字符串里 —— Hiragino 缺下标/上标/分数字形。

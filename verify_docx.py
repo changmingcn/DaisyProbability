@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # 第二个参数指定分册目录（默认当前册）；两册共用同一套管线
 BOOK = os.path.join(HERE, sys.argv[1]) if len(sys.argv) > 1 else HERE
 TITLE = (open(os.path.join(BOOK, 'TITLE'), encoding='utf-8').read().strip()
-        if os.path.exists(os.path.join(BOOK, 'TITLE')) else '不能做完无穷，怎么谈论无穷')
+        if os.path.exists(os.path.join(BOOK, 'TITLE')) else '给小学生讲微积分（上）')
 DOCX = os.path.join(BOOK, TITLE + '.docx')
 CONTENT = os.path.join(BOOK, 'content')
 FIGDIR = os.path.join(BOOK, 'figs')

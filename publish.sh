@@ -117,7 +117,7 @@ say "打包源码"
 #   包照样"成功"、件数照样对得上，交付出去的源码包却缺工具（打包不会因为漏文件而报错）。
 FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        slash_fractions.py verify_docx.py publish.sh export_html.py audit_refs.py
-       content/*.md
+       TITLE content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
        vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md)
 # gzip -n 不能省：tar -czf 会把当前时间写进 gzip 头，同样的源码连打两次哈希都不一样，
@@ -136,8 +136,8 @@ D2=数学概念笔记/02-三份稿件
 D3=数学概念笔记/03-交接手册
 D4=数学概念笔记/04-构建源码
 ITEMS=(
-  "不能做完无穷，怎么谈论无穷.docx|$D1/不能做完无穷，怎么谈论无穷.docx|docx"
-  "vol2/变化有多快，面积有多大.docx|$D1/变化有多快，面积有多大.docx|docx"
+  "给小学生讲微积分（上）.docx|$D1/给小学生讲微积分（上）.docx|docx"
+  "vol2/给小学生讲微积分（下）.docx|$D1/给小学生讲微积分（下）.docx|docx"
   "vol3/给小学生讲线性代数.docx|$D1/给小学生讲线性代数.docx|docx"
   "数学概念笔记-上部分-稿件.md|$D2/数学概念笔记-上部分-稿件.md|raw"
   "数学概念笔记-下部分-稿件.md|$D2/数学概念笔记-下部分-稿件.md|raw"

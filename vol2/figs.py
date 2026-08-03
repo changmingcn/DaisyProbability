@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""《变化有多快，面积有多大》插图。
+"""《给小学生讲微积分（下）》插图。
 
 约定同第一册：中文用 Hiragino Sans GB，数学走 mathtext，两者绝不混在同一个字符串里。
 """
