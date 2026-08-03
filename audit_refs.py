@@ -28,9 +28,9 @@ import argparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CN = '一二三四五六七八九十'
-VOLS = [('vol1', ''), ('vol2', 'vol2'), ('vol3', 'vol3')]
-VOLNAME = {'vol1': '第一册', 'vol2': '第二册', 'vol3': '第三册'}
-NAME2VOL = {'第一册': 'vol1', '第二册': 'vol2', '第三册': 'vol3'}
+VOLS = [('vol1', ''), ('vol2', 'vol2'), ('vol3', 'vol3'), ('vol4', 'vol4')]
+VOLNAME = {'vol1': '第一册', 'vol2': '第二册', 'vol3': '第三册', 'vol4': '第四册'}
+NAME2VOL = {'第一册': 'vol1', '第二册': 'vol2', '第三册': 'vol3', '第四册': 'vol4'}
 
 
 def norm(s):
@@ -137,7 +137,7 @@ def locate(tok, vol, chap, sec, srcvol, srcchap, srcline):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--vol', help='只查一册：vol1/vol2/vol3')
+    ap.add_argument('--vol', help='只查一册：vol1/vol2/vol3/vol4')
     ap.add_argument('--all', action='store_true', help='连 ok 的也打印')
     a = ap.parse_args()
 

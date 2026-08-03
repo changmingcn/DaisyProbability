@@ -75,6 +75,43 @@ assert THIRTY == [13, 18, 7], THIRTY
 assert TEN_K == [3143, 4972, 2484], TEN_K
 
 
+# ---------------------------------------------------------------- 抛硬币的记录
+def coin_run(n, seed):
+    """抛 n 次硬币，返回每一步的"正面比例"和几个checkpoint的正面数。"""
+    rng = random.Random(seed)
+    heads = 0
+    steps, freq, marks = [], [], {}
+    for i in range(1, n + 1):
+        heads += rng.random() < 0.5
+        if i >= 8:
+            steps.append(i)
+            freq.append(heads / i)
+        if i in (10, 100, 1000, 10000, 100000):
+            marks[i] = heads
+    return steps, freq, marks
+
+
+def gap_average(runs, seed):
+    """把"抛 n 次"重做很多遍，看"正面比反面多几个"平均有多大。"""
+    rng = random.Random(seed)
+    marks = (10, 100, 1000, 10000)
+    acc = {m: 0 for m in marks}
+    for _ in range(runs):
+        h = 0
+        for i in range(1, 10001):
+            h += rng.random() < 0.5
+            if i in acc:
+                acc[i] += abs(2 * h - i)
+    return {m: acc[m] / runs for m in marks}
+
+
+COIN_STEPS, COIN_FREQ, COIN_MARKS = coin_run(100000, 7)
+GAPS = gap_average(200, 21)
+# 第七篇那两张表印的就是这些数
+assert COIN_MARKS == {10: 7, 100: 54, 1000: 537, 10000: 5030, 100000: 50039}, COIN_MARKS
+assert [round(GAPS[m], 1) for m in (10, 100, 1000, 10000)] == [2.6, 8.3, 26.5, 72.1], GAPS
+
+
 # ---------------------------------------------------------------- p01
 def fig_p01():
     """弦是什么、内接正三角形是什么、什么叫"比它长"。"""
@@ -204,9 +241,317 @@ def fig_p03():
     save(fig, 'fig-p03-three-answers.png')
 
 
+
+# ================================================================ 正文插图
+def _grid(ax, nx, ny, x0=0.0, y0=0.0, w=1.0, h=1.0, color=GREY, lw=1.0):
+    for i in range(nx + 1):
+        ax.plot([x0 + i * w, x0 + i * w], [y0, y0 + ny * h], color=color, lw=lw)
+    for j in range(ny + 1):
+        ax.plot([x0, x0 + nx * w], [y0 + j * h, y0 + j * h], color=color, lw=lw)
+
+
+# ---------------------------------------------------------------- p04
+def fig_p04():
+    """你早就会算的三样：转盘（角度）、飞镖靶（面积）、地板砖（份数）。"""
+    from matplotlib.patches import Wedge, Rectangle
+    fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.6))
+
+    ax = axs[0]
+    for k in range(6):
+        ax.add_patch(Wedge((0, 0), 1, k * 60, (k + 1) * 60,
+                           facecolor=BAND if k < 3 else 'white',
+                           edgecolor=NAVY, lw=1.3))
+    ax.text(0, -1.42, '六格里三格红', ha='center', fontsize=10.5, color=NAVY)
+    ax.text(0, 1.22, '转盘：比角度', ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-1.3, 1.3); ax.set_ylim(-1.6, 1.45)
+
+    ax = axs[1]
+    ax.add_patch(Circle((0, 0), 1, facecolor='white', edgecolor=NAVY, lw=1.5))
+    ax.add_patch(Circle((0, 0), 0.5, facecolor=BAND, edgecolor=ORANGE, lw=1.5))
+    ax.annotate('', xy=(0.5, 0), xytext=(0, 0),
+                arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.2))
+    ax.text(0.25, 0.09, '一半', ha='center', fontsize=9.5, color=ORANGE)
+    ax.text(0, -1.42, '小圆面积是四分之一', ha='center', fontsize=10.5, color=NAVY)
+    ax.text(0, 1.22, '飞镖靶：比面积', ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-1.3, 1.3); ax.set_ylim(-1.6, 1.45)
+
+    ax = axs[2]
+    flower = {(1, 1), (3, 2), (6, 0), (8, 4), (2, 6), (5, 7), (9, 8), (0, 9), (7, 5)}
+    for i in range(10):
+        for j in range(10):
+            ax.add_patch(Rectangle((i, j), 1, 1,
+                                   facecolor=BAND if (i, j) in flower else 'white',
+                                   edgecolor=GREY, lw=0.6))
+    ax.text(5, -1.5, '一百块里九块花砖', ha='center', fontsize=10.5, color=NAVY)
+    ax.text(5, 11.0, '地板砖：比份数', ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-1.2, 11.2); ax.set_ylim(-2.6, 11.9)
+
+    for ax in axs:
+        ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p04-what-you-know.png')
+
+
+# ---------------------------------------------------------------- p05
+def fig_p05():
+    """两枚硬币：四格，不是三项。"""
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(5.2, 4.0))
+    cells = [(0, 1, '正 正'), (1, 1, '正 反'), (0, 0, '反 正'), (1, 0, '反 反')]
+    for i, j, lab in cells:
+        mid = lab in ('正 反', '反 正')
+        ax.add_patch(Rectangle((i, j), 1, 1, facecolor=BAND if mid else 'white',
+                               edgecolor=NAVY, lw=1.4))
+        ax.text(i + 0.5, j + 0.52, lab, ha='center', va='center',
+                fontsize=13, color=NAVY)
+    ax.text(-0.12, 1.5, '一角\n正', ha='right', va='center', fontsize=10,
+            color=GREY, linespacing=1.5)
+    ax.text(-0.12, 0.5, '一角\n反', ha='right', va='center', fontsize=10,
+            color=GREY, linespacing=1.5)
+    ax.text(0.5, 2.1, '五角正', ha='center', fontsize=10, color=GREY)
+    ax.text(1.5, 2.1, '五角反', ha='center', fontsize=10, color=GREY)
+    ax.text(1.0, -0.42, '涂色的两格，合起来才是"一正一反"',
+            ha='center', fontsize=10.5, color=ORANGE)
+    ax.set_xlim(-1.15, 2.2); ax.set_ylim(-0.85, 2.45)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p05-two-coins.png')
+
+
+# ---------------------------------------------------------------- p06
+def fig_p06():
+    """一件事＝在结果单上挑出几项。左边两件事不重叠，右边重叠了。
+
+    别用一个椭圆去"圈住"不连续的几项（偶数是 2、4、6，一椭圆下去把 3、5 也
+    圈进来了，08-02 看图抓到）——逐项画标记才不会说谎。
+    """
+    from matplotlib.patches import Rectangle
+    fig, axs = plt.subplots(1, 2, figsize=(9.2, 3.2))
+    plans = ((axs[0], (5, 6), (1,), '不重叠：可以直接相加', '大于 4', '等于 1', ()),
+             (axs[1], (2, 4, 6), (4, 5, 6), '重叠了：4 和 6 被数了两遍',
+              '是偶数', '大于 3', (4, 6)))
+    for ax, ga, gb, title, la, lb, dup in plans:
+        for k in range(1, 7):
+            ax.text(k, 0, str(k), ha='center', va='center', fontsize=15, color=NAVY)
+        for k in ga:
+            ax.add_patch(Rectangle((k - 0.32, -0.62), 0.64, 0.16,
+                                   facecolor=GREEN, edgecolor='none'))
+        for k in gb:
+            ax.add_patch(Rectangle((k - 0.32, 0.46), 0.64, 0.16,
+                                   facecolor=ORANGE, edgecolor='none'))
+        ax.text(0.35, -0.54, la, ha='right', va='center', fontsize=10.5, color=GREEN)
+        ax.text(0.35, 0.54, lb, ha='right', va='center', fontsize=10.5, color=ORANGE)
+        for k in dup:
+            ax.plot([k], [0], 'o', ms=30, mfc='none', mec=RED, mew=1.8)
+        ax.text(3.2, -1.25, title, ha='center', fontsize=11,
+                color=RED if dup else NAVY)
+        ax.set_xlim(-2.2, 6.9); ax.set_ylim(-1.55, 1.0)
+        ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p06-events.png')
+
+
+# ---------------------------------------------------------------- p07
+def fig_p07():
+    """两个骰子的 36 格，按和分堆——每堆格数根本不一样。"""
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(5.8, 5.4))
+    for r in range(6):
+        for b in range(6):
+            s = r + b + 2
+            shade = BAND if s == 7 else (LIGHT if s == 2 else 'white')
+            ax.add_patch(Rectangle((b, 5 - r), 1, 1, facecolor=shade,
+                                   edgecolor=GREY, lw=0.8))
+            ax.text(b + 0.5, 5 - r + 0.5, str(s), ha='center', va='center',
+                    fontsize=11, color=NAVY)
+    for k in range(6):
+        ax.text(k + 0.5, 6.18, str(k + 1), ha='center', fontsize=11, color=GREY)
+        ax.text(-0.22, 5 - k + 0.5, str(k + 1), ha='right', va='center',
+                fontsize=11, color=GREY)
+    ax.text(3, 6.72, '蓝骰子', ha='center', fontsize=11, color=GREY)
+    ax.text(-1.05, 3, '红\n骰\n子', ha='center', va='center', fontsize=11,
+            color=GREY, linespacing=1.4)
+    ax.text(3, -0.55, '和是 7 有 6 格，和是 2 只有 1 格',
+            ha='center', fontsize=11, color=ORANGE)
+    ax.set_xlim(-1.5, 6.4); ax.set_ylim(-1.0, 7.1)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p07-two-dice.png')
+
+
+# ---------------------------------------------------------------- p08
+def fig_p08():
+    """一枚硬币配一个骰子：2 乘 6 ＝ 12 格。"""
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(6.6, 2.9))
+    for j, coin in enumerate(('反', '正')):
+        for i in range(6):
+            hit = (coin == '正' and i == 5)
+            ax.add_patch(Rectangle((i, j), 1, 1, facecolor=BAND if hit else 'white',
+                                   edgecolor=NAVY, lw=1.1))
+            ax.text(i + 0.5, j + 0.5, '%s %d' % (coin, i + 1), ha='center',
+                    va='center', fontsize=10.5, color=NAVY)
+    ax.text(5.5, 2.32, '正面而且 6', ha='center', fontsize=10.5, color=ORANGE)
+    ax.plot([5.5, 5.5], [2.16, 2.02], color=ORANGE, lw=1.2)
+    ax.text(3, -0.55, '一共 2 乘 6 ＝ 12 格，要的那一格只占 1 格',
+            ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-0.3, 6.3); ax.set_ylim(-0.95, 2.7)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p08-coin-die.png')
+
+
+# ---------------------------------------------------------------- p09
+def fig_p09():
+    """三扇门：三种情形各占三分之一，换在两种情形里赢。"""
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(7.4, 4.4))
+    rows = ((2, 0, '车在 1 号（你选中了）', '不换赢', True),
+            (1, 1, '车在 2 号', '换赢', False),
+            (0, 2, '车在 3 号', '换赢', False))
+    for y, carpos, lab, res, stay in rows:
+        yy = y * 1.35
+        for d in range(3):
+            car = (d == carpos)
+            face = BAND if car else 'white'
+            ax.add_patch(Rectangle((d * 1.15, yy), 0.95, 1.0, facecolor=face,
+                                   edgecolor=NAVY, lw=1.3))
+            ax.text(d * 1.15 + 0.475, yy + 0.5, '车' if car else '羊',
+                    ha='center', va='center', fontsize=12, color=NAVY)
+            ax.text(d * 1.15 + 0.475, yy - 0.22, '%d 号' % (d + 1),
+                    ha='center', fontsize=9, color=GREY)
+        ax.text(3.75, yy + 0.5, lab, va='center', fontsize=10.5, color=NAVY)
+        ax.text(8.15, yy + 0.5, res, va='center', fontsize=11,
+                color=GREY if stay else GREEN)
+        ax.text(-0.45, yy + 0.5, '三分之一', va='center', ha='right',
+                fontsize=10, color=GREY)
+    ax.text(-0.45, 4.62, '各占', ha='right', fontsize=10, color=GREY)
+    ax.text(8.15, 4.62, '结果', fontsize=10.5, color=GREY)
+    ax.text(4.0, -0.75, '你先选 1 号。不换只在第一行赢，换在下面两行都赢',
+            ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-1.6, 9.7); ax.set_ylim(-1.2, 5.1)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p09-three-doors.png')
+
+
+# ---------------------------------------------------------------- p10
+def fig_p10():
+    """公平价＝把六根柱子削平以后的高度。"""
+    fig, ax = plt.subplots(figsize=(6.2, 3.4))
+    xs = list(range(1, 7))
+    ax.bar(xs, xs, width=0.62, color=LIGHT, edgecolor=NAVY, lw=1.3)
+    ax.plot([0.4, 6.6], [3.5, 3.5], color=ORANGE, lw=2.0, ls=(0, (5, 3)))
+    ax.text(6.75, 3.5, '公平价\n3.5', va='center', fontsize=10.5, color=ORANGE,
+            linespacing=1.5)
+    for k in xs:
+        ax.text(k, k + 0.16, str(k), ha='center', fontsize=10, color=NAVY)
+    ax.text(3.5, -1.15, '掷出几拿几块：把六根柱子削平，就是 3.5',
+            ha='center', fontsize=11, color=NAVY)
+    ax.set_xticks(xs); ax.set_xticklabels([str(k) for k in xs], fontsize=10.5,
+                                          color=NAVY)
+    ax.set_yticks([]); ax.set_xlim(0.3, 8.2); ax.set_ylim(0, 7.2)
+    for side in ('top', 'right', 'left'):
+        ax.spines[side].set_visible(False)
+    ax.spines['bottom'].set_color(GREY)
+    save(fig, 'fig-p10-fair-price.png')
+
+
+# ---------------------------------------------------------------- p11
+def fig_p11():
+    """抛硬币十万次，正面比例慢慢挤向一半。"""
+    fig, ax = plt.subplots(figsize=(7.0, 3.5))
+    ax.plot(COIN_STEPS, COIN_FREQ, color=NAVY, lw=1.3)
+    ax.axhline(0.5, color=ORANGE, lw=1.6, ls=(0, (5, 3)))
+    ax.text(1.35e5, 0.5, '一半', va='center', fontsize=10.5, color=ORANGE)
+    ax.set_xscale('log')
+    ax.set_xlim(8, 2.4e5); ax.set_ylim(0.28, 0.78)
+    ax.set_yticks([0.3, 0.4, 0.5, 0.6, 0.7])
+    ax.set_xticks([10, 100, 1000, 10000, 100000])
+    ax.set_xticklabels(['10', '100', '1000', '一万', '十万'], fontsize=10.5,
+                       color=NAVY)
+    ax.tick_params(axis='y', labelsize=9.5, colors=GREY)
+    ax.text(9, 0.80, '正面的比例', fontsize=10.5, color=NAVY)
+    ax.text(3000, 0.176, '抛了多少次（每一格是十倍）', ha='center',
+            fontsize=10.5, color=NAVY)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+    ax.spines['left'].set_color(GREY); ax.spines['bottom'].set_color(GREY)
+    save(fig, 'fig-p11-frequency.png')
+
+
+# ---------------------------------------------------------------- p12
+def fig_p12():
+    """36 格按红骰子分成六堆：每堆先平均，再平均，和一口气平均一样。"""
+    from matplotlib.patches import Rectangle
+    fig, ax = plt.subplots(figsize=(6.8, 5.0))
+    for r in range(6):
+        for b in range(6):
+            ax.add_patch(Rectangle((b, 5 - r), 1, 1,
+                                   facecolor=LIGHT if r % 2 == 0 else 'white',
+                                   edgecolor=GREY, lw=0.7))
+            ax.text(b + 0.5, 5 - r + 0.5, str(r + b + 2), ha='center',
+                    va='center', fontsize=10, color=NAVY)
+        ax.text(6.45, 5 - r + 0.5, '%.1f' % (r + 1 + 3.5), va='center',
+                fontsize=11, color=ORANGE)
+    ax.text(6.9, 6.28, '这一堆的\n公平价', ha='center', fontsize=10,
+            color=ORANGE, linespacing=1.5)
+    ax.annotate('', xy=(7.6, 2.6), xytext=(7.6, 3.6),
+                arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=1.6))
+    ax.text(8.35, 3.1, '六个数\n再平均\n＝ 7', ha='center', va='center',
+            fontsize=10.5, color=GREEN, linespacing=1.5)
+    ax.text(3, -0.62, '一口气把 36 个数平均，也是 7 —— 同一批数，换个顺序加',
+            ha='center', fontsize=11, color=NAVY)
+    ax.set_xlim(-0.4, 9.4); ax.set_ylim(-1.1, 7.1)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p12-tower.png')
+
+
+# ---------------------------------------------------------------- p13
+def fig_p13():
+    """三种做法各自的"中了"区域：一段弧、半条半径、一个小圆。"""
+    from matplotlib.patches import Wedge
+    fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.9))
+    for ax in axs:
+        ax.set_xlim(-1.32, 1.32); ax.set_ylim(-1.55, 1.45)
+        ax.set_aspect('equal'); ax.axis('off')
+
+    ax = axs[0]
+    ax.add_patch(Circle((0, 0), 1, fill=False, color=NAVY, lw=1.6))
+    A = (math.cos(math.radians(90)), math.sin(math.radians(90)))
+    tri = [(math.cos(math.radians(t)), math.sin(math.radians(t)))
+           for t in (90, 210, 330)]
+    ax.add_patch(Polygon(tri, closed=True, fill=False, color=GREY, lw=1.2,
+                         ls=(0, (4, 3))))
+    arc = [(math.cos(math.radians(t)), math.sin(math.radians(t)))
+           for t in range(210, 331)]
+    ax.plot([p[0] for p in arc], [p[1] for p in arc], color=GREEN, lw=4.5,
+            solid_capstyle='butt')
+    ax.plot([A[0]], [A[1]], 'o', ms=8, color=ORANGE, zorder=4)
+    ax.text(-0.78, 1.02, '钉住这一头', ha='center', fontsize=9.5, color=ORANGE)
+    ax.text(0, 1.24, '端点法：比弧长', ha='center', fontsize=11, color=NAVY)
+    ax.text(0, -1.42, '另一头落在绿弧上才够长　三段之一', ha='center',
+            fontsize=9.5, color=GREEN)
+
+    ax = axs[1]
+    ax.add_patch(Circle((0, 0), 1, fill=False, color=NAVY, lw=1.6))
+    ang = math.radians(35)
+    ux, uy = math.cos(ang), math.sin(ang)
+    ax.plot([0, ux], [0, uy], color=GREY, lw=1.4)
+    ax.plot([0, 0.5 * ux], [0, 0.5 * uy], color=GREEN, lw=4.5,
+            solid_capstyle='butt')
+    ax.plot([0.5 * ux], [0.5 * uy], 'o', ms=6, color=ORANGE, zorder=4)
+    ax.text(0, 1.24, '半径法：比长度', ha='center', fontsize=11, color=NAVY)
+    ax.text(0, -1.42, '中点落在靠里的半段才够长　一半', ha='center',
+            fontsize=9.5, color=GREEN)
+
+    ax = axs[2]
+    ax.add_patch(Circle((0, 0), 1, fill=False, color=NAVY, lw=1.6))
+    ax.add_patch(Circle((0, 0), 0.5, facecolor=BAND, edgecolor=GREEN, lw=1.8))
+    ax.text(0, 1.24, '撒米法：比面积', ha='center', fontsize=11, color=NAVY)
+    ax.text(0, -1.42, '中点落在小圆里才够长　四分之一', ha='center',
+            fontsize=9.5, color=GREEN)
+
+    save(fig, 'fig-p13-three-answers.png')
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     print('  30 次：', THIRTY, ' 一万次：', TEN_K)
-    for f in (fig_p01, fig_p02, fig_p03):
+    for f in (fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
+              fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
