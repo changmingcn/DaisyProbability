@@ -930,11 +930,72 @@ def fig27():
     save(fig, 'fig-27-intro-map.png')
 
 
+# ---------------------------------------------------------------- 28（第三篇）
+def fig28():
+    """三次搬家：每一次都是一个算法把我们带到已有的数的外面。
+
+    中文标签与 mathtext 严格分开（Hiragino 没有 √ 和 π 的数学字形）。
+    横轴范围留出左侧一段给行标题，避免和"3 减 5"那条弧线打架。
+    """
+    R2, PI = 2 ** 0.5, 3.14159265
+    fig, ax = plt.subplots(figsize=(7.2, 4.3))
+    lo, hi = -2.85, 4.35
+    rows = ((2.0, '一年级', '只有 0、1、2、3……'),
+            (1.0, '三年级', '加上分数'),
+            (0.0, '这一篇', '加上所有无限小数'))
+    for y, head, sub in rows:
+        ax.annotate('', xy=(hi, y), xytext=(lo, y),
+                    arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.5))
+        ax.text(-3.15, y + 0.13, head, ha='right', va='center',
+                fontsize=11, color=NAVY)
+        ax.text(-3.15, y - 0.20, sub, ha='right', va='center',
+                fontsize=9.5, color=GREY)
+
+    # 两个位置贯穿三行的虚线，让"同一个地方"看得出来
+    for x in (R2, PI):
+        ax.plot([x, x], [-0.30, 1.30], color=GREY, lw=1.0, ls=(0, (3, 3)), zorder=1)
+
+    # 第一行：整数世界，3 减 5 掉到外面
+    for k in range(0, 5):
+        ax.plot([k], [2.0], 'o', ms=6.5, color=NAVY, zorder=3)
+        ax.text(k, 1.82, str(k), ha='center', va='top', fontsize=9, color=NAVY)
+    ax.annotate('', xy=(-2, 2.30), xytext=(3, 2.30),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.4,
+                                connectionstyle='arc3,rad=0.30'))
+    ax.text(0.5, 2.80, '3 减 5', ha='center', fontsize=10.5, color=ORANGE)
+    ax.plot([-2], [2.0], 'o', ms=9, mfc='white', mec=RED, mew=2, zorder=4)
+    ax.text(-2, 1.82, '负 2：这儿是空的', ha='center', va='top',
+            fontsize=9.5, color=RED)
+
+    # 第二行：分数密密麻麻，可两个位置照样是空的
+    dense = [k / 6.0 for k in range(-16, 25)]
+    for x in dense:
+        if abs(x - R2) > 0.09 and abs(x - PI) > 0.09:
+            ax.plot([x], [1.0], 'o', ms=2.6, color=GREY, zorder=2)
+    for x, lab in ((R2, r'$\sqrt{2}$'), (PI, r'$\pi$')):
+        ax.plot([x], [1.0], 'o', ms=9, mfc='white', mec=RED, mew=2, zorder=4)
+        ax.text(x, 0.80, lab, ha='center', va='top', fontsize=12, color=RED)
+    ax.text(-2.75, 1.14, '挤得再密，这两处还是空的', ha='left', va='bottom',
+            fontsize=10, color=RED)
+
+    # 第三行：补齐
+    ax.plot([lo, hi], [0.0, 0.0], color=LIGHT, lw=7, solid_capstyle='butt', zorder=1)
+    ax.annotate('', xy=(hi, 0.0), xytext=(lo, 0.0),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.5))
+    for x in (R2, PI):
+        ax.plot([x], [0.0], 'o', ms=8, color=GREEN, zorder=4)
+    ax.text(-2.75, 0.14, '一个洞也没有', ha='left', va='bottom',
+            fontsize=10, color=GREEN)
+
+    ax.set_xlim(-5.6, 4.7); ax.set_ylim(-0.55, 3.00); ax.axis('off')
+    save(fig, 'fig-28-three-moves.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27):
+              fig26, fig27, fig28):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
