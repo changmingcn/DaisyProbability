@@ -261,7 +261,12 @@ def add_rich(par, text, size=11, color=BLACK, bold_all=False):
 #   正文 1.5→1.4→1.3、盒子正文与列表 1.45→1.38→1.28、
 #   盒子标题 1.3→1.25→1.18、表格 1.25→1.2→1.12、图注 1.2→1.15
 # 改完务必拆开 docx 数一遍 w:line 核对（240×行距）——第一档就漏改过 bullet()）
-def para(doc, text='', size=11, color=BLACK, space_after=8, space_before=0,
+#
+# 段间距（同日第三步，用户"那就收段间距"）：正文段后 8→6、盒子标题段前 6→4、
+# 盒子末段段后 6→4、盒子与表格后面那个空段 4→3。
+# **还没动的杠杆**（下次要更紧就从这儿收）：节标题段前 16、小节标题段前 10、
+# 图注段后 12、分隔线段后 14 —— 这四个是眼下最大的几块留白。
+def para(doc, text='', size=11, color=BLACK, space_after=6, space_before=0,
          align=None, indent=0, line=1.3, bold_all=False):
     p = doc.add_paragraph()
     pf = p.paragraph_format
@@ -330,15 +335,15 @@ def box(doc, kind, title, body_lines):
     if title:
         p = cell.add_paragraph()
         p.paragraph_format.space_after = Pt(3)
-        p.paragraph_format.space_before = Pt(6)
+        p.paragraph_format.space_before = Pt(4)
         p.paragraph_format.line_spacing = 1.18
         add_rich(p, title, 11, color, bold_all=True)
     for i, line in enumerate(body_lines):
         p = cell.add_paragraph()
-        p.paragraph_format.space_after = Pt(6 if i == len(body_lines) - 1 else 3)
+        p.paragraph_format.space_after = Pt(4 if i == len(body_lines) - 1 else 3)
         p.paragraph_format.line_spacing = 1.28
         add_rich(p, line, 10.5, BLACK)
-    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+    doc.add_paragraph().paragraph_format.space_after = Pt(3)
 
 
 def table(doc, rows):
@@ -359,7 +364,7 @@ def table(doc, rows):
             c.paragraphs[0].paragraph_format.space_before = Pt(2)
             c.paragraphs[0].paragraph_format.line_spacing = 1.12
             add_rich(c.paragraphs[0], txt, 10, BLACK)
-    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+    doc.add_paragraph().paragraph_format.space_after = Pt(3)
 
 
 def bullet(doc, text):
