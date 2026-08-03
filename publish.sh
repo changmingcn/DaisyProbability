@@ -2,7 +2,7 @@
 # 《数学概念笔记》三册 —— 本机构建与交付管线
 #
 #   ./publish.sh            重建 + 校验 + 打包（**不碰 Drive**，日常改稿用这个）
-#   ./publish.sh --upload   上面全做完，再把九件一起推到 Drive
+#   ./publish.sh --upload   上面全做完，再把十件一起推到 Drive
 #   ./publish.sh --vol vol2 只重建校验某一册（不打包、不上传）
 #
 # 权威源是本机 ~/math-notes。Drive 只是交付镜像，改完不必每次都推。
@@ -12,7 +12,7 @@
 #      字数读数漂了 37 个字，白查半小时。
 #   2. 校验不过就不许上传。曾经写成 `verify | grep && 上传`，grep 成功让上传照跑。
 #      这里一律用 if 判真退出码，且上传前重跑一次全量校验。
-#   3. 九件一起推。曾经 Doc 传了、喂 AI 的稿件.md 还是旧的，两边分叉。
+#   3. 十件一起推。曾经 Doc 传了、喂 AI 的稿件.md 还是旧的，两边分叉。
 
 set -u
 cd "$(dirname "$0")" || exit 1
@@ -20,7 +20,7 @@ ROOT="$PWD"
 LOGDIR="$ROOT/.build-logs"; mkdir -p "$LOGDIR"
 # 跑管线的会话一定看得见这一行——并发覆盖就是这么发生的
 [ -f "$ROOT/并发会话必读.md" ] && echo "ℹ 另一个 Claude 会话可能也在这棵树上：先读 ~/math-notes/并发会话必读.md"
-# 两本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下是**硬链接**到同一个文件。
+# 三本手册的权威副本在仓库里（manuals/），~/.claude/agents/ 下是**硬链接**到同一个文件。
 # 以前手册在 git 之外，两个会话各自整篇写回，覆盖了不留痕迹——收进仓库就看得见了。
 #
 # 为什么用硬链接不用软链接：agents 目录里必须是货真价实的文件，
@@ -40,7 +40,7 @@ say() { echo; echo "──── $* ────"; }
 #   两边内容不同 → 才是真危险（一边的改动会被另一边盖掉），打出 diff 摘要并中止。
 check_manual_links() {
   local n a
-  for n in DaisyCalculus DaisyAlgebra; do
+  for n in DaisyCalculus DaisyAlgebra DaisyProbability; do
     a="$HOME/.claude/agents/$n.md"
     [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
     [ -e "$a" ] || { ln "$AGENTS/$n.md" "$a" && echo "  ℹ ${n}：agents/ 那份不见了，已从 manuals/ 重连"; continue; }
@@ -61,7 +61,7 @@ check_manual_links() {
 
 # 认定 manuals/ 为准，强制重连（agents/ 那份会被丢弃）
 if [ "${1:-}" = "--relink" ]; then
-  for n in DaisyCalculus DaisyAlgebra; do
+  for n in DaisyCalculus DaisyAlgebra DaisyProbability; do
     a="$HOME/.claude/agents/$n.md"
     [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
     if [ -e "$a" ] && [ "$a" -ef "$AGENTS/$n.md" ]; then echo "  ✓ $n 本来就是同一个文件"; continue; fi
@@ -126,8 +126,8 @@ FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
 COPYFILE_DISABLE=1 tar -cf - "${FILES[@]}" | gzip -n > "$TARBALL" || die "打包失败"
 echo "  ✓ ${TARBALL}（$(tar -tzf "$TARBALL" | grep -c . ) 项，$(du -h "$TARBALL" | cut -f1)）"
 
-# ---------- 九件清单 ----------
-# 2026-08-01 起九件不再散在 Drive「Claude」根目录，统一收进 Claude/数学概念笔记/ 下的四个子目录。
+# ---------- 交付清单（当前十件；第四册成稿后变十二件）----------
+# 2026-08-01 起交付件不再散在 Drive「Claude」根目录，统一收进 Claude/数学概念笔记/ 下的四个子目录。
 # DRIVE_ID 仍是 Claude 文件夹（rclone 的 root 就是它），所以 dst 写成相对路径 数学概念笔记/NN-…/文件名。
 # ⚠ 改这里的目录名，Drive 上就会多出一个新目录、旧的留在原地不动（rclone 按路径认文件，不按 id）——
 #   要改名，先在 Drive 上把目录挪好，再改这张表，然后跑一次 --upload 核对没有多出副本。
@@ -145,16 +145,17 @@ ITEMS=(
   "$TARBALL|$D4/$TARBALL|raw"
   "$AGENTS/DaisyCalculus.md|$D3/DaisyCalculus.md|raw"
   "$AGENTS/DaisyAlgebra.md|$D3/DaisyAlgebra.md|raw"
+  "$AGENTS/DaisyProbability.md|$D3/DaisyProbability.md|raw"
 )
 
-say "九件齐否"
+say "十件齐否"
 missing=0
 for it in "${ITEMS[@]}"; do
   IFS='|' read -r src _ _ <<< "$it"
   [ -f "$src" ] || { echo "  ✗ 缺 $src"; missing=1; }
 done
-[ $missing -eq 0 ] || die "九件不齐，拒绝上传"
-echo "  ✓ 九件齐（三册 Doc ＋ 三份稿件 ＋ 源码包 ＋ 两本手册）"
+[ $missing -eq 0 ] || die "十件不齐，拒绝上传"
+echo "  ✓ 十件齐（三册 Doc ＋ 三份稿件 ＋ 源码包 ＋ 三本手册）"
 
 if [ "${1:-}" != "--upload" ]; then
   echo
@@ -173,12 +174,12 @@ for v in "${VOLS[@]}"; do
   fi
 done
 
-say "推 Drive（九件）"
+say "推 Drive（十件）"
 
 # 别用 extra=() 数组攒参数：macOS 自带 bash 3.2 在 set -u 下，
 # 展开空数组 "${extra[@]}" 会当成未定义变量直接把脚本打死。
 # 08-01 就是这么崩的：前三件 docx 数组非空所以过了，第四件稿件.md 一到就死，
-# 而且死得比下面 n -eq 9 那道网还早，"只传了 3/9"根本没打印出来。
+# 而且死得比下面 n -eq 10 那道网还早，"只传了 3/10"根本没打印出来。
 push_one() {
   if [ "$3" = docx ]; then
     "$RCLONE" copyto "$1" "Gdrive:$2" --drive-root-folder-id="$DRIVE_ID" --drive-import-formats docx
@@ -189,8 +190,8 @@ push_one() {
 
 # 上面那次教训：安全网只挂在正常出口上，是拦不住半路暴毙的。这个 trap 挂在所有出口。
 n=0
-trap '[ "${n:-0}" -gt 0 ] && [ "${n:-0}" -lt 9 ] && echo "
-⚠ 只推上去 $n/9 件，Drive 现在是分叉的 —— 重跑 ./publish.sh --upload 补齐" >&2' EXIT
+trap '[ "${n:-0}" -gt 0 ] && [ "${n:-0}" -lt 10 ] && echo "
+⚠ 只推上去 $n/10 件，Drive 现在是分叉的 —— 重跑 ./publish.sh --upload 补齐" >&2' EXIT
 
 for it in "${ITEMS[@]}"; do
   IFS='|' read -r src dst kind <<< "$it"
@@ -201,4 +202,4 @@ for it in "${ITEMS[@]}"; do
   fi
 done
 echo
-[ "$n" -eq 9 ] && echo "✓ 九件全部上传" || die "只上传了 $n/9 件 —— Drive 现在是分叉状态，务必补齐"
+[ "$n" -eq 10 ] && echo "✓ 十件全部上传" || die "只上传了 $n/10 件 —— Drive 现在是分叉状态，务必补齐"
