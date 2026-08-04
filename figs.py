@@ -1028,11 +1028,193 @@ def fig29():
     save(fig, 'fig-29-halflife.png')
 
 
+# ---------------------------------------------------------------- 30
+def _fold_quadrant(n):
+    """折 n 次之后，右上角那个象限的折线。
+
+    圆心 (0.5, 0.5)、半径 0.5。象限里取 2^n 段等分角，
+    相邻两个圆上的点之间走一个直角拐弯（先竖后横），拐点正好卡在圆外面。
+    n=0 就是原来那个方角。
+    """
+    m = 2 ** n
+    P = [(0.5 + 0.5 * np.cos(np.pi / 2 * k / m),
+          0.5 + 0.5 * np.sin(np.pi / 2 * k / m)) for k in range(m + 1)]
+    path = [P[0]]
+    for k in range(m):
+        path.append((P[k][0], P[k + 1][1]))   # 拐点：先竖上去
+        path.append(P[k + 1])                 # 再横过来，落回圆上
+    return path
+
+
+def _fold_curve(n):
+    """四个象限拼成整条折线（逆时针，从最右边那点起）。"""
+    q = _fold_quadrant(n)
+    pts = list(q)                                             # 右上
+    pts += [(1 - x, y) for (x, y) in reversed(q)][1:]         # 左上
+    pts += [(1 - x, 1 - y) for (x, y) in q][1:]               # 左下
+    pts += [(x, 1 - y) for (x, y) in reversed(q)][1:]         # 右下
+    return pts
+
+
+def _stair(n):
+    """从 (0,0) 到 (1,1) 的 n 级楼梯：横一段、竖一段。"""
+    pts = [(0.0, 0.0)]
+    for i in range(n):
+        pts.append(((i + 1) / n, i / n))
+        pts.append(((i + 1) / n, (i + 1) / n))
+    return pts
+
+
+def _polylen(pts):
+    return sum(np.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+               for i in range(len(pts) - 1))
+
+
+def _polyarea(pts):
+    s = sum(pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1]
+            for i in range(len(pts) - 1))
+    return abs(s) / 2
+
+
+# 正文（第四篇第六节）里印着这四个面积数，就在这里算、在这里对账 ——
+# 周长一动不动，面积却一路掉向圆的 0.785：这正是那一节要讲的对照。
+_FOLD_AREA = {0: 1.000, 1: 0.914, 2: 0.865, 4: 0.809}
+for _n, _a in _FOLD_AREA.items():
+    assert round(_polyarea(_fold_curve(_n)), 3) == _a, \
+        '折 %d 次的面积和正文对不上' % _n
+assert round(np.pi / 4, 3) == 0.785, '圆面积和正文对不上'
+
+
+def fig30():
+    """折角悖论：上排周长永远 4，下排总长永远 2 —— 可它们贴得要多近有多近。"""
+    fig, axs = plt.subplots(2, 4, figsize=(9.4, 5.4))
+
+    for j, n in enumerate((0, 1, 2, 4)):
+        ax = axs[0][j]
+        if n > 0:
+            ax.add_patch(Rectangle((0, 0), 1, 1, facecolor='none',
+                                   edgecolor=GREY, lw=1.0,
+                                   linestyle=(0, (4, 3)), zorder=0))
+        ax.add_patch(Circle((0.5, 0.5), 0.5, facecolor=LIGHT,
+                            edgecolor=NAVY, lw=1.6, zorder=1))
+        pts = _fold_curve(n)
+        assert abs(_polylen(pts) - 4.0) < 1e-9, '折角以后周长必须还是 4'
+        ax.plot([p[0] for p in pts], [p[1] for p in pts],
+                color=ORANGE, lw=2.0, zorder=3, solid_joinstyle='miter')
+        ax.set_title(('原来的正方形' if n == 0 else '折 %d 次' % n),
+                     fontsize=10.5, color=NAVY, pad=6)
+        ax.text(0.5, -0.16, '周长 ＝ 4', ha='center', fontsize=11, color=ORANGE)
+        ax.set_xlim(-0.09, 1.09); ax.set_ylim(-0.30, 1.09)
+        ax.set_aspect('equal'); ax.axis('off')
+
+    for j, n in enumerate((1, 2, 4, 8)):
+        ax = axs[1][j]
+        ax.add_patch(Rectangle((0, 0), 1, 1, facecolor='none',
+                               edgecolor=GREY, lw=1.0, linestyle=(0, (4, 3))))
+        ax.plot([0, 1], [0, 1], color=NAVY, lw=2.0, zorder=3)
+        pts = _stair(n)
+        assert abs(_polylen(pts) - 2.0) < 1e-9, '楼梯总长必须还是 2'
+        ax.plot([p[0] for p in pts], [p[1] for p in pts],
+                color=ORANGE, lw=2.0, zorder=4, solid_joinstyle='miter')
+        ax.set_title('%d 级' % n, fontsize=10.5, color=NAVY, pad=6)
+        ax.text(0.5, -0.16, '总长 ＝ 2', ha='center', fontsize=11, color=ORANGE)
+        ax.set_xlim(-0.09, 1.09); ax.set_ylim(-0.30, 1.09)
+        ax.set_aspect('equal'); ax.axis('off')
+
+    # 标签放在对角线上方那片空地，别压住线（楼梯一律在对角线下方）
+    axs[1][3].text(0.30, 0.76, '对角线', fontsize=10, color=NAVY,
+                   ha='center', va='center')
+    axs[1][3].text(0.74, 0.30, '楼梯', fontsize=10, color=ORANGE,
+                   ha='center', va='center')
+    fig.text(0.5, 0.505, '上排：折多少次，一圈都还是 4', ha='center',
+             fontsize=11, color=NAVY)
+    fig.text(0.5, -0.005, '下排：切多少级，一趟都还是 2 —— 可对角线只有 1.41421…',
+             ha='center', fontsize=11, color=NAVY)
+    fig.subplots_adjust(hspace=0.45)
+    save(fig, 'fig-30-folding.png')
+
+
+# ---------------------------------------------------------------- 31
+def fig31():
+    """"量长度"过不了取极限这一关 —— 和 fig-24 同构的方框。"""
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+
+    ax.text(0.06, 0.86, '楼梯', ha='left', va='center', fontsize=12.5, color=NAVY)
+    ax.text(0.94, 0.86, '2，2，2，……', ha='right', va='center',
+            fontsize=12.5, color=NAVY)
+    ax.text(0.06, 0.14, '对角线', ha='left', va='center', fontsize=12.5, color=NAVY)
+    ax.text(0.845, 0.14, '长度是', ha='right', va='center', fontsize=12.5, color=NAVY)
+    ax.text(0.94, 0.14, r'$\sqrt{2}$', ha='right', va='center',
+            fontsize=13.5, color=NAVY)
+
+    # 上排箭头要短一截 —— 右边那串"2，2，2，……"比下排的标签长得多
+    ax.annotate('', xy=(0.57, 0.86), xytext=(0.24, 0.86),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.6))
+    ax.annotate('', xy=(0.66, 0.14), xytext=(0.30, 0.14),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.6))
+    ax.annotate('', xy=(0.06, 0.26), xytext=(0.06, 0.74),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.6))
+    ax.annotate('', xy=(0.94, 0.26), xytext=(0.94, 0.74),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.6))
+    ax.text(0.405, 0.93, '量长度', ha='center', fontsize=10.5, color=NAVY)
+    ax.text(0.48, 0.055, '量长度', ha='center', fontsize=10.5, color=NAVY)
+    ax.text(0.015, 0.5, '越\n切\n越\n细', ha='center', va='center',
+            fontsize=10, color=ORANGE)
+    ax.text(0.985, 0.5, '取\n极\n限', ha='center', va='center',
+            fontsize=10, color=ORANGE)
+
+    # 叉用线条画 —— 中文字体里没有 ✗ 的字形
+    ax.plot([0.42, 0.58], [0.42, 0.58], color=RED, lw=3.4, solid_capstyle='round')
+    ax.plot([0.42, 0.58], [0.58, 0.42], color=RED, lw=3.4, solid_capstyle='round')
+
+    ax.text(0.5, -0.16, '两条路走到了两个地方：2 和 1.41421…',
+            ha='center', fontsize=11, color=RED)
+    ax.set_xlim(-0.08, 1.08); ax.set_ylim(-0.26, 1.10); ax.axis('off')
+    save(fig, 'fig-31-length-commute.png')
+
+
+# ---------------------------------------------------------------- 32
+def fig32():
+    """一张图看出：小方格的对角线，正是一个面积 2 的正方形的边。"""
+    fig, axs = plt.subplots(1, 2, figsize=(7.4, 3.5))
+
+    ax = axs[0]
+    ax.add_patch(Rectangle((0, 0), 1, 1, facecolor=LIGHT, edgecolor=NAVY, lw=1.6))
+    ax.plot([0, 1], [0, 1], color=ORANGE, lw=2.4)
+    ax.text(0.5, -0.19, '边长 1 的方格', ha='center', fontsize=11, color=NAVY)
+    # 标签放在对角线下方那半块空地里，别压住线
+    ax.text(0.68, 0.22, '它的对角线', fontsize=10.5, color=ORANGE,
+            ha='center', va='center')
+    ax.set_xlim(-0.15, 1.15); ax.set_ylim(-0.34, 1.15)
+    ax.set_aspect('equal'); ax.axis('off')
+
+    ax = axs[1]
+    ax.add_patch(Rectangle((0, 0), 2, 2, facecolor=LIGHT, edgecolor=NAVY, lw=1.6,
+                           zorder=1))
+    ax.add_patch(Polygon([(1, 0), (2, 1), (1, 2), (0, 1)],
+                         facecolor=BAND, edgecolor=ORANGE, lw=2.4, zorder=2))
+    # 格线画在斜正方形【上面】—— 看不见这两条，"四个半格"就没了
+    ax.plot([1, 1], [0, 2], color=NAVY, lw=1.2, zorder=3)
+    ax.plot([0, 2], [1, 1], color=NAVY, lw=1.2, zorder=3)
+    for (x, y) in ((0.68, 0.68), (1.32, 0.68), (0.68, 1.32), (1.32, 1.32)):
+        ax.text(x, y, '半格', ha='center', va='center', fontsize=9.5,
+                color=RED, zorder=4)
+    ax.text(1.0, -0.19, '四个方格拼起来，面积 4', ha='center',
+            fontsize=11, color=NAVY)
+    ax.set_xlim(-0.15, 2.15); ax.set_ylim(-0.34, 2.15)
+    ax.set_aspect('equal'); ax.axis('off')
+
+    fig.text(0.5, -0.04, '斜着那个正方形，正好是四个半格拼的 —— 面积 2。'
+                         '而它的边，就是小方格的对角线',
+             ha='center', fontsize=11, color=NAVY)
+    save(fig, 'fig-32-diagonal.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27, fig28, fig29):
+              fig26, fig27, fig28, fig29, fig30, fig31, fig32):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
