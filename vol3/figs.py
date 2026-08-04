@@ -253,7 +253,7 @@ def figr02():
 
 
 def figr03():
-    """配方：(3, 2) ＝ 三份横箭头 ＋ 两份竖箭头。"""
+    """配方：(3, 2) ＝ 三份横向量 ＋ 两份竖向量。"""
     fig, ax = plt.subplots(figsize=(4.6, 3.2))
     grid(ax, 0, 4, 0, 3)
     axes_cross(ax, -0.5, 4.6, -0.9, 3.4)
@@ -265,13 +265,13 @@ def figr03():
                     arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=2.6))
     ax.plot([3], [2], 'o', ms=8, color=NAVY, zorder=5)
     ax.text(3.15, 2.15, '(3, 2)', fontsize=11, color=NAVY)
-    ax.text(1.5, -0.65, '三份横箭头', fontsize=10.5, color=ORANGE, ha='center')
-    ax.text(3.35, 0.9, '两份竖箭头', fontsize=10.5, color=GREEN, ha='left')
+    ax.text(1.5, -0.65, '三份 (1, 0)', fontsize=10.5, color=ORANGE, ha='center')
+    ax.text(3.35, 0.9, '两份 (0, 1)', fontsize=10.5, color=GREEN, ha='left')
     save(fig, 'fig-r03-recipe.png')
 
 
 def figr04():
-    """斜拉机：格子歪了，兔子跟着歪；两支箭头的落点就是账本。"""
+    """斜拉机：格子歪了，兔子跟着歪；两个基本向量的落点就是账本。"""
     SHEAR = [[1, 1], [0, 1]]
     fig, axs = plt.subplots(1, 2, figsize=(6.8, 3.4))
     ax = axs[0]
@@ -291,14 +291,14 @@ def figr04():
                 arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.4, mutation_scale=13))
     ax.annotate('', xy=(0.92, 0.92), xytext=(0, 0),
                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=2.4, mutation_scale=13))
-    ax.text(7.0, -1.7, '出机器后：横箭头没动，竖箭头斜了', fontsize=10.5,
+    ax.text(7.0, -1.7, '出机器后：横向量没动，竖向量斜了', fontsize=10.5,
             color=NAVY, ha='center')
     save(fig, 'fig-r04-shear.png')
 
 
 
 def figr05():
-    """账本的本体：两支基本箭头进机器前后。"""
+    """账本的本体：两个基本向量进机器前后。"""
     SHEAR = [[1, 1], [0, 1]]
     fig, axs = plt.subplots(1, 2, figsize=(6.2, 2.9))
     ax = axs[0]
@@ -308,8 +308,8 @@ def figr05():
                 arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=3.4, mutation_scale=20))
     ax.annotate('', xy=(0, 0.97), xytext=(0, 0),
                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=3.4, mutation_scale=20))
-    ax.text(0.55, -0.42, '横箭头', fontsize=10.5, color=ORANGE, ha='center')
-    ax.text(-0.38, 1.35, '竖\n箭\n头', fontsize=10.5, color=GREEN, ha='center',
+    ax.text(0.55, -0.42, '横向量', fontsize=10.5, color=ORANGE, ha='center')
+    ax.text(-0.38, 1.35, '竖\n向\n量', fontsize=10.5, color=GREEN, ha='center',
             linespacing=1.1)
     ax.text(1.55, 1.75, '进机器前', fontsize=10.5, color=NAVY, ha='center')
     ax = axs[1]
@@ -499,7 +499,7 @@ def figr15():
                     arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.2, ls='--'))
     ax.plot([2.0], [0], 'o', ms=9, color=GREEN, zorder=6)
     ax.text(2.3, 0.28, '全落在这一个点上', fontsize=10.5, color=GREEN, ha='left')
-    ax.text(0.5, -0.02, '被送到出发点的那些箭头，凑成核', transform=ax.transAxes,
+    ax.text(0.5, -0.02, '被送到出发点的那些向量，凑成核', transform=ax.transAxes,
             ha='center', va='top', fontsize=10.5, color=ORANGE)
     save(fig, 'fig-r15-kernel.png')
 
@@ -604,7 +604,7 @@ def figr21():
     ax.annotate('', xy=(0, 0.94), xytext=(0, 0),
                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=2.6,
                                 mutation_scale=13), zorder=8)
-    ax.text(2.2, -1.7, '兔子住的平面：两支箭头', fontsize=10.5, color=NAVY,
+    ax.text(2.2, -1.7, '兔子住的平面：两个向量', fontsize=10.5, color=NAVY,
             ha='center')
     ax = axs[1]
     ax.set_xlim(-0.6, 7.4); ax.set_ylim(-1.8, 9.6)
@@ -617,7 +617,7 @@ def figr21():
         ax.plot([0.2, 6.1], [base, base], color=GREY, lw=1.0)
         ax.plot(t * 2.4 + 0.3, f(t) * 0.85 + base, color=col, lw=2.4)
         ax.text(6.9, base + 0.45, lab, fontsize=13, color=col, ha='left')
-    ax.text(3.4, -1.7, '多项式机器的天地：三支"箭头"', fontsize=10.5, color=NAVY,
+    ax.text(3.4, -1.7, '多项式机器的天地：三个"向量"', fontsize=10.5, color=NAVY,
             ha='center')
     save(fig, 'fig-r21-poly-space.png')
 
@@ -647,7 +647,7 @@ def figr22():
 
 # ---------------------------------------------------------------- r23
 def figr23():
-    """斜拉机：大多数箭头被掰歪，只有横着那支不动；兔子脚下那条线也不动。"""
+    """斜拉机：大多数向量被掰歪，只有横着那个不动；兔子脚下那条线也不动。"""
     SHEAR = [[1, 1], [0, 1]]
     fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.6),
                             gridspec_kw={'width_ratios': [1.0, 1.25]})
@@ -710,7 +710,7 @@ def figr24():
                                 mutation_scale=15), zorder=5)
     ax.text(1.35, 2.55, '拉 3 倍', fontsize=10.5, color=ORANGE)
     ax.text(1.15, -1.35, '原样不动', fontsize=10.5, color=GREEN)
-    ax.text(0.5, -0.03, '两个不歪的方向（灰的是被掰歪的横竖箭头）'.replace('（灰的是被掰歪的横竖箭头）', ''),
+    ax.text(0.5, -0.03, '两个不歪的方向',
             transform=ax.transAxes, ha='center', va='top', fontsize=10.5,
             color=NAVY)
     ax = axs[1]
@@ -757,7 +757,7 @@ def figr25():
     draw_fine(ax, scale=SC, shift=(11.37, 0.80), zorder=4)
     ax.text((fx0 + fx1) / 2, 0.15, '同一张照片', fontsize=10.5, color=NAVY,
             ha='center', va='top')
-    # 三支箭头**从头顶上方**走，先汇到一个点，再一支进照片——
+    # 三条光线**从头顶上方**走，先汇到一个点，再一条进照片——
     # 这样"三只拍成同一张"一眼看得出；走兔子身侧会连成一条横线，还压住兔子。
     JX, JY = 9.35, 4.85
     for sx, n, lab in toys:
