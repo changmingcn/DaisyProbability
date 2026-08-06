@@ -1745,12 +1745,16 @@ window.PANELS = (function () {
     axes.forEach(function (a) {
       var pale = a.c.map(function (x) { return 0.65 + x * 0.3; });
       addLine(O, LA.vscale(a.v, AX), pale);
-      /* 轴的名字钉在没被变换的那根淡轴的头上——它不跟着账本动，才当得起"坐标轴的名字" */
-      if (S.show.label) addLabel(LA.vscale(a.v, AX * 1.08), a.letter, a.c, 'axis');
+      /* 轴的名字钉在没被变换的那根淡轴上，**收在 0.72 处、够不着轴头**：
+         钉在轴头（1.35）上，一转视角就飘出画框，字说没就没了。
+         0.72 × 1.25 ＝ 0.9，比兔子高一点点（兔子高 0.733），压不到兔子，转起来也还在画面里。 */
+      if (S.show.label) addLabel(LA.vscale(a.v, AX * 0.72), a.letter, a.c, 'axis');
       var img = LA.mvec(M, a.v);
       if (LA.vlen(img) > 1e-6) {
         addArrow(O, img, a.c);
-        if (S.show.label) addLabel(img, a.letter + '（' + a.name + '）→ (' + LA.fmt(img[0]) + ', ' + LA.fmt(img[1]) + ', ' + LA.fmt(img[2]) + ')', a.c);
+        /* 落点标注只留字母和落点：'往右／往里／往上' 那三个词由淡轴上的 X／Y／Z 管，
+           塞进这里只会把这一行挤成一团（08-06 用户指出）。 */
+        if (S.show.label) addLabel(img, a.letter + ' → (' + LA.fmt(img[0]) + ', ' + LA.fmt(img[1]) + ', ' + LA.fmt(img[2]) + ')', a.c);
       }
     });
 
@@ -2038,10 +2042,10 @@ window.PANELS = (function () {
       var q = project(L.p, VP);
       if (!q) return;
       var col = 'rgb(' + L.color.map(function (c) { return Math.round(c * 235); }).join(',') + ')';
-      if (L.style === 'axis') {                 // X／Y／Z：干干净净一个字母
-        octx.font = '700 17px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+      if (L.style === 'axis') {                 // X／Y／Z：干干净净一个字母，字号比别的标注大一截
+        octx.font = '700 22px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
         octx.textAlign = 'center';
-        octx.lineWidth = 3; octx.strokeStyle = 'rgba(249,246,240,0.9)';
+        octx.lineWidth = 4; octx.strokeStyle = 'rgba(249,246,240,0.92)';
         octx.strokeText(L.text, q[0], q[1]);    // 先描一圈底色，压在格子上也看得清
         octx.fillStyle = col;
         octx.fillText(L.text, q[0], q[1]);

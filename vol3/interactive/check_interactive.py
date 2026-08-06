@@ -112,11 +112,23 @@ def main(path):
     check('W6', not ext, '页面自包含（不向外网要资源）%s'
           % ('' if not ext else '—— 发现 %d 处：%s' % (len(ext), ext[:3])))
 
+    # ---- [W7] 轴名字得收在轴里面，别钉在轴头上 ----
+    # 08-06 用户挑出来的：第一版钉在 1.08 × AX（＝1.35）处，一转视角字就飘出画框没了。
+    # 扫过整个可拖动的视角范围：1.35 处在宽屏有 10% 的角度看不见、方屏 35%、手机竖屏 47%；
+    # 收到 0.72 × AX（＝0.9）之后宽屏和方屏都是 0%。0.8 是留了余量的上限。
+    m_r = re.search(r"addLabel\(LA\.vscale\(a\.v,\s*AX\s*\*\s*([0-9.]+)\),\s*a\.letter", src)
+    if not m_r:
+        check('W7', False, '找不到轴名字的摆放半径')
+    else:
+        f = float(m_r.group(1))
+        check('W7', f <= 0.8,
+              '轴名字收在 %.2f × 轴长（要 ≤ 0.80，再往外转起来就飘出画框了）' % f)
+
     print()
     if fails:
         print('✗ %d 项未通过：%s' % (len(fails), ' '.join(fails)))
         return 1
-    print('✓ 全部通过（%d 项检查%s）' % (6 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
+    print('✓ 全部通过（%d 项检查%s）' % (7 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
     return 0
 
 
