@@ -2032,6 +2032,9 @@ window.PANELS = (function () {
     if (w <= 0.0001) return null;
     return [(x / w * 0.5 + 0.5) * overlay.width / DPR, (1 - (y / w * 0.5 + 0.5)) * overlay.height / DPR];
   }
+  /* 轴名字（X／Y／Z）的字号，同时也是它在屏幕上往上抬的像素数——抬一个字高 */
+  var AXLBL_PX = 22;
+
   function drawLabels(VP) {
     octx.setTransform(DPR, 0, 0, DPR, 0, 0);
     octx.clearRect(0, 0, overlay.width / DPR, overlay.height / DPR);
@@ -2043,12 +2046,16 @@ window.PANELS = (function () {
       if (!q) return;
       var col = 'rgb(' + L.color.map(function (c) { return Math.round(c * 235); }).join(',') + ')';
       if (L.style === 'axis') {                 // X／Y／Z：干干净净一个字母，字号比别的标注大一截
-        octx.font = '700 22px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+        octx.font = '700 ' + AXLBL_PX + 'px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
         octx.textAlign = 'center';
         octx.lineWidth = 4; octx.strokeStyle = 'rgba(249,246,240,0.92)';
-        octx.strokeText(L.text, q[0], q[1]);    // 先描一圈底色，压在格子上也看得清
+        /* 往上抬一个字高。**这一抬是在屏幕上抬的，不是在三维里抬的**——
+           要是在三维里给锚点加一截 +z，一转视角那截偏移就跟着转，
+           字会绕着轴甩来甩去（用户 08-06："旋转的时候不能旋转这三个字母"）。
+           屏幕像素偏移永远指向画面正上方：转视角时字只是随着它那根轴走，自己纹丝不动。 */
+        octx.strokeText(L.text, q[0], q[1] - AXLBL_PX);   // 先描一圈底色，压在格子上也看得清
         octx.fillStyle = col;
-        octx.fillText(L.text, q[0], q[1]);
+        octx.fillText(L.text, q[0], q[1] - AXLBL_PX);
         octx.textAlign = 'left';
         octx.font = '600 13px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
         return;

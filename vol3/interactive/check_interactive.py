@@ -124,11 +124,22 @@ def main(path):
         check('W7', f <= 0.8,
               '轴名字收在 %.2f × 轴长（要 ≤ 0.80，再往外转起来就飘出画框了）' % f)
 
+    # ---- [W8] "往上抬一个字高"必须在屏幕上抬，不能在三维里抬 ----
+    # 用户 08-06："旋转的时候不能旋转这三个字母"。要是把这一抬做成三维里的 +z 偏移，
+    # 一转视角偏移方向就跟着转，字会绕着轴甩；做成屏幕像素偏移才永远指向画面正上方。
+    lifts = len(re.findall(r'q\[1\]\s*-\s*AXLBL_PX', src))
+    pure_anchor = bool(re.search(
+        r"addLabel\(LA\.vscale\(a\.v,\s*AX\s*\*\s*[0-9.]+\),\s*a\.letter", src))
+    check('W8', lifts >= 2 and pure_anchor,
+          '往上抬在屏幕像素里做（描边＋填字共 %d 处用 q[1] − AXLBL_PX）'
+          '且三维锚点是纯量倍、没掺偏移向量（%s）'
+          % (lifts, '是' if pure_anchor else '否 —— 锚点被加了三维偏移，转视角时字会甩'))
+
     print()
     if fails:
         print('✗ %d 项未通过：%s' % (len(fails), ' '.join(fails)))
         return 1
-    print('✓ 全部通过（%d 项检查%s）' % (7 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
+    print('✓ 全部通过（%d 项检查%s）' % (8 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
     return 0
 
 
