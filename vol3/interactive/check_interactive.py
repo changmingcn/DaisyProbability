@@ -22,11 +22,12 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT = os.path.join(HERE, '兔子的线性变换-三维版.html')
 
-fails, warns = [], []
+fails, warns, done = [], [], []
 
 
 def check(tag, ok, msg):
     print(('  ✓ ' if ok else '  ✗ ') + '[%s] %s' % (tag, msg))
+    done.append(tag)
     if not ok:
         fails.append(tag)
 
@@ -192,11 +193,91 @@ def main(path):
                               '兔子离采样盒最近处还有 %.4f 的余量（最紧在 %s；'
                               '≤0 就是被削平了，而且看不出来）' % (g['gap'], g['where']))
 
+    # ---- [W10] 默认视角下，嘴不许被卡通描边吞掉 ----
+    # 2026-08-06 傍晚用户报："俯视高度过高，嘴巴看不清楚。"查出来的机制值得钉成闸：
+    # 嘴画在口鼻鼓包的**下侧**，法向本来就朝斜下方；默认仰角越高，那一片就越贴着轮廓掠过去，
+    # 而着色器最后一步的卡通描边 smoothstep(0.70, 0.96, 1 − |n·V|) 从 |n·V| < 0.30 起就往上抹黑——
+    # 嘴于是先被压扁、再被描边吞掉。**页面照开、控制台不报错、别的九项全绿**，正是教训 12 那一类。
+    # 判据取"被抹黑过半的墨迹占比"：el 0.45 是 47%、0.35 是 27%、≤0.22 是 0%。
+    # 嘴的形状不抄进这里——直接把着色器里那段 GLSL 搬成 JS 跑，免得一份内容抄两处。
+    m_cam_el = re.search(r'cam:\s*\{[^}]*\bel:\s*([-0-9.]+)', src)
+    m_band = re.search(r'/\* 嘴：.*?\*/\s*(float m = 0\.0;.*?)\n\s*col = mix\(col, C_INK, [0-9.]+ \* m \* on\);',
+                       src, re.S)
+    m_on = re.search(r'float on = ss\(([0-9.]+),\s*([0-9.]+), f\);', src)
+    m_hc = re.search(r'var HC = \[([^\]]+)\];', src)
+    m_hr = re.search(r'headR:\s*([0-9.]+) \* s', src)
+    m_edge = re.search(r'smoothstep\(([0-9.]+),\s*([0-9.]+), edge\)', src)
+    if shutil.which('node') is None:
+        warn('W10', '本机没有 node，跳过"嘴会不会被描边吞掉"的实测')
+    elif not (m_cam_el and m_band and m_on and m_hc and m_hr and m_edge and m_yaw and m_turn):
+        check('W10', False, '找不到默认仰角／嘴的那段着色器／脑袋参数 —— 量不了')
+    else:
+        blk = None
+        for b in blocks:
+            if 'var RABBIT' in b and 'function build' in b:
+                blk = b
+                break
+        # GLSL → JS：五条替换，改不动就让 node 当场语法错（宁可红，不可默默量错）
+        js = re.sub(r'length\(vec2\((.*?)\)\)', r'Math.hypot(\1)', m_band.group(1))
+        js = (js.replace('float ', 'let ')
+                .replace('abs(', 'Math.abs(')
+                .replace('max(', 'Math.max(')
+                .replace('st.x', 'st[0]').replace('st.y', 'st[1]'))
+        el0 = float(m_cam_el.group(1))
+        az0 = num(m_yaw.group(1)) - num(m_turn.group(1))
+        hc = [float(x) for x in m_hc.group(1).split(',')]
+        probe_tpl = '''
+const R=require(%%r);const HC=%s, HR=%f, YAW=%f, AZ=%f, EL=%f;
+const ON=[%f,%f], EDGE=[%f,%f];
+function ss(a,b,x){let t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
+function mask(st){%s
+ return m;}
+const m=R.build(0.018), P=m.pos, N=m.nrm;
+const d=[Math.cos(EL)*Math.sin(AZ),-Math.cos(EL)*Math.cos(AZ),Math.sin(EL)];
+const c=Math.cos(-YAW), s=Math.sin(-YAW);
+const dm=[d[0]*c-d[1]*s, d[0]*s+d[1]*c, d[2]];        // 转回图纸坐标（兔子转了 YAW）
+let tot=0, band=0, dark=0, n=0;
+for(let i=0;i<P.length;i+=3){
+  const h=[P[i]-HC[0],P[i+1]-HC[1],P[i+2]-HC[2]], hl=Math.hypot(h[0],h[1],h[2]);
+  if(hl>HR||hl<1e-5) continue;
+  const st=[h[0]/hl,h[2]/hl], f=-h[1]/hl;
+  if(f<ON[0]) continue;
+  const w=mask(st)*ss(ON[0],ON[1],f);
+  if(w<0.10) continue;
+  const nl=Math.hypot(N[i],N[i+1],N[i+2])||1;
+  const vis=Math.abs((N[i]*dm[0]+N[i+1]*dm[1]+N[i+2]*dm[2])/nl);
+  tot+=w; n++;
+  if(1-vis>EDGE[0]) band+=w;                          // 描边开始往上抹的地方（edge = 1 − |n·V|）
+  if(ss(EDGE[0],EDGE[1],1-vis)>0.5) dark+=w;          // 抹掉一半以上，等于没有嘴
+}
+console.log(JSON.stringify({n:n, band:tot?band/tot:0, dark:tot?dark/tot:0}));
+''' % (hc, float(m_hr.group(1)), num(m_yaw.group(1)), az0, el0,
+       float(m_on.group(1)), float(m_on.group(2)),
+       float(m_edge.group(1)), float(m_edge.group(2)), js)
+        if blk is None:
+            check('W10', False, '找不到 RABBIT 模块，量不了')
+        else:
+            with tempfile.TemporaryDirectory() as d:
+                mod = os.path.join(d, 'rab.js')
+                open(mod, 'w', encoding='utf-8').write(blk)
+                r = subprocess.run(['node', '-e', probe_tpl % mod],
+                                   capture_output=True, text=True)
+                if r.returncode != 0:
+                    check('W10', False, '量不成：' + r.stderr.strip()[-160:])
+                else:
+                    g = json.loads(r.stdout)
+                    check('W10', g['n'] > 20 and g['dark'] <= 0.02,
+                          '默认仰角 %.2f 下，嘴的 %d 个墨点里 %.0f%% 贴进描边带、'
+                          '%.0f%% 被抹黑过半（要 ≤2%%；仰角 0.35 时这个数是 29%%，'
+                          '用户当场说"嘴巴看不清楚"）'
+                          % (el0, g['n'], 100 * g['band'], 100 * g['dark']))
+
     print()
     if fails:
         print('✗ %d 项未通过：%s' % (len(fails), ' '.join(fails)))
         return 1
-    print('✓ 全部通过（%d 项检查%s）' % (9 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
+    # 项数从实际跑过的条数点出来，不写死——写死的数字会过期，而且没有任何东西会报警（教训 12）
+    print('✓ 全部通过（%d 项检查%s）' % (len(done), '，%d 项跳过' % len(warns) if warns else ''))
     return 0
 
 
