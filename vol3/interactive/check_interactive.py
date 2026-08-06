@@ -272,6 +272,66 @@ console.log(JSON.stringify({n:n, band:tot?band/tot:0, dark:tot?dark/tot:0}));
                           '用户当场说"嘴巴看不清楚"）'
                           % (el0, g['n'], 100 * g['band'], 100 * g['dark']))
 
+    # ---- [W11] 默认视角下，三根轴的字必须都在画框里 ----
+    # 2026-08-06 用户第二次报同一族毛病（第一次是轴名字 X／Y／Z 飘出去，收进 0.72×AX 解决，
+    # 见 [W7]）：这回掉出去的是**轴端那串落点标注**「Y → (0, 1, 0)」——
+    # Y 轴几乎水平朝右、又是最长的一根，端点还在框内，画在它右边的字已经出去了。
+    # 判据钉在**宽屏那一档画框**上：.wrap max-width 1400 − padding 40 → 1360，
+    # 减去 gap 18 之后按 1.35fr : 0.9fr 分，画布宽 ≈ 805；高 min(72vh, 640) → 640。
+    # 字宽用估的（13px 无衬线，「X → (1, 0, 0)」这类 13 个字符 ≈ 88px，含 fillRect 的边距）——
+    # 估得偏大一点是有意的：宁可早一步报，也不要让字贴着框边过关。
+    W_PX, H_PX, TXT_PX = 805, 640, 88
+    m_ax = re.search(r'var AX = ([0-9.]+);', src)
+    m_dist = re.search(r'cam:\s*\{[^}]*\bdist:\s*([0-9.]+)', src)
+    m_tgt = re.search(r'cam:\s*\{[^}]*\btarget:\s*\[([^\]]+)\]', src)
+    m_fov = re.search(r'm4perspective\((\d+) \* Math\.PI / 180', src)
+    m_lbl = re.search(r"addLabel\(LA\.vscale\(a\.v,\s*AX\s*\*\s*([0-9.]+)\),\s*a\.letter", src)
+    m_px = re.search(r'var AXLBL_PX = (\d+);', src)
+    if not (m_ax and m_dist and m_tgt and m_fov and m_lbl and m_px and m_cam_el and m_yaw and m_turn):
+        check('W11', False, '找不到 AX／cam／fov —— 算不了画框')
+    else:
+        ax, dist = float(m_ax.group(1)), float(m_dist.group(1))
+        tgt = [float(x) for x in m_tgt.group(1).split(',')]
+        el, az = float(m_cam_el.group(1)), num(m_yaw.group(1)) - num(m_turn.group(1))
+        fov, lblr, lblpx = math.radians(float(m_fov.group(1))), float(m_lbl.group(1)), int(m_px.group(1))
+        eye = [tgt[0] + dist * math.cos(el) * math.sin(az),
+               tgt[1] - dist * math.cos(el) * math.cos(az),
+               tgt[2] + dist * math.sin(el)]
+        zc = [eye[i] - tgt[i] for i in range(3)]
+        n = math.hypot(*zc); zc = [c / n for c in zc]
+        xc = [-zc[1], zc[0], 0.0]                      # up = (0,0,1) 叉 z
+        n = math.hypot(*xc); xc = [c / n for c in xc]
+        yc = [zc[1] * xc[2] - zc[2] * xc[1], zc[2] * xc[0] - zc[0] * xc[2],
+              zc[0] * xc[1] - zc[1] * xc[0]]
+        ff = 1 / math.tan(fov / 2)
+
+        def screen(p):
+            v = [p[i] - eye[i] for i in range(3)]
+            w = -sum(zc[i] * v[i] for i in range(3))
+            if w <= 1e-4:
+                return None
+            sx = sum(xc[i] * v[i] for i in range(3)) * ff / (W_PX / H_PX) / w
+            sy = sum(yc[i] * v[i] for i in range(3)) * ff / w
+            return ((sx * 0.5 + 0.5) * W_PX, (1 - (sy * 0.5 + 0.5)) * H_PX)
+
+        out, worst = [], 0.0
+        for i, letter in enumerate('XYZ'):
+            e = [0.0, 0.0, 0.0]; e[i] = 1.0
+            tip = screen([c * ax for c in e])           # 轴端：落点标注画在它右边
+            nam = screen([c * ax * lblr for c in e])    # 轴名字：居中，再往上抬一个字高
+            if tip is None or nam is None:
+                out.append(letter + ' 在镜头后'); continue
+            right = tip[0] + TXT_PX
+            worst = max(worst, right / W_PX)
+            if right > W_PX or tip[0] < 0 or not (0 <= tip[1] <= H_PX):
+                out.append('%s 的落点标注右边缘 %.0f / 画框 %d' % (letter, right, W_PX))
+            if not (14 <= nam[0] <= W_PX - 14) or not (0 <= nam[1] - lblpx <= H_PX):
+                out.append('%s 这个字母出框（%.0f, %.0f）' % (letter, nam[0], nam[1] - lblpx))
+        check('W11', not out,
+              '默认视角（dist %.2f）下三根轴的字都在宽屏画框 %d×%d 里%s；'
+              '最挤的一根占到画框宽的 %.0f%%（用户 08-06 报过 Y 被切）'
+              % (dist, W_PX, H_PX, '' if not out else ' —— ' + '；'.join(out), 100 * worst))
+
     print()
     if fails:
         print('✗ %d 项未通过：%s' % (len(fails), ' '.join(fails)))

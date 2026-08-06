@@ -181,7 +181,7 @@ body:not(.ready) .ctrl{opacity:.55;pointer-events:none}
   <h1>兔子的线性变换 · 三维版</h1>
   <p class="lede">左边这只是一只<b>真正在三维空间里的卡通兔</b>（身体、脑袋、耳朵、手脚是一个连续曲面，不是几块拼的）。
     右边九个数是一本<b>账本（矩阵）</b>，它定下一台<b>线性变换（老实机器）</b>：
-    <b>第一列</b>是"往右"这个方向被送到哪儿，<b>第二列</b>是"往里"，<b>第三列</b>是"往上"。
+    <b>第一列</b>是 <b>X 方向</b>被送到哪儿，<b>第二列</b>是 <b>Y 方向</b>，<b>第三列</b>是 <b>Z 方向</b>（就是图里那三根标着 X、Y、Z 的轴）。
     三列一定，兔子身上每一个点去哪儿就全定了。</p>
   <p class="how">用法：改九个数 → 按「变过去」。<b>画框是钉死的</b>，所以兔子变大就是<b>真的变大</b>——灰色那只是变换前的它，两只一比就知道被拉了多少。
     <span class="kbd">拖动</span>转视角，<span class="kbd">滚轮</span>缩放。九个数的绝对值都限制在 3 以内。</p>
@@ -199,21 +199,21 @@ body:not(.ready) .ctrl{opacity:.55;pointer-events:none}
     <h2>账本（矩阵）<small>每一列竖着读</small></h2>
     <div class="mgrid">
       <div></div>
-      <div class="hdr c-right"><b>往右</b>送到</div>
-      <div class="hdr c-into"><b>往里</b>送到</div>
-      <div class="hdr c-up"><b>往上</b>送到</div>
+      <div class="hdr c-right"><b>X 方向</b>送到</div>
+      <div class="hdr c-into"><b>Y 方向</b>送到</div>
+      <div class="hdr c-up"><b>Z 方向</b>送到</div>
 
-      <div class="rlab">右分量</div>
+      <div class="rlab">X 分量</div>
       <input id="m00" type="number" step="0.1" min="-3" max="3" value="1">
       <input id="m01" type="number" step="0.1" min="-3" max="3" value="0">
       <input id="m02" type="number" step="0.1" min="-3" max="3" value="0">
 
-      <div class="rlab">里分量</div>
+      <div class="rlab">Y 分量</div>
       <input id="m10" type="number" step="0.1" min="-3" max="3" value="0">
       <input id="m11" type="number" step="0.1" min="-3" max="3" value="1">
       <input id="m12" type="number" step="0.1" min="-3" max="3" value="0">
 
-      <div class="rlab">上分量</div>
+      <div class="rlab">Z 分量</div>
       <input id="m20" type="number" step="0.1" min="-3" max="3" value="0">
       <input id="m21" type="number" step="0.1" min="-3" max="3" value="0">
       <input id="m22" type="number" step="0.1" min="-3" max="3" value="1">
@@ -1183,9 +1183,9 @@ window.PANELS = (function () {
     var A = R.A;
     var body = '<p>账本（矩阵）的三列，<b>每一列竖着读</b>，就是三个基本方向被送到了哪里：</p>'
       + '<div class="cols3">'
-      + colBox('往右 (1,0,0)', LA.col(A, 0), 'c-right')
-      + colBox('往里 (0,1,0)', LA.col(A, 1), 'c-into')
-      + colBox('往上 (0,0,1)', LA.col(A, 2), 'c-up')
+      + colBox('X 方向 (1,0,0)', LA.col(A, 0), 'c-right')
+      + colBox('Y 方向 (0,1,0)', LA.col(A, 1), 'c-into')
+      + colBox('Z 方向 (0,0,1)', LA.col(A, 2), 'c-up')
       + '</div>'
       + says('图上那三支彩色的箭，画的就是这三列。只要知道这三个落点，兔子身上<b>每一个点</b>去哪儿就全定了——'
         + '因为兔子上任何一点都是这三个方向配出来的，而这台机器守两条家规（加法、倍数都不打折）。'
@@ -1661,7 +1661,23 @@ window.PANELS = (function () {
        但要注意这两个诉求现在是**打架**的：X 要 el 大、嘴要 el 小。真要两头都顾，
        唯一的活口是把 VIEW_TURN 调小（0° 时 X 长 0.721，且脸更正对镜头，嘴还更清楚）——
        那是构图的转角，属于用户拍板的事，别自己动。 */
-    cam: { az: RABBIT_YAW - VIEW_TURN, el: 0.20, dist: 3.35, target: [0, 0, 0.46] },
+    /* dist 4.19 ＝ 原来的 3.35 ÷ 0.8，也就是**整幅画缩到原来的 80%**
+       （2026-08-06 用户："整体缩小的原来的 80%，使得 Y 轴可以完整显示出来"）。
+       缩的是镜头距离，不是任何世界坐标——兔子、轴、格子、账本全没动。
+
+       为什么非缩不可：**掉出画框的不是 Y 轴那根线，是它端点上的落点标注**
+       「Y → (0, 1, 0)」。那串字画在锚点**右边**（drawLabels 里 q[0]+10），
+       13px 大约 88 像素宽；Y 轴又几乎是水平朝右的（屏幕角 357°、投影长 0.967，
+       三根轴里最长的一根），端点本身还在框内，字就已经出去了。
+       宽屏画框（805×640，.wrap 1400 − padding，1.35fr 那一栏）实测：
+         dist 3.35（100%）  Y 标注右边缘 850 ＞ 画框 805   ✗ 被切
+         dist 4.19（ 80%）  Y 标注右边缘 774 ＜ 画框 805   ✓ 还剩 31px
+       ⚠ **只有宽屏这一档保住了**：把窗口拉窄（≈685×640）或方一点（620×560）
+       要缩到 72% 才装得下，手机竖屏（350×608）得缩到 40%——那就没法看了。
+       真要全画框通吃，正解不是继续缩，是**让标注在快出框时改画到锚点左边**
+       （drawLabels 里加一句就够），那是改绘制行为，等用户点头再动。
+       [W11] 守着这一条：默认视角下轴端右边必须留得下这串字。 */
+    cam: { az: RABBIT_YAW - VIEW_TURN, el: 0.20, dist: 4.19, target: [0, 0, 0.46] },
     show: { ghost: true, cube: true, ell: false, eig: true, kern: true, floor: true, label: true },
     autofit: false,
     analysis: null
@@ -1791,9 +1807,9 @@ window.PANELS = (function () {
 
     /* 三根轴：变换前（淡）与变换后（浓） */
     var axes = [
-      { v: e1, c: COL.right, name: '往右', letter: 'X' },
-      { v: e2, c: COL.into, name: '往里', letter: 'Y' },
-      { v: e3, c: COL.up, name: '往上', letter: 'Z' }
+      { v: e1, c: COL.right, name: 'X 方向', letter: 'X' },
+      { v: e2, c: COL.into, name: 'Y 方向', letter: 'Y' },
+      { v: e3, c: COL.up, name: 'Z 方向', letter: 'Z' }
     ];
     axes.forEach(function (a) {
       var pale = a.c.map(function (x) { return 0.65 + x * 0.3; });
@@ -1805,8 +1821,12 @@ window.PANELS = (function () {
       var img = LA.mvec(M, a.v);
       if (LA.vlen(img) > 1e-6) {
         addArrow(O, img, a.c);
-        /* 落点标注只留字母和落点：'往右／往里／往上' 那三个词由淡轴上的 X／Y／Z 管，
-           塞进这里只会把这一行挤成一团（08-06 用户指出）。 */
+        /* 落点标注只留字母和落点，方向由淡轴上的 X／Y／Z 管，
+           塞进这里只会把这一行挤成一团（08-06 用户指出）。
+           ⚠ 这一页**有意不用书里那套"往右／往里／往上"**：2026-08-06 用户
+           "'往右''往里''往上'不如'X方向''Y方向''Z方向'直观"——图上三根轴本来就标着
+           X／Y／Z，面板再说"往里"等于要读者在心里做一次翻译。**别按书的体例改回去**；
+           书的正文照旧不许出现 x／y／z（那是 verify_docx.py [3.94] 的事，与这一页无关）。 */
         if (S.show.label) addLabel(img, a.letter + ' → (' + LA.fmt(img[0]) + ', ' + LA.fmt(img[1]) + ', ' + LA.fmt(img[2]) + ')', a.c);
       }
     });
