@@ -10,6 +10,7 @@
 控制台也不报错——正是那种"没有任何检查会响"的错（教训 12）。
 所以把这几条不变量钉成会失败的检查。
 """
+import json
 import math
 import os
 import re
@@ -147,11 +148,55 @@ def main(path):
           '且三维锚点是纯量倍、没掺偏移向量（%s）'
           % (lifts, '是' if pure_anchor else '否 —— 锚点被加了三维偏移，转视角时字会甩'))
 
+    # ---- [W9] 兔子不许伸出采样盒（伸出去不是消失，是被削平）----
+    # 隐式曲面只在 lo..hi 这个盒子里取样，超出的部分被切成一个平面，
+    # 而且很难看出来——2026-08-06 才发现**右耳尖一直是平的**（理论 2.835，盒顶只有 2.76）。
+    # 光看代码看不出来，必须真的把网格建出来量，所以这条要跑 node。
+    if shutil.which('node') is None:
+        warn('W9', '本机没有 node，跳过"兔子伸出采样盒"的实测')
+    else:
+        blk = None
+        for b in blocks:
+            if 'var RABBIT' in b and 'function build' in b:
+                blk = b
+                break
+        if blk is None:
+            check('W9', False, '找不到 RABBIT 模块，量不了')
+        else:
+            with tempfile.TemporaryDirectory() as d:
+                mod = os.path.join(d, 'rab.js')
+                open(mod, 'w', encoding='utf-8').write(blk)
+                probe = (
+                    'const R=require(%r);const m=R.build(0.028);'
+                    'const s=%r;const lo=s[0],hi=s[1];const P=m.pos;'
+                    'const mn=[9,9,9],mx=[-9,-9,-9];'
+                    'for(let i=0;i<P.length;i+=3)for(let t=0;t<3;t++){'
+                    'if(P[i+t]<mn[t])mn[t]=P[i+t];if(P[i+t]>mx[t])mx[t]=P[i+t];}'
+                    'let g=9,w="";for(let t=0;t<3;t++){'
+                    'if(mn[t]-lo[t]<g){g=mn[t]-lo[t];w="xyz"[t]+"下";}'
+                    'if(hi[t]-mx[t]<g){g=hi[t]-mx[t];w="xyz"[t]+"上";}}'
+                    'console.log(JSON.stringify({gap:g,where:w}));')
+                mbox = re.search(
+                    r'var lo = \[([^\]]+)\], hi = \[([^\]]+)\]', blk)
+                if not mbox:
+                    check('W9', False, '找不到采样盒 lo/hi')
+                else:
+                    box = [[float(x) for x in mbox.group(i).split(',')] for i in (1, 2)]
+                    r = subprocess.run(['node', '-e', probe % (mod, box)],
+                                       capture_output=True, text=True)
+                    if r.returncode != 0:
+                        check('W9', False, '建网格失败：' + r.stderr.strip()[-120:])
+                    else:
+                        g = json.loads(r.stdout)
+                        check('W9', g['gap'] > 0.02,
+                              '兔子离采样盒最近处还有 %.4f 的余量（最紧在 %s；'
+                              '≤0 就是被削平了，而且看不出来）' % (g['gap'], g['where']))
+
     print()
     if fails:
         print('✗ %d 项未通过：%s' % (len(fails), ' '.join(fails)))
         return 1
-    print('✓ 全部通过（%d 项检查%s）' % (8 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
+    print('✓ 全部通过（%d 项检查%s）' % (9 - len(warns), '，%d 项跳过' % len(warns) if warns else ''))
     return 0
 
 
