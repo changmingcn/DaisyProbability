@@ -1594,6 +1594,19 @@ window.PANELS = (function () {
      所以先把兔子缩小，给拉伸留出地方。 */
   var RABBIT_HEIGHT = 2.2 / 3;
 
+  /* 兔子在世界里转过的角度，必须和 RABBIT 模块里的 YAW 一致（[W3] 守着）。
+     镜头停在这个方位角时，兔子正面朝我们。 */
+  var RABBIT_YAW = 135 * Math.PI / 180;
+
+  /* 整幅画面再绕 z 轴**右手旋**这么多（2026-08-06 用户定 45°）。
+     它只挪镜头、不动任何世界坐标——兔子、坐标轴、格子、账本全都原地不动，
+     转的是"我们站在哪儿看"，所以整张画一起转。右手旋 ＝ 从 +z 往下看逆时针，
+     等价于镜头方位角**减去**同样的角度。
+     ⚠ 代价用户已知情选定：这个角度正对着 X 轴看，**X 轴在屏幕上只剩朝正下方 0.22 的一小截、
+     几乎缩没，而且和 Z 轴叠在同一条竖线上**。想要三根轴分得开的对称轴测图，
+     把 VIEW_TURN 设回 0 即可（那就是 08-06 上午那一版）。 */
+  var VIEW_TURN = 45 * Math.PI / 180;
+
   /* ---------------- 全局状态 ---------------- */
   var COL = {
     right: [0.85, 0.27, 0.24], into: [0.13, 0.60, 0.42], up: [0.20, 0.40, 0.80],
@@ -1606,9 +1619,11 @@ window.PANELS = (function () {
     steps: [{ kind: 'lerp', to: LA.id(), label: '什么都不做' }],
     mode: 'direct',
     t: 1, playing: false, lastTime: 0,
-    /* az = 135° 是标准轴测的方位：往右在左下、往里在右下、往上朝上，三根轴分得开。
-       兔子已经绕 z 转了 135°（见 RABBIT 那边的 YAW），所以这个镜头下它正面朝我们。 */
-    cam: { az: 3 * Math.PI / 4, el: 0.22, dist: 3.35, target: [0, 0, 0.46] },
+    /* 镜头方位角 ＝ 兔子的朝向 减去 整幅画面右手旋的角度。
+       VIEW_TURN 为 0 时兔子正面朝我们、三根轴摆成对称的标准轴测；
+       现在 VIEW_TURN ＝ 45°，整张画跟着转，兔子也就侧了 45°。
+       **这两个数只在上面写一次**——写死成 π/2 之类的字面量，下次改 YAW 就会悄悄脱节。 */
+    cam: { az: RABBIT_YAW - VIEW_TURN, el: 0.22, dist: 3.35, target: [0, 0, 0.46] },
     show: { ghost: true, cube: true, ell: false, eig: true, kern: true, floor: true, label: true },
     autofit: false,
     analysis: null

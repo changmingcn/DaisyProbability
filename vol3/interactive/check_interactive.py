@@ -70,21 +70,31 @@ def main(path):
     check('W2', letters == ['X', 'Y', 'Z'],
           '坐标轴名字 = %s（应为 X Y Z，按 往右／往里／往上 的顺序）' % (letters or '无'))
 
-    # ---- [W3] 兔子的转角 ＝ 默认镜头方位角 ----
-    # 这是"兔子正面朝我们"的全部依据。图纸里兔子脸朝 −y，绕 z 转 YAW 之后
-    # 脸朝 (sin YAW, −cos YAW)；镜头在方位角 az 时位于 (sin az, −cos az) 那一侧。
-    # 两个数相等，脸才正对镜头。
-    m_yaw = re.search(r'var YAW\s*=\s*([^;]+);', src)
+    # ---- [W3] 镜头方位角 ＝ 兔子转角 − 整幅画面右手旋的角度 ----
+    # 图纸里兔子脸朝 −y，绕 z 转 YAW 之后脸朝 (sin YAW, −cos YAW)；
+    # 镜头在方位角 az 时站在 (sin az, −cos az) 那一侧。两者之差就是兔子侧过去多少。
+    # 08-06 之前这个差必须是 0（兔子正面朝人）；现在用户要整幅画面右手旋 45°，
+    # 差变成一个**写明了的** VIEW_TURN——闸不是钉死"必须正面"，而是钉死
+    # "这三个数必须还是当初说好的那个关系"，任何一处被悄悄改动照样红。
+    m_yaw = re.search(r'var YAW\s*=\s*([^;]+);', src)                 # RABBIT 模块里的
+    m_yaw2 = re.search(r'var RABBIT_YAW\s*=\s*([^;]+);', src)         # 绘图模块里的副本
+    m_turn = re.search(r'var VIEW_TURN\s*=\s*([^;]+);', src)
     m_az = re.search(r'cam:\s*\{\s*az:\s*([^,]+),', src)
-    if not (m_yaw and m_az):
-        check('W3', False, '找不到 YAW 或默认 cam.az —— 这两个数是这一页的命门')
+    if not (m_yaw and m_yaw2 and m_turn and m_az):
+        check('W3', False, '找不到 YAW / RABBIT_YAW / VIEW_TURN / cam.az —— 这几个数是这一页的命门')
     else:
-        yaw, az = num(m_yaw.group(1)), num(m_az.group(1))
-        d = abs((math.degrees(yaw - az) + 180) % 360 - 180)
-        cosface = math.cos(yaw - az)
-        check('W3', d < 1e-6,
-              '兔子转角 %.3f° ＝ 默认镜头方位角 %.3f°？差 %.4f°（脸朝向·镜头 = %.4f，'
-              '差一度兔子就开始转过去）' % (math.degrees(yaw), math.degrees(az), d, cosface))
+        yaw, yaw2, turn = num(m_yaw.group(1)), num(m_yaw2.group(1)), num(m_turn.group(1))
+        # cam.az 必须是**算出来的**，不许写死字面量：写死了，改 YAW 就会悄悄脱节
+        az_expr = m_az.group(1).strip()
+        computed = az_expr == 'RABBIT_YAW - VIEW_TURN'
+        d = abs(math.degrees(yaw - yaw2))
+        cosface = math.cos(turn)
+        check('W3', d < 1e-6 and computed,
+              '两处兔子转角一致（YAW %.3f° vs RABBIT_YAW %.3f°，差 %.4f°）且 cam.az 是算出来的'
+              '（现为 `%s`%s）；整幅画面右手旋 %.1f°，兔子因此侧了这么多，脸朝向·镜头 = %.3f'
+              % (math.degrees(yaw), math.degrees(yaw2), d, az_expr,
+                 '' if computed else ' —— 应为 `RABBIT_YAW - VIEW_TURN`，写死字面量迟早脱节',
+                 math.degrees(turn), cosface))
 
     # ---- [W4] 视角按钮的基准角也得跟上 ----
     m_btn = re.search(r'var YAW_AZ\s*=\s*([^;]+);', src)
@@ -95,13 +105,15 @@ def main(path):
         check('W4', d < 1e-6, '视角按钮基准角对齐兔子转角？差 %.4f°' % d)
 
     # ---- [W5] 主光在镜头这一侧，脸不能背光 ----
+    # 脸朝向要从**兔子的转角**算，不能从镜头方位角算——08-06 加 VIEW_TURN 之后
+    # 这两个数不再相等，拿 az 当脸朝向就会在兔子侧身时误判。
     m_l = re.search(r"'uLight'\s*\),\s*new Float32Array\(\[([^\]]+)\]", src)
-    if not (m_l and m_az):
-        check('W5', False, '找不到主光方向或镜头方位角')
+    if not (m_l and m_yaw):
+        check('W5', False, '找不到主光方向或兔子转角')
     else:
         lx, ly, _lz = [float(x) for x in m_l.group(1).split(',')]
-        az = num(m_az.group(1))
-        fx, fy = math.sin(az), -math.cos(az)          # 兔子脸朝向 ＝ 镜头方位
+        yaw = num(m_yaw.group(1))
+        fx, fy = math.sin(yaw), -math.cos(yaw)        # 兔子脸的朝向
         c = (lx * fx + ly * fy) / math.hypot(lx, ly)
         check('W5', c > 0.2,
               '主光照得到脸？主光·脸朝向 = %.3f（≤0 就是背光，脸会暗一大截）' % c)
