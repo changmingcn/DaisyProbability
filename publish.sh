@@ -100,6 +100,9 @@ if [ "${1:-}" = "--web" ]; then
 
   say "推 book.changming.cyou（默认页）"
   # 先传临时名 → 服务器端核 md5 → 原子改名。中间不留半截文件给 nginx 读。
+  # ⚠ 换前那份备份要放在 **docroot 之外**（/var/backups/book/，700）。
+  #   08-06 第一版顺手存在 docroot 里，结果 https://…/index.html.bak-… 公网直接下得到——
+  #   这一页本来就是公开的没关系，但这个坏习惯迟早会把不该公开的东西摆出去。
   # 认证：这台还没装公钥，会问 root 密码（你自己跑就行）。
   # 装了公钥之后这一步无人值守也能过 —— 密码一律不进脚本、不进仓库。
   LOCAL_MD5=$(md5 -q "$WEB_SRC" 2>/dev/null || md5sum "$WEB_SRC" | cut -d' ' -f1)
@@ -109,7 +112,8 @@ if [ "${1:-}" = "--web" ]; then
     cd '$WEB_PATH'
     NEW=\$(md5sum .index.html.new | cut -d' ' -f1)
     [ \"\$NEW\" = '$LOCAL_MD5' ] || { rm -f .index.html.new; echo 'md5 对不上'; exit 1; }
-    [ -f index.html ] && cp -a index.html \"index.html.bak-\$(date +%Y%m%d-%H%M%S)\"
+    mkdir -p /var/backups/book && chmod 700 /var/backups/book
+    [ -f index.html ] && cp -a index.html \"/var/backups/book/index.html.bak-\$(date +%Y%m%d-%H%M%S)\"
     chmod 644 .index.html.new
     mv -f .index.html.new index.html
   " || die "站点部署失败"
@@ -118,8 +122,11 @@ if [ "${1:-}" = "--web" ]; then
   say "线上复核"
   TMP=$(mktemp); curl -sS -m 30 -o "$TMP" "https://book.changming.cyou/" || die "拉不回线上页面"
   ONLINE=$(md5 -q "$TMP" 2>/dev/null || md5sum "$TMP" | cut -d' ' -f1); rm -f "$TMP"
-  [ "$ONLINE" = "$LOCAL_MD5" ] || die "线上 md5 $ONLINE ≠ 本机 $LOCAL_MD5 —— 没换成功或被缓存挡住"
-  echo "  ✓ 线上与本机逐字节一致（$LOCAL_MD5）"
+  # ⚠ 变量名后面紧跟全角标点必须加花括号：macOS 自带 bash 3.2 会把 `（` 的字节
+  #   当成变量名的一部分，`$LOCAL_MD5）` 在 set -u 下直接 "unbound variable" 打死脚本。
+  #   08-06 就是这么崩的——站点其实已经换好了，死在最后那步复核上，白虚惊一场。
+  [ "$ONLINE" = "${LOCAL_MD5}" ] || die "线上 md5 ${ONLINE} ≠ 本机 ${LOCAL_MD5} —— 没换成功或被缓存挡住"
+  echo "  ✓ 线上与本机逐字节一致（${LOCAL_MD5}）"
   echo; echo "✓ 互动页已上线：https://book.changming.cyou/"
   exit 0
 fi

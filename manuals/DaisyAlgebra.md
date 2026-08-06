@@ -342,6 +342,21 @@ python3 vol3/interactive/check_interactive.py [文件]
 > **这一页 08-06 之前只活在 Drive 上，没有源**，谁要改都得先下载再传回去，
 > 正踩在「并发会话必读.md」那个坑上。现在本机这棵树是源，Drive 和站点都只是出口。
 
+**站点那台**：Debian 13 ＋ nginx，docroot `/var/www/book.changming.cyou`，
+`location / { try_files $uri $uri/ /index.html; }`——**任何不存在的路径都回 200 ＋ 首页**，
+所以"某个文件还在不在"不能靠状态码判，得比 md5（08-06 我就被它骗过一次，
+以为删掉的备份还在公网上）。**还没装公钥**，`--web` 会问 root 密码；
+想无人值守就自己装一把部署密钥——**密码一律不进脚本、不进仓库、不进手册**。
+
+**写 `--web` 那段时踩的两个坑，都已写进脚本注释**：
+1. **变量名后面紧跟全角标点要加花括号**：macOS 自带 bash 3.2 会把 `（` 的字节吃进变量名，
+   `"…（$LOCAL_MD5）"` 在 `set -u` 下直接 unbound variable 打死脚本。
+   要命的是它**死在部署之后、复核之前**——站点其实已经换好了，看日志却像失败了。
+   （和脚本里原有那条"空数组展开打死 bash 3.2"是同一族病。）
+2. **换前的备份别存在 docroot 里**：第一版顺手 `cp index.html index.html.bak-…`，
+   结果 `https://…/index.html.bak-…` 公网直接下得到。现在存 `/var/backups/book/`（700）。
+   这一页本来就公开无所谓，但这个习惯迟早会把不该公开的东西摆出去。
+
 ### 另外两个工具（**不在十二件里**，`publish.sh` 不推它们，但打包要带上）
 
 - `python3 audit_refs.py --vol vol3` —— 交叉引用**语义**对账，见下面「一个必须保留的习惯」。
