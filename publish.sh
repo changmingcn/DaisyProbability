@@ -103,10 +103,11 @@ if [ "${1:-}" = "--web" ]; then
   # ⚠ 换前那份备份要放在 **docroot 之外**（/var/backups/book/，700）。
   #   08-06 第一版顺手存在 docroot 里，结果 https://…/index.html.bak-… 公网直接下得到——
   #   这一页本来就是公开的没关系，但这个坏习惯迟早会把不该公开的东西摆出去。
-  # 认证：这台还没装公钥，会问 root 密码（你自己跑就行）。
-  # 装了公钥之后这一步无人值守也能过 —— 密码一律不进脚本、不进仓库。
+  # 认证：2026-08-06 已把本机 ~/.ssh/id_ed25519.pub 装进这台的 root authorized_keys，
+  # 这一步现在**无人值守也能过**（会话里跑 --web 不再卡在密码上）。
+  # 密码一律不进脚本、不进仓库、不进手册 —— 换机器就重装一把钥匙，别把口令抄下来。
   LOCAL_MD5=$(md5 -q "$WEB_SRC" 2>/dev/null || md5sum "$WEB_SRC" | cut -d' ' -f1)
-  scp -q "$WEB_SRC" "$WEB_HOST:$WEB_PATH/.index.html.new" || die "scp 失败（没装公钥的话它会问密码）"
+  scp -q "$WEB_SRC" "$WEB_HOST:$WEB_PATH/.index.html.new" || die "scp 失败（公钥没认上就会退回问密码，会话里等于卡死）"
   ssh "$WEB_HOST" "
     set -e
     cd '$WEB_PATH'

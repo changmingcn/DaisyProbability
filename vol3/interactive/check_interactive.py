@@ -268,7 +268,7 @@ console.log(JSON.stringify({n:n, band:tot?band/tot:0, dark:tot?dark/tot:0}));
                     g = json.loads(r.stdout)
                     check('W10', g['n'] > 20 and g['dark'] <= 0.02,
                           '默认仰角 %.2f 下，嘴的 %d 个墨点里 %.0f%% 贴进描边带、'
-                          '%.0f%% 被抹黑过半（要 ≤2%%；仰角 0.35 时这个数是 29%%，'
+                          '%.0f%% 被抹黑过半（要 ≤2%%；仰角 0.35 时被抹黑的是 29%%，'
                           '用户当场说"嘴巴看不清楚"）'
                           % (el0, g['n'], 100 * g['band'], 100 * g['dark']))
 
