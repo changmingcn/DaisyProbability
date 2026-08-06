@@ -1,0 +1,2298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兔子的线性变换 —— 三维版</title>
+<style>
+:root{
+  --bg:#f9f6f0; --panel:#fffdfa; --ink:#23315c; --ink2:#5b6580; --line:#e6ded2;
+  --peach:#f2a9b8; --accent:#c2603c; --gold:#b8860b; --teal:#0f9e9e; --mag:#cc2a6b;
+  --right:#d94438; --into:#22996b; --up:#3366cc; --cube:#8566c7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px}
+header h1{font-size:26px;margin:6px 0 4px;letter-spacing:.5px}
+header p.lede{margin:0 0 4px;color:var(--ink2);max-width:80ch}
+header p.how{margin:6px 0 18px;color:var(--ink2);font-size:13.5px}
+header .kbd{background:#fff;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px}
+
+.top{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,.9fr);gap:18px;align-items:stretch}
+@media (max-width:980px){.top{grid-template-columns:1fr}}
+
+#viewWrap{
+  position:relative;background:#f9f6f0;border:1px solid var(--line);border-radius:14px;
+  min-height:min(72vh,640px);overflow:hidden;box-shadow:0 1px 3px rgba(60,50,40,.06)
+}
+#gl,#ov{position:absolute;left:0;top:0;display:block}
+#ov{cursor:grab;touch-action:none}
+.nogl{padding:40px;text-align:center;color:var(--ink2)}
+.viewfoot{
+  position:absolute;left:10px;bottom:8px;font-size:11.5px;color:#9a9385;
+  background:rgba(255,253,249,.75);padding:2px 8px;border-radius:6px;pointer-events:none
+}
+
+.ctrl{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px}
+.ctrl h2{font-size:15px;margin:0 0 10px;letter-spacing:.4px}
+.ctrl h2 small{font-weight:400;color:var(--ink2);font-size:12.5px;margin-left:6px}
+
+.mgrid{display:grid;grid-template-columns:auto repeat(3,1fr);gap:6px;align-items:center}
+.mgrid .hdr{font-size:11.5px;text-align:center;color:var(--ink2);line-height:1.3}
+.mgrid .hdr b{display:block;font-size:12.5px}
+.mgrid .rlab{font-size:11.5px;color:var(--ink2);text-align:right;padding-right:4px;white-space:nowrap}
+.mgrid input{
+  width:100%;padding:7px 4px;text-align:center;font:600 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)
+}
+.mgrid input:focus{outline:2px solid #cfd9f2;border-color:#9db0e0}
+.c-right{color:var(--right)} .c-into{color:var(--into)} .c-up{color:var(--up)}
+
+.hint{font-size:12px;color:var(--ink2);margin:8px 0 12px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button{
+  font:inherit;font-size:13.5px;padding:7px 13px;border-radius:9px;border:1px solid var(--line);
+  background:#fff;color:var(--ink);cursor:pointer
+}
+button:hover{background:#fdf6ee;border-color:#d8c9b4}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:hover{background:#31417a}
+button.ghostbtn{padding:5px 10px;font-size:12.5px}
+
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.presets button{padding:5px 9px;font-size:12.5px;border-radius:7px;background:#fdfaf5}
+
+fieldset{border:none;border-top:1px solid var(--line);margin:14px 0 0;padding:12px 0 0}
+legend{font-size:12.5px;color:var(--ink2);padding:0}
+.radios{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.radios label,.toggles label{display:flex;align-items:flex-start;gap:7px;font-size:13px;cursor:pointer}
+.radios label span.d{color:var(--ink2);font-size:12px}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin-top:6px}
+input[type=checkbox],input[type=radio]{margin-top:5px;accent-color:var(--ink)}
+
+.player{display:flex;align-items:center;gap:9px;margin-top:8px}
+.player input[type=range]{flex:1;accent-color:var(--accent)}
+#tpct{font:600 12px ui-monospace,Menlo,monospace;color:var(--ink2);width:38px;text-align:right}
+#stepLabel{font-size:12.5px;color:var(--accent);min-height:20px;margin-top:4px}
+#liveMat{margin-top:6px}
+
+/* 矩阵排版 */
+.mat{display:inline-flex;align-items:stretch;vertical-align:middle;margin:2px 3px}
+.mat table{border-collapse:collapse}
+.mat td{
+  font:500 13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  padding:2px 7px;text-align:right;min-width:44px;color:var(--ink)
+}
+.mat td.zero{color:#b9b2a5}
+.mat .brk{width:6px;border:1.6px solid var(--ink);opacity:.55}
+.mat .brk.l{border-right:none;border-radius:3px 0 0 3px}
+.mat .brk.r{border-left:none;border-radius:0 3px 3px 0}
+.mat.live .brk{border-color:var(--accent)}
+.mat.live td{color:var(--accent)}
+
+/* 分解卡 */
+#panels{margin-top:20px;column-count:2;column-gap:18px}
+@media (max-width:1100px){#panels{column-count:1}}
+.card{
+  break-inside:avoid;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px 12px;margin:0 0 18px;display:inline-block;width:100%
+}
+.card h3{font-size:15.5px;margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+.card h3 .formula{
+  font:500 13px ui-monospace,Menlo,monospace;color:var(--accent);
+  background:#fdf3ec;border-radius:6px;padding:2px 8px
+}
+.card p{margin:8px 0}
+.card p.sub{font-size:13px;color:var(--ink2)}
+.card p.note{font-size:12.5px;color:var(--ink2);border-top:1px dashed var(--line);padding-top:8px;margin-top:10px}
+.card p.warn{background:#fdf0f3;border-left:3px solid var(--mag);padding:8px 11px;border-radius:0 8px 8px 0;font-size:13.5px}
+.says{background:#f2f8f5;border-left:3px solid var(--teal);padding:9px 12px;border-radius:0 8px 8px 0;font-size:13.5px}
+.says .tag{
+  display:inline-block;font-size:11px;color:#fff;background:var(--teal);
+  border-radius:5px;padding:0 6px;margin-right:7px;vertical-align:1px
+}
+.matrow{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:8px 0}
+.matrow .op{color:var(--ink2);padding:0 3px;font-size:14px}
+.sep{font-size:13px;color:var(--ink2);margin-top:12px;display:flex;align-items:baseline;gap:8px}
+.sep .formula{font:500 12.5px ui-monospace,Menlo,monospace;color:var(--accent)}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 10px}
+@media (max-width:520px){.grid4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#fbf7f1;border-radius:9px;padding:8px 9px}
+.stat .sname{font-size:11px;color:var(--ink2)}
+.stat .sval{font:600 17px/1.3 ui-monospace,Menlo,monospace}
+.stat .ssub{font-size:11px;color:var(--ink2);line-height:1.4}
+
+.sizebox{background:#fbf7f1;border-radius:10px;padding:9px 11px;margin:6px 0 10px}
+.sizehead{font-size:11.5px;color:var(--ink2);margin-bottom:5px}
+.sizerow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:2px 0}
+.sizerow span{width:5.2em;color:var(--ink2);flex:none}
+.sizerow .bar{flex:1;height:9px;background:#ece4d8;border-radius:5px;overflow:hidden}
+.sizerow .bar u{display:block;height:100%;background:var(--accent);text-decoration:none}
+.sizerow b{font:600 12px ui-monospace,Menlo,monospace;width:7.4em;text-align:right;flex:none}
+.sizerow em{font-style:normal;font:600 12px ui-monospace,Menlo,monospace;width:4.2em;text-align:right;flex:none;color:var(--ink2)}
+.sizerow em.up{color:#c2603c} .sizerow em.down{color:#3366cc}
+
+.kv{margin:8px 0;font-size:13px}
+.kv div{padding:4px 0;border-bottom:1px dotted var(--line)}
+.kv div:last-child{border:none}
+.kv span{display:inline-block;min-width:9.5em;color:var(--ink2);font-size:12.5px}
+
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.colbox{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;background:#fdfbf7}
+.colbox .cbname{font-size:12px;font-weight:600}
+.colbox .cbarrow{font-size:11px;color:var(--ink2)}
+.colbox .cbval{font:600 13px ui-monospace,Menlo,monospace;margin-top:2px}
+.colbox.c-right{border-color:#f0c4bf} .colbox.c-into{border-color:#bfe3d3} .colbox.c-up{border-color:#c6d4f0}
+
+.eig{border-left:3px solid var(--gold);background:#fdf9ee;padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+.eig.zero{border-color:var(--mag);background:#fdf0f4}
+.eig.neg{border-color:#8566c7;background:#f6f3fc}
+.eig.cx{border-color:#6a5acd;background:#f4f2fd}
+.eig .lam{font:600 14px ui-monospace,Menlo,monospace}
+.eig .mult{font:400 11.5px -apple-system,sans-serif;color:var(--ink2);margin-left:10px}
+.eig .eigv{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.eig .eigsay{font-size:13px;margin-top:4px}
+
+.chain{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.chainstep{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.chainstep .ci{
+  width:19px;height:19px;border-radius:50%;background:var(--ink);color:#fff;
+  font-size:11px;display:flex;align-items:center;justify-content:center;flex:none
+}
+.chainstep .ctext{color:var(--ink2)}
+ul.special{margin:4px 0;padding-left:20px;font-size:13.5px}
+ul.special li{margin:5px 0}
+
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}
+footer b{color:var(--ink)}
+body:not(.ready) .ctrl{opacity:.55;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>兔子的线性变换 · 三维版</h1>
+  <p class="lede">左边这只是一只<b>真正在三维空间里的卡通兔</b>（身体、脑袋、耳朵、手脚是一个连续曲面，不是几块拼的）。
+    右边九个数是一本<b>账本（矩阵）</b>，它定下一台<b>线性变换（老实机器）</b>：
+    <b>第一列</b>是"往右"这个方向被送到哪儿，<b>第二列</b>是"往里"，<b>第三列</b>是"往上"。
+    三列一定，兔子身上每一个点去哪儿就全定了。</p>
+  <p class="how">用法：改九个数 → 按「变过去」。<b>画框是钉死的</b>，所以兔子变大就是<b>真的变大</b>——灰色那只是变换前的它，两只一比就知道被拉了多少。
+    <span class="kbd">拖动</span>转视角，<span class="kbd">滚轮</span>缩放。九个数的绝对值都限制在 3 以内。</p>
+</header>
+
+<div class="top">
+
+  <div id="viewWrap">
+    <canvas id="gl"></canvas>
+    <canvas id="ov"></canvas>
+    <div class="viewfoot" id="meshInfo">正在给兔子建模……</div>
+  </div>
+
+  <div class="ctrl">
+    <h2>账本（矩阵）<small>每一列竖着读</small></h2>
+    <div class="mgrid">
+      <div></div>
+      <div class="hdr c-right"><b>往右</b>送到</div>
+      <div class="hdr c-into"><b>往里</b>送到</div>
+      <div class="hdr c-up"><b>往上</b>送到</div>
+
+      <div class="rlab">右分量</div>
+      <input id="m00" type="number" step="0.1" min="-3" max="3" value="1">
+      <input id="m01" type="number" step="0.1" min="-3" max="3" value="0">
+      <input id="m02" type="number" step="0.1" min="-3" max="3" value="0">
+
+      <div class="rlab">里分量</div>
+      <input id="m10" type="number" step="0.1" min="-3" max="3" value="0">
+      <input id="m11" type="number" step="0.1" min="-3" max="3" value="1">
+      <input id="m12" type="number" step="0.1" min="-3" max="3" value="0">
+
+      <div class="rlab">上分量</div>
+      <input id="m20" type="number" step="0.1" min="-3" max="3" value="0">
+      <input id="m21" type="number" step="0.1" min="-3" max="3" value="0">
+      <input id="m22" type="number" step="0.1" min="-3" max="3" value="1">
+    </div>
+    <p class="hint">超出 ±3 会自动收回来。</p>
+
+    <div class="btnrow">
+      <button class="primary" id="btnApply">变过去（放动画）</button>
+      <button id="btnJump">直接跳到结果</button>
+      <button id="btnReset">还原成不变</button>
+    </div>
+
+    <fieldset>
+      <legend>换一台现成的机器试试</legend>
+      <div class="presets" id="presets"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>怎么变过去（动画分几步）</legend>
+      <div class="radios">
+        <label><input type="radio" name="mode" value="direct" checked>
+          <span>一步到位<span class="d"> —— 从"不变"平滑地插值到目标账本</span></span></label>
+        <label><input type="radio" name="mode" value="polar">
+          <span>极分解两步<span class="d"> —— 先拉伸（S），再整体转身（Q）</span></span></label>
+        <label><input type="radio" name="mode" value="svd">
+          <span>奇异值分解三步<span class="d"> —— 转 → 沿三根轴各拉一下 → 再转</span></span></label>
+      </div>
+      <div class="player">
+        <button class="ghostbtn" id="btnPlay">▶ 重放</button>
+        <input type="range" id="tslider" min="0" max="1000" value="1000">
+        <span id="tpct">100%</span>
+      </div>
+      <div id="stepLabel"></div>
+      <div id="liveMat"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>图上画些什么</legend>
+      <div class="toggles">
+        <label><input type="checkbox" id="tg-ghost" checked><span>变换前的兔子（灰影）</span></label>
+        <label><input type="checkbox" id="tg-cube" checked><span>单位立方体 → 歪盒子</span></label>
+        <label><input type="checkbox" id="tg-ell"><span>单位球 → 椭球（奇异值）</span></label>
+        <label><input type="checkbox" id="tg-eig" checked><span>不歪的方向（特征向量）</span></label>
+        <label><input type="checkbox" id="tg-kern" checked><span>核与像</span></label>
+        <label><input type="checkbox" id="tg-floor" checked><span>地面格子</span></label>
+        <label><input type="checkbox" id="tg-label" checked><span>文字标注</span></label>
+        <label><input type="checkbox" id="autofit"><span>自动取景<br><small style="color:#8a8578">开了就看不出大小变化</small></span></label>
+      </div>
+      <div class="btnrow"><button class="ghostbtn" id="btnFit">看全</button><button class="ghostbtn" id="btnView">正面看</button>
+        <button class="ghostbtn" id="btnView2">侧面看</button>
+        <button class="ghostbtn" id="btnView3">俯视</button></div>
+    </fieldset>
+  </div>
+</div>
+
+<div id="panels"></div>
+
+<footer>
+  <p><b>术语对照</b>：矩阵＝账本 · 线性变换＝老实机器（守两条家规：加法和倍数都不打折） ·
+    span＝配得出的天地 · 核＝被吃掉的方向 · 基＝一套格子。
+    正式名写在前面，括号里是《给小学生讲线性代数》里的说法。</p>
+  <p><b>关于数值</b>：九个数都按你输入的值精确计算；奇异值小于最大奇异值的 10⁻¹¹ 倍时按 0 处理（判秩、判核用的就是它）。
+    特征值由特征多项式求根再用牛顿法精修。所有分解都在本地即时算出，没有联网。</p>
+  <p><b>关于大小</b>：兔子做得比一个单位还小（高 0.73，1×1×1 的参照方块比它大），是为了给拉伸留出画面——账本里的数最大到 3，兔子可能被拉到十几倍。<b>画框固定不动</b>，所以屏幕上变大就是真的变大；要看全某个被拉得很夸张的形状，按「看全」。</p>
+  <p><b>没验的一项</b>：打印排版没做过检查（这是网页，不是要印的书）。兔子是用隐式曲面建的模（椭球和胶囊做光滑并集），脸上的眼睛鼻子腮红按位置上色，不用贴图。</p>
+</footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   线性代数核心 —— 纯函数，不碰 DOM，可以在 node 下单独跑测试
+   所有 3×3 矩阵一律用二维数组 [[a,b,c],[d,e,f],[g,h,i]]（行优先）
+   向量用 [x,y,z]
+   ===================================================================== */
+'use strict';
+
+var LA = (function () {
+
+  /* ---------- 基本运算 ---------- */
+  function id() { return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; }
+  function zeros() { return [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; }
+  function clone(A) { return A.map(function (r) { return r.slice(); }); }
+  function mmul(A, B) {
+    var C = zeros();
+    for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+      var s = 0; for (var k = 0; k < 3; k++) s += A[i][k] * B[k][j];
+      C[i][j] = s;
+    }
+    return C;
+  }
+  function mmulN() { // 连乘
+    var R = id();
+    for (var i = 0; i < arguments.length; i++) R = mmul(R, arguments[i]);
+    return R;
+  }
+  function mvec(A, v) {
+    return [A[0][0] * v[0] + A[0][1] * v[1] + A[0][2] * v[2],
+            A[1][0] * v[0] + A[1][1] * v[1] + A[1][2] * v[2],
+            A[2][0] * v[0] + A[2][1] * v[1] + A[2][2] * v[2]];
+  }
+  function T(A) {
+    return [[A[0][0], A[1][0], A[2][0]],
+            [A[0][1], A[1][1], A[2][1]],
+            [A[0][2], A[1][2], A[2][2]]];
+  }
+  function trace(A) { return A[0][0] + A[1][1] + A[2][2]; }
+  function det(A) {
+    return A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1])
+         - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
+         + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+  }
+  function inv(A) {
+    var d = det(A);
+    if (Math.abs(d) < 1e-14) return null;
+    var C = [
+      [A[1][1] * A[2][2] - A[1][2] * A[2][1], A[0][2] * A[2][1] - A[0][1] * A[2][2], A[0][1] * A[1][2] - A[0][2] * A[1][1]],
+      [A[1][2] * A[2][0] - A[1][0] * A[2][2], A[0][0] * A[2][2] - A[0][2] * A[2][0], A[0][2] * A[1][0] - A[0][0] * A[1][2]],
+      [A[1][0] * A[2][1] - A[1][1] * A[2][0], A[0][1] * A[2][0] - A[0][0] * A[2][1], A[0][0] * A[1][1] - A[0][1] * A[1][0]]
+    ];
+    return C.map(function (r) { return r.map(function (x) { return x / d; }); });
+  }
+  function madd(A, B) { return A.map(function (r, i) { return r.map(function (x, j) { return x + B[i][j]; }); }); }
+  function msub(A, B) { return A.map(function (r, i) { return r.map(function (x, j) { return x - B[i][j]; }); }); }
+  function mscale(A, s) { return A.map(function (r) { return r.map(function (x) { return x * s; }); }); }
+  function fro(A) { var s = 0; for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) s += A[i][j] * A[i][j]; return Math.sqrt(s); }
+  function diag(d) { return [[d[0], 0, 0], [0, d[1], 0], [0, 0, d[2]]]; }
+  function col(A, j) { return [A[0][j], A[1][j], A[2][j]]; }
+  function fromCols(a, b, c) { return [[a[0], b[0], c[0]], [a[1], b[1], c[1]], [a[2], b[2], c[2]]]; }
+
+  /* ---------- 向量 ---------- */
+  function vadd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+  function vsub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function vscale(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+  function vdot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function vcross(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  function vlen(a) { return Math.sqrt(vdot(a, a)); }
+  function vunit(a) { var n = vlen(a); return n < 1e-14 ? [0, 0, 0] : vscale(a, 1 / n); }
+
+  /* ---------- 对称矩阵的 Jacobi 特征分解（稳，且给正交特征向量） ---------- */
+  function jacobiSym(M) {
+    var a = clone(M), v = id(), p, q, k;
+    // 强制对称化，抵消输入的微小非对称
+    for (p = 0; p < 3; p++) for (q = p + 1; q < 3; q++) {
+      var m = (a[p][q] + a[q][p]) / 2; a[p][q] = m; a[q][p] = m;
+    }
+    for (var sweep = 0; sweep < 60; sweep++) {
+      var off = a[0][1] * a[0][1] + a[0][2] * a[0][2] + a[1][2] * a[1][2];
+      if (off < 1e-32) break;
+      var pairs = [[0, 1], [0, 2], [1, 2]];
+      for (var t = 0; t < 3; t++) {
+        p = pairs[t][0]; q = pairs[t][1];
+        if (Math.abs(a[p][q]) < 1e-18) continue;
+        var theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
+        var sgn = theta >= 0 ? 1 : -1;
+        var tt = sgn / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+        var c = 1 / Math.sqrt(tt * tt + 1), s = tt * c;
+        for (k = 0; k < 3; k++) { // 右乘 J
+          var akp = c * a[k][p] - s * a[k][q], akq = s * a[k][p] + c * a[k][q];
+          a[k][p] = akp; a[k][q] = akq;
+        }
+        for (k = 0; k < 3; k++) { // 左乘 Jᵀ
+          var apk = c * a[p][k] - s * a[q][k], aqk = s * a[p][k] + c * a[q][k];
+          a[p][k] = apk; a[q][k] = aqk;
+        }
+        for (k = 0; k < 3; k++) {
+          var vkp = c * v[k][p] - s * v[k][q], vkq = s * v[k][p] + c * v[k][q];
+          v[k][p] = vkp; v[k][q] = vkq;
+        }
+      }
+    }
+    var vals = [a[0][0], a[1][1], a[2][2]];
+    var idx = [0, 1, 2].sort(function (i, j) { return vals[j] - vals[i]; }); // 降序
+    return {
+      values: idx.map(function (i) { return vals[i]; }),
+      vectors: idx.map(function (i) { return vunit(col(v, i)); })   // 数组的每一项是一个特征向量
+    };
+  }
+
+  /* ---------- 把一个单位向量补成右手正交基 ---------- */
+  function completeBasis(v1) {
+    var t = Math.abs(v1[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    var v2 = vunit(vcross(v1, t));
+    var v3 = vcross(v1, v2);
+    return [v1, v2, v3];
+  }
+
+  /* ---------- 奇异值分解 A = U Σ Vᵀ ----------
+     用**单边 Jacobi**：直接把 A 的三列两两转到互相垂直，不走 AᵀA。
+     走 AᵀA 会先平方再开方，把误差放大到 √ε ≈ 1e-8——秩 1 的矩阵那时判不出
+     第二、三个奇异值是不是零，U 就不再正交了（2026-08-04 被回归测试抓到）。 */
+  function svd(A) {
+    var W = [col(A, 0), col(A, 1), col(A, 2)];   // 迭代中的列
+    var V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];   // V 的三列
+    var pairs = [[0, 1], [0, 2], [1, 2]];
+    for (var sweep = 0; sweep < 60; sweep++) {
+      var maxOff = 0;
+      for (var t = 0; t < 3; t++) {
+        var p = pairs[t][0], q = pairs[t][1];
+        var alpha = vdot(W[p], W[p]), beta = vdot(W[q], W[q]), gamma = vdot(W[p], W[q]);
+        var scl = Math.sqrt(alpha * beta);
+        if (scl < 1e-300 || Math.abs(gamma) < 1e-17 * scl) continue;
+        maxOff = Math.max(maxOff, Math.abs(gamma) / scl);
+        var zeta = (beta - alpha) / (2 * gamma);
+        var sgn = zeta >= 0 ? 1 : -1;
+        var tt = sgn / (Math.abs(zeta) + Math.sqrt(1 + zeta * zeta));
+        var c = 1 / Math.sqrt(1 + tt * tt), s = c * tt;
+        for (var k = 0; k < 3; k++) {
+          var wp = c * W[p][k] - s * W[q][k], wq = s * W[p][k] + c * W[q][k];
+          W[p][k] = wp; W[q][k] = wq;
+          var vp = c * V[p][k] - s * V[q][k], vq = s * V[p][k] + c * V[q][k];
+          V[p][k] = vp; V[q][k] = vq;
+        }
+      }
+      if (maxOff < 1e-15) break;
+    }
+    var sig = [vlen(W[0]), vlen(W[1]), vlen(W[2])];
+    var idx = [0, 1, 2].sort(function (a, b) { return sig[b] - sig[a]; });   // 降序
+    W = idx.map(function (i) { return W[i]; });
+    V = idx.map(function (i) { return vunit(V[i]); });
+    sig = idx.map(function (i) { return sig[i]; });
+
+    var smax = sig[0] || 0;
+    var tol = Math.max(1e-12, smax * 1e-11);
+    var U = [null, null, null], i;
+    for (i = 0; i < 3; i++) U[i] = sig[i] > tol ? vscale(W[i], 1 / sig[i]) : null;
+
+    // 补齐 U 里对应零奇异值的列：只要求 U 正交，取值不影响 A = UΣVᵀ
+    var known = U.filter(function (u) { return u; });
+    for (i = 0; i < 3; i++) {
+      if (U[i]) continue;
+      var cand = null, best = -1, trial = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      for (var tj = 0; tj < 3; tj++) {
+        var w = trial[tj].slice();
+        for (var j = 0; j < known.length; j++) w = vsub(w, vscale(known[j], vdot(w, known[j])));
+        if (vlen(w) > best) { best = vlen(w); cand = w; }
+      }
+      U[i] = vunit(cand); known.push(U[i]);
+    }
+    // 约定：V 取成纯旋转（det = +1），必要时第三列反号，U 的第三列跟着反
+    if (det(fromCols(V[0], V[1], V[2])) < 0) {
+      V[2] = vscale(V[2], -1);
+      if (sig[2] > tol) U[2] = vscale(U[2], -1);
+    }
+    // 零奇异值对应的 U 列是自由的，取成右手系，让 U 也是纯旋转，画图时好解释
+    if (sig[2] <= tol) U[2] = vcross(U[0], U[1]);
+    if (sig[1] <= tol) { var b = completeBasis(U[0]); U[1] = b[1]; U[2] = b[2]; }
+    if (sig[0] <= tol) { U = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; }
+
+    sig = sig.map(function (s) { return s <= tol ? 0 : s; });
+    return {
+      U: fromCols(U[0], U[1], U[2]),
+      S: sig,
+      V: fromCols(V[0], V[1], V[2]),
+      tol: tol
+    };
+  }
+
+  function rank(A) {
+    var s = svd(A);
+    return s.S.filter(function (x) { return x > s.tol; }).length;
+  }
+
+  /* 核（被送到出发点的那些方向）与像（配得出的天地） */
+  function kernelBasis(A) {
+    var s = svd(A), out = [];
+    for (var i = 0; i < 3; i++) if (s.S[i] <= s.tol) out.push(col(s.V, i));
+    return out;
+  }
+  function imageBasis(A) {
+    var s = svd(A), out = [];
+    for (var i = 0; i < 3; i++) if (s.S[i] > s.tol) out.push(col(s.U, i));
+    return out;
+  }
+
+  /* ---------- 极分解 A = Q·S（右）= S'·Q（左） ---------- */
+  function polar(A) {
+    var s = svd(A);
+    var Q = mmul(s.U, T(s.V));                      // 正交部分
+    var S = mmulN(s.V, diag(s.S), T(s.V));          // 右极分解的对称部分：A = Q S
+    var SL = mmulN(s.U, diag(s.S), T(s.U));         // 左极分解：A = SL Q
+    return { Q: Q, S: S, SLeft: SL, sigma: s.S };
+  }
+
+  /* ---------- 正交矩阵 → 转轴与转角（或识别成含镜像） ---------- */
+  function orthoInfo(Q) {
+    var d = det(Q);
+    var isReflection = d < 0;
+    var R = isReflection ? mscale(Q, -1) : Q;   // 反号后必是纯旋转（3×3 里 −I 是 det=−1）
+    var c = (trace(R) - 1) / 2;
+    c = Math.max(-1, Math.min(1, c));
+    var ang = Math.acos(c);
+    var axis;
+    if (ang < 1e-7) axis = [0, 0, 1];
+    else if (Math.PI - ang < 1e-7) {
+      // 180°：从 (R+I)/2 的列里取最长的一列
+      var M = mscale(madd(R, id()), 0.5), best = -1, bi = 0;
+      for (var j = 0; j < 3; j++) { var n = vlen(col(M, j)); if (n > best) { best = n; bi = j; } }
+      axis = vunit(col(M, bi));
+    } else {
+      axis = vunit([R[2][1] - R[1][2], R[0][2] - R[2][0], R[1][0] - R[0][1]]);
+    }
+    return { isReflection: isReflection, angleDeg: ang * 180 / Math.PI, axis: axis, det: d };
+  }
+
+  /* ---------- 三次方程 λ³ + bλ² + cλ + d = 0 ---------- */
+  function cubicRoots(b, c, d) {
+    var p = c - b * b / 3;
+    var q = 2 * b * b * b / 27 - b * c / 3 + d;
+    var disc = q * q / 4 + p * p * p / 27;
+    var shift = -b / 3, out;
+    var cbrt = function (x) { return x < 0 ? -Math.pow(-x, 1 / 3) : Math.pow(x, 1 / 3); };
+    if (disc > 1e-14) {
+      var sq = Math.sqrt(disc);
+      var u = cbrt(-q / 2 + sq), v = cbrt(-q / 2 - sq);
+      var t1 = u + v;
+      out = {
+        real: [t1 + shift],
+        complex: { re: -t1 / 2 + shift, im: Math.sqrt(3) / 2 * (u - v) }
+      };
+    } else {
+      var r = Math.sqrt(Math.max(0, -p * p * p / 27));
+      var phi = r < 1e-300 ? 0 : Math.acos(Math.max(-1, Math.min(1, -q / 2 / r)));
+      var m = 2 * Math.sqrt(Math.max(0, -p / 3));
+      out = {
+        real: [0, 1, 2].map(function (k) { return m * Math.cos((phi + 2 * Math.PI * k) / 3) + shift; }),
+        complex: null
+      };
+    }
+    return out;
+  }
+
+  /* ---------- 特征值与特征向量 ---------- */
+  function eig(A) {
+    var tr = trace(A);
+    // 主子式之和
+    var m2 = (A[1][1] * A[2][2] - A[1][2] * A[2][1])
+           + (A[0][0] * A[2][2] - A[0][2] * A[2][0])
+           + (A[0][0] * A[1][1] - A[0][1] * A[1][0]);
+    var dt = det(A);
+    // 特征多项式 λ³ − tr·λ² + m2·λ − det
+    var roots = cubicRoots(-tr, m2, -dt);
+    var scaleRef = Math.max(1, fro(A));
+    var poly = function (x) { return ((x - tr) * x + m2) * x - dt; };
+    var dpoly = function (x) { return (3 * x - 2 * tr) * x + m2; };
+    var polish = function (x) {
+      for (var i = 0; i < 40; i++) {
+        var f = poly(x), df = dpoly(x);
+        if (Math.abs(df) < 1e-16) break;
+        var step = f / df;
+        x -= step;
+        if (Math.abs(step) < 1e-15 * scaleRef) break;
+      }
+      // 靠近整数或半整数时轻微吸附，避免 0.9999999997 这种显示
+      var r = Math.round(x * 1e7) / 1e7;
+      return Math.abs(poly(r)) <= Math.abs(poly(x)) * 1.000001 + 1e-9 * scaleRef ? r : x;
+    };
+    var reals = roots.real.map(polish);
+    reals.sort(function (a, b) { return b - a; });
+
+    // 合并重根：相差很小的当成同一个特征值
+    var groups = [];
+    reals.forEach(function (l) {
+      for (var i = 0; i < groups.length; i++) {
+        if (Math.abs(groups[i].lambda - l) < 1e-6 * scaleRef) {
+          groups[i].mult++; groups[i].sum += l; groups[i].lambda = groups[i].sum / groups[i].mult; return;
+        }
+      }
+      groups.push({ lambda: l, mult: 1, sum: l });
+    });
+    groups.forEach(function (g) {
+      var K = msub(A, mscale(id(), g.lambda));
+      var s = svd(K);
+      // 几何重数 = K 的零空间维数；阈值按 A 的规模取
+      var tol = Math.max(1e-7 * scaleRef, s.S[0] * 1e-7);
+      var vecs = [];
+      for (var i = 0; i < 3; i++) if (s.S[i] <= tol) vecs.push(col(s.V, i));
+      if (vecs.length === 0) vecs.push(col(s.V, 2)); // 数值兜底：取最小奇异向量
+      g.vectors = vecs.map(function (v) {
+        // 统一符号：让第一个显著分量为正，读数好看
+        var k = 0, best = 0;
+        for (var i = 0; i < 3; i++) if (Math.abs(v[i]) > best + 1e-12) { best = Math.abs(v[i]); k = i; }
+        return v[k] < 0 ? vscale(v, -1) : v;
+      });
+      g.geoMult = vecs.length;
+      g.residual = Math.max.apply(null, g.vectors.map(function (v) {
+        return vlen(vsub(mvec(A, v), vscale(v, g.lambda)));
+      }));
+      delete g.sum;
+    });
+
+    var cx = null;
+    if (roots.complex) {
+      var re = roots.complex.re, im = Math.abs(roots.complex.im);
+      // 不变平面：(A² − 2·re·A + (re²+im²)I) 的零空间是二维的
+      var M = madd(msub(mmul(A, A), mscale(A, 2 * re)), mscale(id(), re * re + im * im));
+      var sm = svd(M);
+      var plane = [col(sm.V, 1), col(sm.V, 2)];   // 两个最小奇异向量张成不变平面
+      cx = {
+        re: re, im: im,
+        modulus: Math.sqrt(re * re + im * im),
+        angleDeg: Math.atan2(im, re) * 180 / Math.PI,
+        plane: plane,
+        normal: vunit(vcross(plane[0], plane[1]))
+      };
+    }
+    return {
+      charPoly: { tr: tr, m2: m2, det: dt },
+      real: groups,
+      complex: cx
+    };
+  }
+
+  /* ---------- 对角化 A = P D P⁻¹ ---------- */
+  function diagonalize(A) {
+    var e = eig(A);
+    if (e.complex) return { ok: false, why: 'complex', eig: e };
+    var vecs = [], vals = [];
+    e.real.forEach(function (g) {
+      g.vectors.forEach(function (v) { vecs.push(v); vals.push(g.lambda); });
+    });
+    if (vecs.length < 3) return { ok: false, why: 'defective', eig: e, got: vecs.length };
+    var P = fromCols(vecs[0], vecs[1], vecs[2]);
+    var Pi = inv(P);
+    if (!Pi) return { ok: false, why: 'defective', eig: e, got: vecs.length };
+    var D = diag(vals);
+    return { ok: true, P: P, D: D, Pinv: Pi, eig: e, residual: fro(msub(A, mmulN(P, D, Pi))) };
+  }
+
+  /* ---------- QR 分解（Gram–Schmidt，约定 R 的对角线非负） ---------- */
+  function qr(A) {
+    var a = [col(A, 0), col(A, 1), col(A, 2)];
+    var q = [], R = zeros();
+    for (var j = 0; j < 3; j++) {
+      var v = a[j].slice();
+      for (var i = 0; i < j; i++) { R[i][j] = vdot(q[i], a[j]); v = vsub(v, vscale(q[i], R[i][j])); }
+      // 再正交化一次，提高精度
+      for (i = 0; i < j; i++) { var c2 = vdot(q[i], v); R[i][j] += c2; v = vsub(v, vscale(q[i], c2)); }
+      var n = vlen(v);
+      R[j][j] = n;
+      if (n < 1e-11) {              // 这一列落在前面几列张成的范围里：Q 的这一列可以随便补
+        var trial = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], best = -1, cand = null;
+        for (var t = 0; t < 3; t++) {
+          var w = trial[t].slice();
+          for (i = 0; i < j; i++) w = vsub(w, vscale(q[i], vdot(w, q[i])));
+          if (vlen(w) > best) { best = vlen(w); cand = w; }
+        }
+        q.push(vunit(cand)); R[j][j] = 0;
+      } else q.push(vscale(v, 1 / n));
+    }
+    return { Q: fromCols(q[0], q[1], q[2]), R: R };
+  }
+
+  /* ---------- LU 分解（部分选主元）：P A = L U ---------- */
+  function lu(A) {
+    var U = clone(A), L = id(), perm = [0, 1, 2], swaps = 0;
+    for (var k = 0; k < 3; k++) {
+      var piv = k, best = Math.abs(U[k][k]);
+      for (var i = k + 1; i < 3; i++) if (Math.abs(U[i][k]) > best) { best = Math.abs(U[i][k]); piv = i; }
+      if (piv !== k) {
+        var t = U[k]; U[k] = U[piv]; U[piv] = t;
+        var tp = perm[k]; perm[k] = perm[piv]; perm[piv] = tp;
+        for (var j = 0; j < k; j++) { var tl = L[k][j]; L[k][j] = L[piv][j]; L[piv][j] = tl; }
+        swaps++;
+      }
+      if (Math.abs(U[k][k]) < 1e-14) { for (i = k + 1; i < 3; i++) L[i][k] = 0; continue; }
+      for (i = k + 1; i < 3; i++) {
+        var f = U[i][k] / U[k][k];
+        L[i][k] = f;
+        for (j = k; j < 3; j++) U[i][j] -= f * U[k][j];
+      }
+    }
+    var P = zeros();
+    for (var r = 0; r < 3; r++) P[r][perm[r]] = 1;
+    return { P: P, L: L, U: U, perm: perm, swaps: swaps, sign: swaps % 2 === 0 ? 1 : -1 };
+  }
+
+  /* ---------- 实 Schur 分解 A = Q T Qᵀ（T 是准上三角） ---------- */
+  function schur(A) {
+    var e = eig(A);
+    if (!e.real.length) return null;
+    var lam = e.real[0].lambda;
+    var q1 = e.real[0].vectors[0];
+    var B = completeBasis(q1);
+    var Q1 = fromCols(B[0], B[1], B[2]);
+    var Tm = mmulN(T(Q1), A, Q1);       // 第一列应为 (λ, 0, 0)
+    // 右下 2×2 块
+    var a = Tm[1][1], b = Tm[1][2], c = Tm[2][1], d = Tm[2][2];
+    var disc = (a - d) * (a - d) + 4 * b * c;
+    var Q = Q1;
+    if (disc >= -1e-12) {              // 2×2 块有实特征值，再转一次化成上三角
+      var mu = ((a + d) + Math.sqrt(Math.max(0, disc))) / 2;
+      var w = Math.abs(b) > 1e-13 ? [b, mu - a] : (Math.abs(c) > 1e-13 ? [mu - d, c] : [1, 0]);
+      var n = Math.hypot(w[0], w[1]);
+      if (n > 1e-13) {
+        var cc = w[0] / n, ss = w[1] / n;
+        var G = [[1, 0, 0], [0, cc, -ss], [0, ss, cc]];
+        Tm = mmulN(T(G), Tm, G);
+        Q = mmul(Q1, G);
+      }
+    }
+    // 抹掉数值噪声
+    Tm[1][0] = 0; Tm[2][0] = 0;
+    if (Math.abs(Tm[2][1]) < 1e-11) Tm[2][1] = 0;
+    return { Q: Q, T: Tm, quasi: Math.abs(Tm[2][1]) > 1e-11, residual: fro(msub(A, mmulN(Q, Tm, T(Q)))) };
+  }
+
+  /* ---------- 对称 + 反对称 ---------- */
+  function symSplit(A) {
+    var S = mscale(madd(A, T(A)), 0.5);
+    var K = mscale(msub(A, T(A)), 0.5);
+    var axial = [K[2][1], K[0][2], K[1][0]];   // K·v = axial × v
+    return { S: S, K: K, axial: axial };
+  }
+
+  /* ---------- 初等矩阵接力（高斯–若尔当）：A = E₁⁻¹E₂⁻¹… ---------- */
+  function elementaryFactors(A) {
+    if (Math.abs(det(A)) < 1e-12) return { ok: false, why: 'singular' };
+    var M = clone(A), steps = [];          // steps 记录施加在 A 左边的初等操作
+    var rowName = ['第一行', '第二行', '第三行'];
+    function swapRows(i, j) {
+      var t = M[i]; M[i] = M[j]; M[j] = t;
+      steps.push({ kind: 'swap', i: i, j: j, text: '交换' + rowName[i] + '和' + rowName[j] });
+    }
+    function scaleRow(i, s) {
+      M[i] = M[i].map(function (x) { return x * s; });
+      steps.push({ kind: 'scale', i: i, s: s, text: rowName[i] + '乘以 ' + fmt(s) });
+    }
+    function addRow(i, j, s) { // 第 i 行 += s × 第 j 行
+      for (var k = 0; k < 3; k++) M[i][k] += s * M[j][k];
+      steps.push({ kind: 'add', i: i, j: j, s: s, text: rowName[i] + '加上 ' + fmt(s) + ' × ' + rowName[j] });
+    }
+    for (var c = 0; c < 3; c++) {
+      var piv = -1, best = 1e-9;
+      for (var r = c; r < 3; r++) if (Math.abs(M[r][c]) > best) { best = Math.abs(M[r][c]); piv = r; }
+      if (piv < 0) return { ok: false, why: 'singular' };
+      if (piv !== c) swapRows(c, piv);
+      if (Math.abs(M[c][c] - 1) > 1e-12) scaleRow(c, 1 / M[c][c]);
+      for (r = 0; r < 3; r++) {
+        if (r === c) continue;
+        if (Math.abs(M[r][c]) > 1e-12) addRow(r, c, -M[r][c]);
+      }
+    }
+    // 每一步对应的初等矩阵 E，及其逆
+    var mats = steps.map(function (s) {
+      var E = id(), Ei = id();
+      if (s.kind === 'swap') { E = permMat(s.i, s.j); Ei = permMat(s.i, s.j); }
+      else if (s.kind === 'scale') { E[s.i][s.i] = s.s; Ei[s.i][s.i] = 1 / s.s; }
+      else { E[s.i][s.j] = s.s; Ei[s.i][s.j] = -s.s; }
+      return { E: E, Einv: Ei, text: s.text, kind: s.kind };
+    });
+    // A = E₁⁻¹ E₂⁻¹ … Eₖ⁻¹（顺序：先施加的排在最左）
+    var prod = id();
+    for (var i = 0; i < mats.length; i++) prod = mmul(prod, mats[i].Einv);
+    return { ok: true, steps: mats, product: prod, residual: fro(msub(A, prod)) };
+  }
+  function permMat(i, j) {
+    var P = id();
+    P[i][i] = 0; P[j][j] = 0; P[i][j] = 1; P[j][i] = 1;
+    return P;
+  }
+
+  /* ---------- 显示用的数字格式 ---------- */
+  function fmt(x, digits) {
+    if (!isFinite(x)) return '—';
+    if (Math.abs(x) < 5e-7) return '0';
+    var d = digits === undefined ? 3 : digits;
+    var r = Math.round(x * 1e6) / 1e6;
+    if (Math.abs(r - Math.round(r)) < 1e-7) return String(Math.round(r));
+    return r.toFixed(d).replace(/\.?0+$/, '');
+  }
+
+  /* ---------- 一次算完，交给页面显示 ---------- */
+  function analyze(A) {
+    var s = svd(A), p = polar(A), e = eig(A);
+    var out = {
+      A: A,
+      det: det(A),
+      trace: trace(A),
+      rank: rank(A),
+      inverse: inv(A),
+      svd: s,
+      polar: p,
+      polarQ: orthoInfo(p.Q),
+      eig: e,
+      diagonalize: diagonalize(A),
+      qr: qr(A),
+      lu: lu(A),
+      schur: schur(A),
+      symSplit: symSplit(A),
+      elementary: elementaryFactors(A),
+      kernel: kernelBasis(A),
+      image: imageBasis(A),
+      isSymmetric: fro(msub(A, T(A))) < 1e-10 * Math.max(1, fro(A)),
+      isOrthogonal: fro(msub(mmul(T(A), A), id())) < 1e-10
+    };
+    out.cond = s.S[2] > 1e-12 ? s.S[0] / s.S[2] : Infinity;
+    return out;
+  }
+
+  return {
+    id: id, zeros: zeros, clone: clone, mmul: mmul, mmulN: mmulN, mvec: mvec, T: T,
+    trace: trace, det: det, inv: inv, madd: madd, msub: msub, mscale: mscale,
+    fro: fro, diag: diag, col: col, fromCols: fromCols,
+    vadd: vadd, vsub: vsub, vscale: vscale, vdot: vdot, vcross: vcross, vlen: vlen, vunit: vunit,
+    jacobiSym: jacobiSym, completeBasis: completeBasis,
+    svd: svd, rank: rank, kernelBasis: kernelBasis, imageBasis: imageBasis,
+    polar: polar, orthoInfo: orthoInfo, cubicRoots: cubicRoots, eig: eig,
+    diagonalize: diagonalize, qr: qr, lu: lu, schur: schur, symSplit: symSplit,
+    elementaryFactors: elementaryFactors, fmt: fmt, analyze: analyze
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = LA;
+
+</script>
+<script>
+/* =====================================================================
+   三维卡通兔 —— 隐式曲面建模
+   不是把一张画吹起来：身体、脑袋、脸颊、耳朵、手脚、尾巴各写成一个
+   隐式函数，再用**光滑并集**（smin）融成一个连续曲面，所以没有拼接缝。
+   取网格用 surface nets，法向量直接取隐式函数的梯度，所以表面是光滑的。
+   坐标：x = 往右，y = 往里（脸朝 −y），z = 往上；出发点在脚底正中。
+   ===================================================================== */
+'use strict';
+
+var RABBIT = (function () {
+
+  /* ---------- 颜色（取自那张卡通兔的用色） ---------- */
+  var C = {
+    fur:    [0.972, 0.953, 0.906],   // 奶白色的毛
+    belly:  [0.996, 0.988, 0.965],   // 肚子和胸口更白
+    ear:    [0.957, 0.776, 0.667],   // 耳朵里的粉
+    ink:    [0.129, 0.161, 0.302],   // 描线的深藏青
+    eye:    [0.110, 0.137, 0.267],   // 眼珠
+    white:  [1.000, 1.000, 1.000],   // 高光
+    nose:   [0.914, 0.545, 0.545],   // 鼻子
+    blush:  [0.965, 0.749, 0.741],   // 腮红
+    paw:    [0.988, 0.965, 0.925]    // 手脚掌心浅一点
+  };
+
+  /* ---------- 隐式函数的零件 ---------- */
+  function smin(a, b, k) {                    // 光滑并集：把两块融在一起
+    var h = Math.max(0, Math.min(1, 0.5 + 0.5 * (b - a) / k));
+    return b * (1 - h) + a * h - k * h * (1 - h);
+  }
+  function ell(px, py, pz, cx, cy, cz, rx, ry, rz) {
+    var x = (px - cx) / rx, y = (py - cy) / ry, z = (pz - cz) / rz;
+    var k0 = Math.sqrt(x * x + y * y + z * z);
+    if (k0 < 1e-9) return -Math.min(rx, ry, rz);
+    var x2 = (px - cx) / (rx * rx), y2 = (py - cy) / (ry * ry), z2 = (pz - cz) / (rz * rz);
+    var k1 = Math.sqrt(x2 * x2 + y2 * y2 + z2 * z2);
+    return k0 * (k0 - 1) / k1;               // 椭球的近似距离
+  }
+  /* 会变细的胶囊：耳朵、手脚都用它。ry 是"前后方向"的扁度 */
+  function taper(px, py, pz, a, b, r0, r1, flat) {
+    var dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    var L2 = dx * dx + dy * dy + dz * dz;
+    var t = ((px - a[0]) * dx + (py - a[1]) * dy + (pz - a[2]) * dz) / L2;
+    t = Math.max(0, Math.min(1, t));
+    var qx = px - (a[0] + dx * t), qy = py - (a[1] + dy * t), qz = pz - (a[2] + dz * t);
+    var r = r0 + (r1 - r0) * t;
+    var d = Math.sqrt(qx * qx + (qy / flat) * (qy / flat) + qz * qz);
+    return d - r;
+  }
+
+  /* ---------- 兔子的"图纸" ----------
+     比例照卡通兔来：脑袋特意做大（chibi），脖子处收一下，
+     耳朵一长一短、左边那只更斜，尾巴只有一条而且偏左——
+     这三处不对称是故意的：全书判断"翻没翻面"就靠它们。 */
+  var HC = [0, -0.06, 1.47];                       // 脑袋中心
+  var EAR_R = { a: [0.20, -0.03, 1.70], b: [0.34, 0.02, 2.72], r0: 0.175, r1: 0.115, flat: 0.50 };
+  var EAR_L = { a: [-0.20, -0.03, 1.68], b: [-0.50, 0.00, 2.50], r0: 0.170, r1: 0.110, flat: 0.50 };
+  var TAIL = [-0.36, 0.38, 0.52];
+
+  function field(x, y, z) {
+    /* 身体：屁股圆、腰收一点、胸口窄 */
+    var d = ell(x, y, z, 0, 0.02, 0.55, 0.470, 0.440, 0.470);
+    d = smin(d, ell(x, y, z, 0, -0.06, 0.96, 0.350, 0.320, 0.300), 0.15);
+    /* 脑袋：先把脸颊和口鼻融进脑袋，再和身体融——脖子处用小一点的 k，才有脖子 */
+    var h = ell(x, y, z, HC[0], HC[1], HC[2], 0.500, 0.470, 0.460);
+    h = smin(h, ell(x, y, z, 0.330, -0.200, 1.340, 0.240, 0.230, 0.210), 0.11);
+    h = smin(h, ell(x, y, z, -0.330, -0.200, 1.340, 0.240, 0.230, 0.210), 0.11);
+    h = smin(h, ell(x, y, z, 0, -0.400, 1.335, 0.215, 0.190, 0.155), 0.12);
+    d = smin(d, h, 0.095);
+    /* 耳朵 */
+    d = smin(d, taper(x, y, z, EAR_R.a, EAR_R.b, EAR_R.r0, EAR_R.r1, EAR_R.flat), 0.075);
+    d = smin(d, taper(x, y, z, EAR_L.a, EAR_L.b, EAR_L.r0, EAR_L.r1, EAR_L.flat), 0.075);
+    /* 前爪抱在胸前 */
+    d = smin(d, ell(x, y, z, 0.245, -0.315, 0.880, 0.130, 0.165, 0.145), 0.070);
+    d = smin(d, ell(x, y, z, -0.245, -0.315, 0.880, 0.130, 0.165, 0.145), 0.070);
+    /* 后脚往前伸出去一截，站得住 */
+    d = smin(d, ell(x, y, z, 0.300, -0.200, 0.110, 0.225, 0.360, 0.115), 0.090);
+    d = smin(d, ell(x, y, z, -0.300, -0.200, 0.110, 0.225, 0.360, 0.115), 0.090);
+    /* 尾巴 */
+    d = smin(d, ell(x, y, z, TAIL[0], TAIL[1], TAIL[2], 0.175, 0.165, 0.175), 0.070);
+    /* 鼻头微微鼓一点 */
+    d = smin(d, ell(x, y, z, 0, -0.545, 1.320, 0.058, 0.050, 0.045), 0.035);
+    return d;
+  }
+
+  /* ---------- 上色 ----------
+     颜色不在这里算：五官若按顶点上色，清晰度就被网格粗细卡住（眼睛会糊）。
+     所以整套配色搬进片元着色器逐像素算，本文件只把"图纸参数"交出去，
+     保证着色器和 field() 用的是同一套数——见下面 export 的 parts。 */
+  /* ---------- 兔子站在世界里的朝向 ----------
+     图纸上这只兔子脸朝 −y（正对着"往里"那根轴的反方向）。
+     可是要让它正面朝镜头，镜头就得压在 y 轴上看过去——那样"往里"这根轴
+     几乎缩成一个点，三根轴挤在一起，不合我们平常画三视图（轴测图）的习惯。
+     办法：让兔子自己绕竖轴（z）转 135°，脸就朝 (+x, +y) 那个角，
+     正好迎着 az = 135° 的轴测镜头——往右在左下、往里在右下、往上朝上，三根轴分得开，
+     兔子也仍然正面朝着我们。
+     只转兔子这具身体：坐标轴、地面格子、账本、单位立方体一概不动。 */
+  var YAW = 135 * Math.PI / 180;
+  var YAW_C = Math.cos(YAW), YAW_S = Math.sin(YAW);
+  function yaw2(x, y) { return [x * YAW_C - y * YAW_S, x * YAW_S + y * YAW_C]; }
+
+  /* ---------- surface nets：从隐式函数抽出网格 ---------- */
+  function build(cell) {
+    cell = cell || 0.024;
+    var lo = [-0.80, -0.72, -0.06], hi = [0.80, 0.62, 2.76];
+    var nx = Math.ceil((hi[0] - lo[0]) / cell) + 1;
+    var ny = Math.ceil((hi[1] - lo[1]) / cell) + 1;
+    var nz = Math.ceil((hi[2] - lo[2]) / cell) + 1;
+    var vals = new Float32Array(nx * ny * nz);
+    var i, j, k, idx = 0;
+    for (k = 0; k < nz; k++) for (j = 0; j < ny; j++) for (i = 0; i < nx; i++) {
+      vals[idx++] = field(lo[0] + i * cell, lo[1] + j * cell, lo[2] + k * cell);
+    }
+    var at = function (i, j, k) { return vals[(k * ny + j) * nx + i]; };
+
+    var cellIdx = new Int32Array((nx - 1) * (ny - 1) * (nz - 1)).fill(-1);
+    var pos = [], nrm = [], tri = [];
+    var CORN = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+    var EDGES = [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+    var g = 1e-3;
+    function grad(x, y, z) {
+      return [
+        (field(x + g, y, z) - field(x - g, y, z)) / (2 * g),
+        (field(x, y + g, z) - field(x, y - g, z)) / (2 * g),
+        (field(x, y, z + g) - field(x, y, z - g)) / (2 * g)];
+    }
+
+    for (k = 0; k < nz - 1; k++) for (j = 0; j < ny - 1; j++) for (i = 0; i < nx - 1; i++) {
+      var v = [], neg = 0, c;
+      for (c = 0; c < 8; c++) {
+        var q = at(i + CORN[c][0], j + CORN[c][1], k + CORN[c][2]);
+        v.push(q); if (q < 0) neg++;
+      }
+      if (neg === 0 || neg === 8) continue;
+      var sx = 0, sy = 0, sz = 0, n = 0;
+      for (var e = 0; e < 12; e++) {
+        var a = EDGES[e][0], b = EDGES[e][1];
+        if ((v[a] < 0) === (v[b] < 0)) continue;
+        var t = v[a] / (v[a] - v[b]);
+        sx += CORN[a][0] + (CORN[b][0] - CORN[a][0]) * t;
+        sy += CORN[a][1] + (CORN[b][1] - CORN[a][1]) * t;
+        sz += CORN[a][2] + (CORN[b][2] - CORN[a][2]) * t;
+        n++;
+      }
+      var X = lo[0] + (i + sx / n) * cell, Y = lo[1] + (j + sy / n) * cell, Z = lo[2] + (k + sz / n) * cell;
+      var G = grad(X, Y, Z);
+      var GL = Math.hypot(G[0], G[1], G[2]) || 1;
+      cellIdx[(k * (ny - 1) + j) * (nx - 1) + i] = pos.length / 3;
+      pos.push(X, Y, Z);
+      nrm.push(G[0] / GL, G[1] / GL, G[2] / GL);
+    }
+
+    /* 每条"穿过表面"的格线，把它周围四个格子的顶点连成一个四边形 */
+    function cellAt(i, j, k) {
+      if (i < 0 || j < 0 || k < 0 || i >= nx - 1 || j >= ny - 1 || k >= nz - 1) return -1;
+      return cellIdx[(k * (ny - 1) + j) * (nx - 1) + i];
+    }
+    function quad(a, b, c, d) {
+      if (a < 0 || b < 0 || c < 0 || d < 0) return;
+      tri.push(a, b, c, a, c, d);
+    }
+    for (k = 0; k < nz; k++) for (j = 0; j < ny; j++) for (i = 0; i < nx; i++) {
+      var v0 = at(i, j, k);
+      if (i < nx - 1 && (v0 < 0) !== (at(i + 1, j, k) < 0)) {
+        quad(cellAt(i, j - 1, k - 1), cellAt(i, j, k - 1), cellAt(i, j, k), cellAt(i, j - 1, k));
+      }
+      if (j < ny - 1 && (v0 < 0) !== (at(i, j + 1, k) < 0)) {
+        quad(cellAt(i - 1, j, k - 1), cellAt(i, j, k - 1), cellAt(i, j, k), cellAt(i - 1, j, k));
+      }
+      if (k < nz - 1 && (v0 < 0) !== (at(i, j, k + 1) < 0)) {
+        quad(cellAt(i - 1, j - 1, k), cellAt(i, j - 1, k), cellAt(i, j, k), cellAt(i - 1, j, k));
+      }
+    }
+
+    /* 归一化：脚底贴到 z = 0，整只兔子高 height，左右按身体居中 */
+    var P = new Float32Array(pos);
+    var bb = { min: [1e9, 1e9, 1e9], max: [-1e9, -1e9, -1e9] }, t2;
+    for (i = 0; i < P.length; i += 3) for (t2 = 0; t2 < 3; t2++) {
+      if (P[i + t2] < bb.min[t2]) bb.min[t2] = P[i + t2];
+      if (P[i + t2] > bb.max[t2]) bb.max[t2] = P[i + t2];
+    }
+    return {
+      pos: P, nrm: new Float32Array(nrm),
+      idx: (P.length / 3 > 65535) ? new Uint32Array(tri) : new Uint16Array(tri),
+      count: tri.length, rawBBox: bb, verts: P.length / 3, tris: tri.length / 3,
+      grid: [nx, ny, nz]
+    };
+  }
+
+  function normalize(mesh, height) {
+    var bb = mesh.rawBBox;
+    var s = height / (bb.max[2] - bb.min[2]);
+    var P = mesh.pos, N = mesh.nrm, i, q;
+    for (i = 0; i < P.length; i += 3) {
+      q = yaw2(P[i] * s, P[i + 1] * s);            // 先缩放，再整只转 135°
+      P[i] = q[0]; P[i + 1] = q[1];
+      P[i + 2] = (P[i + 2] - bb.min[2]) * s;
+      q = yaw2(N[i], N[i + 1]);                    // 法向量跟着转（转身是刚体的，长度不变）
+      N[i] = q[0]; N[i + 1] = q[1];
+    }
+    /* 转过身之后，横竖两个方向的包围盒得重新扫一遍点——
+       拿原来那八个角乘一乘会算大（转过的盒子不再和轴平行）。z 方向没被转，照旧。 */
+    var lo = [1e9, 1e9, 0], hi = [-1e9, -1e9, height];
+    for (i = 0; i < P.length; i += 3) {
+      if (P[i] < lo[0]) lo[0] = P[i];
+      if (P[i] > hi[0]) hi[0] = P[i];
+      if (P[i + 1] < lo[1]) lo[1] = P[i + 1];
+      if (P[i + 1] > hi[1]) hi[1] = P[i + 1];
+    }
+    mesh.bbox = { min: lo, max: hi };
+    /* 上色仍在"图纸坐标"里算（脸朝 −y 的那只），所以给着色器一把转回去的钥匙 */
+    mesh.modelFromWorld = [[YAW_C, YAW_S, 0], [-YAW_S, YAW_C, 0], [0, 0, 1]];
+    mesh.yawDeg = 135;
+    /* 着色器要在同一套坐标里涂脸，所以图纸参数也按同样的方式搬过去 */
+    var mv = function (p) { return [p[0] * s, p[1] * s, (p[2] - bb.min[2]) * s]; };
+    mesh.parts = {
+      scale: s,
+      head: mv(HC),
+      earR: { a: mv(EAR_R.a), b: mv(EAR_R.b), r0: EAR_R.r0 * s, r1: EAR_R.r1 * s },
+      earL: { a: mv(EAR_L.a), b: mv(EAR_L.b), r0: EAR_L.r0 * s, r1: EAR_L.r1 * s },
+      foot: [mv([0.300, -0.36, 0.10]), mv([-0.300, -0.36, 0.10])],
+      headR: 0.86 * s
+    };
+    return mesh;
+  }
+
+  return { build: build, normalize: normalize, field: field, colors: C };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = RABBIT;
+
+</script>
+<script>
+/* =====================================================================
+   分解面板：把 LA.analyze 的结果写成人看的话
+   术语一律"正式名（书里的说法）"并列
+   ===================================================================== */
+'use strict';
+
+window.PANELS = (function () {
+
+  var f = LA.fmt;
+
+  function matHTML(M, opt) {
+    opt = opt || {};
+    var rows = M.map(function (r) {
+      return '<tr>' + r.map(function (x) {
+        var v = f(x);
+        var z = Math.abs(x) < 5e-7;
+        return '<td class="' + (z ? 'zero' : '') + '">' + v + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    return '<span class="mat ' + (opt.cls || '') + '"><span class="brk l"></span>'
+      + '<table>' + rows + '</table><span class="brk r"></span></span>';
+  }
+  function vecHTML(v, opt) {
+    return matHTML([[v[0]], [v[1]], [v[2]]], opt);
+  }
+  function rowVecInline(v) {
+    return '(' + f(v[0]) + ', ' + f(v[1]) + ', ' + f(v[2]) + ')';
+  }
+  function diagHTML(d) { return matHTML([[d[0], 0, 0], [0, d[1], 0], [0, 0, d[2]]]); }
+
+  function card(id, title, formula, bodyHTML, note) {
+    return '<section class="card" id="card-' + id + '">'
+      + '<h3>' + title + (formula ? '<span class="formula">' + formula + '</span>' : '') + '</h3>'
+      + bodyHTML
+      + (note ? '<p class="note">' + note + '</p>' : '')
+      + '</section>';
+  }
+  function says(t) { return '<p class="says"><span class="tag">兔子这边</span>' + t + '</p>'; }
+
+  /* ---------------- 各张卡 ---------------- */
+
+  function cardBasics(R, S) {
+    var d = R.det, absd = Math.abs(d);
+    var vol = absd < 1e-9 ? '压没了' : (f(absd) + ' 倍');
+    var flip = d < -1e-9 ? '而且<b>翻了面</b>（行列式是负的）' : (d > 1e-9 ? '没有翻面' : '');
+    var rk = R.rank;
+    var body = ''
+      + '<div class="grid4">'
+      + stat('行列式 det', f(d), '体积放大到 ' + vol)
+      + stat('秩 rank', String(rk), rk === 3 ? '没丢任何方向' : (rk === 2 ? '压成一张平面' : (rk === 1 ? '压成一条线' : '压成一个点')))
+      + stat('迹 trace', f(R.trace), '＝三个特征值之和')
+      + stat('条件数', R.cond === Infinity ? '∞' : f(R.cond, 2), R.cond === Infinity ? '已经压扁了' : '最长/最短拉伸之比')
+      + '</div>';
+
+    if (S && S.size) {
+      var b = S.size.before, a2 = S.size.after;
+      var rows = [['高（上下）', b.h, a2.h], ['宽（左右）', b.w, a2.w], ['厚（前后）', b.d, a2.d]];
+      var mx = Math.max(0.001, Math.max.apply(null, rows.map(function (r) { return r[2] / r[1]; })), 1);
+      body += '<div class="sizebox"><div class="sizehead">兔子的个头（真的量了变换后每一个点）</div>';
+      rows.forEach(function (r) {
+        var k = r[2] / r[1];
+        body += '<div class="sizerow"><span>' + r[0] + '</span>'
+          + '<i class="bar"><u style="width:' + (100 * Math.min(1, k / mx)).toFixed(1) + '%"></u></i>'
+          + '<b>' + f(r[1], 2) + ' → ' + f(r[2], 2) + '</b>'
+          + '<em class="' + (k > 1.001 ? 'up' : (k < 0.999 ? 'down' : '')) + '">'
+          + (k < 1e-6 ? '压没了' : '×' + f(k, 2)) + '</em></div>';
+      });
+      body += '</div>';
+    }
+
+    body += says('这台机器（老实机器＝线性变换）把一个 1×1×1 的小方块送成了图里那个歪盒子（平行六面体），'
+      + '它的体积就是 ' + f(absd) + '。所以整只兔子的体积也乘 ' + f(absd) + '——'
+      + (absd < 1e-9 ? '这里是 0，说明兔子被压扁了，<b>再也回不来</b>。' : flip + '。'));
+
+    if (rk < 3) {
+      body += '<p class="warn">秩不到 3，说明<b>有方向被吃掉了</b>：'
+        + (rk === 2 ? '一条直线上的所有点都被送到出发点，整只兔子被压进一张平面。'
+          : rk === 1 ? '一整张平面被送到出发点，兔子被压成一条线。'
+          : '所有点都被送到出发点。')
+        + ' 这就是<b>核（kernel）</b>，图里用玫红色画着；它一存在，这台机器就<b>倒不回去</b>了。</p>';
+    }
+
+    var ker = R.kernel, im = R.image;
+    body += '<div class="kv">'
+      + '<div><span>核（被吃掉的方向）</span>' + (ker.length === 0 ? '只有出发点一个点 —— 倒得回去'
+        : ker.map(rowVecInline).join(' 和 ') + ' 张成的' + (ker.length === 1 ? '直线' : '平面')) + '</div>'
+      + '<div><span>像（配得出的天地 span）</span>' + (im.length === 3 ? '整个三维空间'
+        : im.map(rowVecInline).join(' 和 ') + ' 张成的' + (im.length === 1 ? '直线' : '平面')) + '</div>'
+      + '<div><span>维数守恒</span>核的维数 ' + ker.length + ' ＋ 秩 ' + rk + ' ＝ 3</div>'
+      + '</div>';
+
+    if (R.inverse) {
+      body += '<p class="sub">倒得回去，倒带机（逆矩阵 A⁻¹）长这样：</p>' + matHTML(R.inverse);
+    } else {
+      body += '<p class="sub">没有逆矩阵——被吃掉的方向<b>找不回来</b>了。</p>';
+    }
+    return card('basics', '先看三样读数', 'det · rank · trace', body);
+  }
+  function stat(name, val, sub) {
+    return '<div class="stat"><div class="sname">' + name + '</div><div class="sval">' + val + '</div><div class="ssub">' + sub + '</div></div>';
+  }
+
+  function cardColumns(R) {
+    var A = R.A;
+    var body = '<p>账本（矩阵）的三列，<b>每一列竖着读</b>，就是三个基本方向被送到了哪里：</p>'
+      + '<div class="cols3">'
+      + colBox('往右 (1,0,0)', LA.col(A, 0), 'c-right')
+      + colBox('往里 (0,1,0)', LA.col(A, 1), 'c-into')
+      + colBox('往上 (0,0,1)', LA.col(A, 2), 'c-up')
+      + '</div>'
+      + says('图上那三支彩色的箭，画的就是这三列。只要知道这三个落点，兔子身上<b>每一个点</b>去哪儿就全定了——'
+        + '因为兔子上任何一点都是这三个方向配出来的，而这台机器守两条家规（加法、倍数都不打折）。'
+        + '这正是"两串数定乾坤"在三维的样子：<b>三串数定乾坤</b>。');
+    return card('columns', '三列在说什么', '', body);
+  }
+  function colBox(name, v, cls) {
+    return '<div class="colbox ' + cls + '"><div class="cbname">' + name + '</div><div class="cbarrow">↓ 被送到</div>'
+      + '<div class="cbval">' + rowVecInline(v) + '</div></div>';
+  }
+
+  function cardEigen(R) {
+    var e = R.eig, body = '';
+    body += '<p class="sub">特征多项式：λ³ − ' + f(e.charPoly.tr) + 'λ² + ' + f(e.charPoly.m2) + 'λ − ' + f(e.charPoly.det) + ' ＝ 0</p>';
+
+    if (e.real.length === 0) body += '<p>没有实特征值。</p>';
+    e.real.forEach(function (g) {
+      var cls = Math.abs(g.lambda) < 1e-9 ? 'eig zero' : (g.lambda < 0 ? 'eig neg' : 'eig');
+      body += '<div class="' + cls + '">'
+        + '<div class="lam">λ = ' + f(g.lambda) + '<span class="mult">代数重数 ' + g.mult + ' · 几何重数 ' + g.geoMult + '</span></div>'
+        + '<div class="eigv">不歪的方向：' + g.vectors.map(rowVecInline).join('、') + '</div>'
+        + '<div class="eigsay">' + eigSay(g.lambda) + '</div>'
+        + '</div>';
+    });
+    if (e.complex) {
+      var c = e.complex;
+      body += '<div class="eig cx">'
+        + '<div class="lam">λ = ' + f(c.re) + ' ± ' + f(c.im) + ' i<span class="mult">一对复特征值</span></div>'
+        + '<div class="eigv">它们不对应任何一个不歪的方向，而对应<b>一整张平面</b>：'
+        + rowVecInline(c.plane[0]) + ' 和 ' + rowVecInline(c.plane[1]) + ' 张成的那张。</div>'
+        + '<div class="eigsay">在这张平面里，机器做的事是<b>转 ' + f(c.angleDeg, 1) + '°，同时把长度乘 ' + f(c.modulus) + '</b>。'
+        + '转圈的方向上当然没有"不歪的箭"——转一下就歪了，这正是特征值跑到复数里去的原因。</div>'
+        + '</div>';
+    }
+
+    var dg = R.diagonalize;
+    if (dg.ok) {
+      body += '<div class="sep">对角化 <span class="formula">A = P · D · P⁻¹</span></div>'
+        + '<div class="matrow">' + matHTML(dg.P) + '<span class="op">·</span>' + matHTML(dg.D)
+        + '<span class="op">·</span>' + matHTML(dg.Pinv) + '</div>'
+        + says('把三个不歪的方向拿来当新的一套格子（换基），在<b>那套格子里</b>这台机器的账本只剩对角线——'
+          + '也就是"沿着三个方向各拉一下"，别的什么都没干。P 是"换到新格子"，P⁻¹ 是"换回来"。'
+          + '连做十次就是 D 的对角线各自十次方，一眼看得出谁说了算。');
+    } else if (dg.why === 'complex') {
+      body += '<p class="warn">这台机器<b>在实数范围里对角化不了</b>：有一对复特征值，说明它带着"转圈"的成分，'
+        + '而转圈没有不歪的方向可站。（换到复数里可以，但那超出这一册。）</p>';
+    } else {
+      body += '<p class="warn">这台机器<b>对角化不了</b>：特征值凑得够（算重数一共 3 个），'
+        + '可是真正独立的不歪方向只有 ' + dg.got + ' 个，配不出一整套格子。这类机器叫<b>亏损的（defective）</b>，'
+        + '典型代表就是斜拉（切变）。</p>';
+    }
+    return card('eigen', '特征值与特征向量', 'A·v = λ·v', body,
+      '图上金色的直线就是不歪的方向：兔子被送过去以后，站在那条线上的点<b>还在那条线上</b>，只是离出发点远了 λ 倍。λ 是负数就是掉了个头；λ ＝ 0 就是被吃掉了（那条线正是核）。');
+  }
+  function eigSay(l) {
+    if (Math.abs(l) < 1e-9) return '倍数是 0 ——这个方向被<b>吃掉</b>了，它就是核。';
+    if (Math.abs(l - 1) < 1e-9) return '倍数是 1 ——这个方向上的点<b>纹丝不动</b>。';
+    if (Math.abs(l + 1) < 1e-9) return '倍数是 −1 ——沿这个方向<b>掉了个头</b>，长度不变。';
+    if (l < 0) return '倍数是负的 ——沿这个方向先掉头，再拉 ' + f(Math.abs(l)) + ' 倍。';
+    if (l > 1) return '这个方向被拉长到 ' + f(l) + ' 倍，方向不变。';
+    return '这个方向被压短到 ' + f(l) + ' 倍，方向不变。';
+  }
+
+  function cardSVD(R) {
+    var s = R.svd;
+    var body = '<div class="matrow">' + matHTML(s.U) + '<span class="op">·</span>' + diagHTML(s.S)
+      + '<span class="op">·</span>' + matHTML(LA.T(s.V)) + '</div>'
+      + '<div class="kv"><div><span>三个奇异值 σ</span>' + s.S.map(function (x) { return f(x); }).join(' ， ') + '</div>'
+      + '<div><span>体积放大率</span>σ₁·σ₂·σ₃ ＝ ' + f(s.S[0] * s.S[1] * s.S[2]) + ' ＝ |det|</div></div>'
+      + says('<b>任何</b>一台老实机器都能这么拆成三步：<b>先转个身 → 沿三个互相垂直的方向各拉一下 → 再转个身</b>。'
+        + '中间那一步的三个倍数就是奇异值。把动画切到「奇异值分解三步」，可以一步一步看着兔子这么变过去。')
+      + '<p class="sub">画在图上：单位球被送成一个椭球（打开"单位球→椭球"看），三根半轴的长度正是 σ₁、σ₂、σ₃，'
+        + '方向是 U 的三列。σ 最小的那根最短——它告诉你这台机器<b>最不擅长</b>的方向在哪。</p>';
+    if (s.S[2] < 1e-9) {
+      body += '<p class="warn">σ₃ ＝ 0：椭球彻底扁了，成了一张平面上的椭圆。<b>兔子被压成了一张纸。</b></p>';
+    }
+    return card('svd', '奇异值分解', 'A = U · Σ · Vᵀ', body,
+      '这是全套分解里最"看得见"的一个：它把任何一台机器都说成「转 → 拉 → 转」。');
+  }
+
+  function cardPolar(R) {
+    var p = R.polar, oi = R.polarQ;
+    var body = '<div class="sep">右极分解 <span class="formula">A = Q · S</span>（先拉，再转）</div>'
+      + '<div class="matrow">' + matHTML(p.Q) + '<span class="op">·</span>' + matHTML(p.S) + '</div>'
+      + '<div class="sep">左极分解 <span class="formula">A = S′ · Q</span>（先转，再拉）</div>'
+      + '<div class="matrow">' + matHTML(p.SLeft) + '<span class="op">·</span>' + matHTML(p.Q) + '</div>'
+      + '<div class="kv"><div><span>转身这一步</span>'
+      + (oi.isReflection
+        ? '<b>带镜像</b>（det Q ＝ −1）：光靠转是转不出来的，必须<b>翻面</b>——把动画切到「极分解两步」，你会看见兔子中途<b>压成一张纸</b>才翻得过去。'
+        : '绕着 ' + rowVecInline(oi.axis) + ' 这个方向转 ' + f(oi.angleDeg, 1) + '°')
+      + '</div>'
+      + '<div><span>拉伸这一步</span>三个方向各乘 ' + p.sigma.map(function (x) { return f(x); }).join(' ， ') + '（就是奇异值）</div></div>'
+      + says('把机器干的事分成两件干净的事：<b>形状怎么变</b>（S，对称的那部分，只管沿三个互相垂直的方向拉伸）'
+        + '和<b>整只兔子怎么摆</b>（Q，正交的那部分，只管转身、照镜子，不改形状）。'
+        + '这两件事合起来就是全部。工程上算"物体被挤压了多少"用的就是 S。');
+    return card('polar', '极分解', 'A = Q·S = S′·Q', body,
+      '和奇异值分解是一家人：S = V·Σ·Vᵀ，Q = U·Vᵀ。区别是极分解只分两步，更贴近"形变 + 摆位"的直觉。');
+  }
+
+  function cardQR(R) {
+    var q = R.qr;
+    var body = '<div class="matrow">' + matHTML(q.Q) + '<span class="op">·</span>' + matHTML(q.R) + '</div>'
+      + says('把三列<b>一列一列地摆正</b>：第一列先定方向；第二列减掉它在第一列上的影子，剩下的就和第一列垂直了；'
+        + '第三列再减掉它在前两列上的影子。Q 的三列是一套互相垂直的标准方向，R 记的是"每一列各用了前面几个方向多少份"。'
+        + 'R 是上三角，正说明第 k 列只用到前 k 个方向——<b>这就是"减影子"留下的痕迹</b>。')
+      + '<p class="sub">R 对角线上的三个数 ' + [q.R[0][0], q.R[1][1], q.R[2][2]].map(function (x) { return f(x); }).join(' ， ')
+      + ' 相乘 ＝ ' + f(q.R[0][0] * q.R[1][1] * q.R[2][2]) + '，正好是 |det|。'
+      + (Math.min(q.R[0][0], q.R[1][1], q.R[2][2]) < 1e-9 ? ' 其中有 0，说明有一列被前面几列<b>配得出来</b>——白带的。' : '') + '</p>';
+    return card('qr', 'QR 分解', 'A = Q · R', body,
+      '"减影子"这件事需要用到垂直和长度，而这一册（第三册）刻意没讲这两样——所以 QR 属于"长大以后"的东西，这里只是让你看见它长什么样。');
+  }
+
+  function cardLU(R) {
+    var l = R.lu;
+    var body = '<div class="matrow">' + matHTML(l.P) + '<span class="op">·</span>' + matHTML(R.A)
+      + '<span class="op">=</span>' + matHTML(l.L) + '<span class="op">·</span>' + matHTML(l.U) + '</div>'
+      + '<div class="kv"><div><span>换过行吗</span>' + (l.swaps ? '换了 ' + l.swaps + ' 次（P 就是记录换行的账本）' : '没换（P 是单位阵）') + '</div>'
+      + '<div><span>三个主元</span>' + [l.U[0][0], l.U[1][1], l.U[2][2]].map(function (x) { return f(x); }).join(' ， ')
+      + '，相乘 ＝ ' + f(l.U[0][0] * l.U[1][1] * l.U[2][2]) + '，再乘换行的正负号 ' + (l.sign > 0 ? '+1' : '−1') + ' ＝ det ＝ ' + f(R.det) + '</div></div>'
+      + says('这就是解方程时"消元"的过程本身：U 是消完元剩下的上三角，L 记着<b>每一步减了几倍</b>。'
+        + '为什么有用？想让机器"倒着做"（解方程）时，有了 L 和 U 就只要从上往下、再从下往上各扫一遍，不必真的把逆矩阵算出来。');
+    return card('lu', 'LU 分解（消元）', 'P · A = L · U', body);
+  }
+
+  function cardSchur(R) {
+    var s = R.schur;
+    if (!s) return '';
+    var body = '<div class="matrow">' + matHTML(s.Q) + '<span class="op">·</span>' + matHTML(s.T)
+      + '<span class="op">·</span>' + matHTML(LA.T(s.Q)) + '</div>'
+      + says('对角化不一定办得到（比如斜拉），可是<b>这一个总办得到</b>：'
+        + '只要换到 Q 那套互相垂直的格子里，账本就变成上三角——'
+        + '意思是新格子里第一个方向自己管自己，第二个方向只受第一个影响，第三个只受前两个影响，<b>没有反过来的牵扯</b>。'
+        + (s.quasi
+          ? '左上角的 ' + f(s.T[0][0]) + ' 就是那个实特征值；右下角那个 2×2 的小块<b>拆不下去了</b>——'
+            + '它装着的是那对复特征值，也就是"转圈"藏身的地方。<b>那个小块里的 ' + f(s.T[1][1]) + ' 和 '
+            + f(s.T[2][2]) + ' 不是特征值</b>，只是这块的对角元。'
+          : '对角线上的 ' + f(s.T[0][0]) + '、' + f(s.T[1][1]) + '、' + f(s.T[2][2]) + ' 就是三个特征值。'));
+    return card('schur', '实 Schur 分解', 'A = Q · T · Qᵀ', body,
+      '和对角化比：对角化要求"不歪的方向够用"，可能失败；Schur 只要求"垂直的一套格子"，永远成功，代价是只化到上三角、不是对角。');
+  }
+
+  function cardSym(R) {
+    var ss = R.symSplit, ax = ss.axial;
+    var body = '<div class="matrow">' + matHTML(ss.S) + '<span class="op">+</span>' + matHTML(ss.K) + '</div>'
+      + '<div class="kv"><div><span>对称部分 S</span>只管把东西<b>拉长压扁</b>（它一定有三个互相垂直的不歪方向）</div>'
+      + '<div><span>反对称部分 K</span>只管<b>转</b>：K 作用在任何一个方向上，等于拿 ' + rowVecInline(ax) + ' 去叉乘它</div></div>'
+      + says('任何一台机器都能一刀两断：<b>一半在改形状，一半在打转</b>。'
+        + (LA.vlen(ax) < 1e-9 ? '这一台的转动部分是 0——它是对称阵，纯粹在拉伸。'
+          : '这一台的转动部分绕着 ' + rowVecInline(LA.vunit(ax)) + '，强度 ' + f(LA.vlen(ax)) + '。')
+        + '注意这是<b>加法</b>拆分，和前面那些乘法拆分是两码事：它说的是"这台机器 = 一台拉伸机 + 一台转动机<b>加起来</b>"。');
+    return card('sym', '对称 + 反对称（加法拆分）', 'A = S + K', body);
+  }
+
+  function cardElem(R) {
+    var el = R.elementary;
+    if (!el.ok) {
+      return card('elem', '拆成初等矩阵接力（消元）', 'A = E₁·E₂·…',
+        '<p class="warn">这台机器<b>倒不回去</b>（行列式是 0），拆不成一串初等矩阵——'
+        + '初等矩阵个个都倒得回去，一串倒得回去的机器接力，结果也一定倒得回去。</p>');
+    }
+    var body = '<p>把 A 一步步消成单位阵，再把每一步倒过来，就得到一条<b>流水线</b>：</p><div class="chain">';
+    el.steps.forEach(function (st, i) {
+      body += '<div class="chainstep"><span class="ci">' + (i + 1) + '</span>' + matHTML(st.Einv)
+        + '<span class="ctext">' + kindName(st.kind) + '</span></div>';
+    });
+    body += '</div>'
+      + '<p class="sub">这 ' + el.steps.length + ' 个账本从左到右乘起来，正好还原成 A（实测误差 '
+      + el.residual.toExponential(1) + '）。</p>'
+      + says('每一个初等矩阵都只干<b>一件最简单的事</b>：换两行、某行乘一个数、某行加上另一行的几倍。'
+        + '所以任何一台倒得回去的机器，都只是这几种最笨的动作接力做出来的——'
+        + '这正是第三册第四篇第五节那句"一台机器不止一种拆法"的三维版本。');
+    return card('elem', '拆成初等矩阵接力（高斯消元）', 'A = E₁⁻¹ · E₂⁻¹ · …', body);
+  }
+  function kindName(k) {
+    return k === 'swap' ? '换两行' : (k === 'scale' ? '某一行乘一个数' : '某一行加上另一行的几倍');
+  }
+
+  function cardSpecial(R) {
+    var out = [];
+    if (R.isSymmetric) out.push('这是一个<b>对称矩阵</b>：它一定有三个<b>互相垂直</b>的不歪方向（谱定理），所以上面的 P 是正交的，对角化和 Schur 分解在这里是同一件事。');
+    if (R.isOrthogonal) out.push('这是一个<b>正交矩阵</b>：它<b>不改变任何长度和角度</b>，只是把整只兔子转过去（' + (R.det < 0 ? '并且翻了面' : '没翻面') + '）。它的奇异值全是 1。');
+    if (Math.abs(R.det) > 1e-9 && R.rank === 3 && Math.abs(Math.abs(R.det) - 1) < 1e-9) out.push('行列式的绝对值是 1：<b>体积一点没变</b>，但形状可以变得面目全非——这正是第五篇那句"面积没变 ≠ 什么都没变"的三维版。');
+    if (!out.length) return '';
+    return card('special', '这台机器的特别之处', '', '<ul class="special">' + out.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>');
+  }
+
+  /* ---------------- 总装 ---------------- */
+  function render(R, S) {
+    var html = ''
+      + cardBasics(R, S)
+      + cardColumns(R)
+      + cardSpecial(R)
+      + cardEigen(R)
+      + cardSVD(R)
+      + cardPolar(R)
+      + cardSchur(R)
+      + cardQR(R)
+      + cardLU(R)
+      + cardSym(R)
+      + cardElem(R);
+    document.getElementById('panels').innerHTML = html;
+  }
+
+  return { render: render, matHTML: matHTML, vecHTML: vecHTML };
+})();
+
+</script>
+<script>
+/* =====================================================================
+   兔子的线性变换 —— 三维视图、网格生成、动画、交互
+   坐标约定：x = 往右，y = 往里（背离观众），z = 往上；出发点在兔子脚下
+   ===================================================================== */
+'use strict';
+
+(function () {
+
+  /* ---------------- 4×4 矩阵小工具（列优先，直接喂给 WebGL） ---------------- */
+  function m4identity() { return new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); }
+  function m4mul(a, b) {
+    var o = new Float32Array(16);
+    for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++) {
+      var s = 0;
+      for (var k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k];
+      o[i * 4 + j] = s;
+    }
+    return o;
+  }
+  function m4perspective(fovy, aspect, near, far) {
+    var f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    return new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, 2 * far * near * nf, 0]);
+  }
+  function m4lookAt(eye, center, up) {
+    var z = norm3(sub3(eye, center));
+    var x = norm3(cross3(up, z));
+    var y = cross3(z, x);
+    return new Float32Array([
+      x[0], y[0], z[0], 0,
+      x[1], y[1], z[1], 0,
+      x[2], y[2], z[2], 0,
+      -dot3(x, eye), -dot3(y, eye), -dot3(z, eye), 1]);
+  }
+  function sub3(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function cross3(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+  function dot3(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function norm3(a) { var n = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / n, a[1] / n, a[2] / n]; }
+  function mat3ToGL(M) {   // 行优先 → 列优先
+    return new Float32Array([M[0][0], M[1][0], M[2][0], M[0][1], M[1][1], M[2][1], M[0][2], M[1][2], M[2][2]]);
+  }
+
+  /* ---------------- 着色器 ---------------- */
+  var VS_MESH = `#version 300 es
+  in vec3 aPos; in vec3 aNrm;
+  uniform mat4 uVP; uniform mat3 uM; uniform mat3 uNrmM; uniform mat3 uRinv;
+  out vec3 vN; out vec3 vWorld; out vec3 vModel; out vec3 vNrm0;
+  void main(){
+    vec3 p = uM * aPos;
+    vWorld = p; vN = uNrmM * aNrm;
+    vModel = uRinv * aPos; vNrm0 = uRinv * aNrm;   // 上色要用"没被变换过、也没转身"的图纸坐标
+    gl_Position = uVP * vec4(p, 1.0);
+  }`;
+  var FS_MESH = `#version 300 es
+  precision highp float;
+  in vec3 vN; in vec3 vWorld; in vec3 vModel; in vec3 vNrm0;
+  uniform vec3 uLight; uniform vec3 uCam;
+  uniform float uAlpha; uniform float uGhost; uniform vec3 uGhostCol;
+  uniform vec3 uHead; uniform float uHeadR;
+  uniform vec3 uEarRA, uEarRB, uEarLA, uEarLB;
+  uniform vec2 uEarRR, uEarLR;
+  uniform vec3 uFootR, uFootL;
+  out vec4 outColor;
+
+  const vec3 C_FUR   = vec3(0.972, 0.953, 0.906);
+  const vec3 C_BELLY = vec3(0.996, 0.988, 0.965);
+  const vec3 C_EAR   = vec3(0.957, 0.776, 0.667);
+  const vec3 C_INK   = vec3(0.129, 0.161, 0.302);
+  const vec3 C_EYE   = vec3(0.102, 0.129, 0.259);
+  const vec3 C_NOSE  = vec3(0.914, 0.545, 0.545);
+  const vec3 C_BLUSH = vec3(0.965, 0.749, 0.741);
+  const vec3 C_PAW   = vec3(0.988, 0.965, 0.925);
+
+  float ss(float a, float b, float x){ return a < b ? smoothstep(a, b, x) : 1.0 - smoothstep(b, a, x); }
+  float el2(vec2 p, vec2 c, vec2 r){ return length((p - c) / r); }
+
+  /* 耳朵里的粉：沿中轴的一条窄带，只涂朝前那一面，尖上留白 */
+  float earInner(vec3 p, vec3 A, vec3 B, vec2 R){
+    vec3 d = B - A;
+    float t = dot(p - A, d) / dot(d, d);
+    if (t < 0.03 || t > 0.94) return 0.0;
+    vec3 q = p - (A + d * t);
+    vec3 u = normalize(d);
+    vec2 w = normalize(vec2(-u.z, u.x));            // 与中轴垂直、在 xz 面内 = 耳朵的宽度方向
+    float wide = dot(vec2(q.x, q.z), w);
+    float r = mix(R.x, R.y, t);
+    return ss(r * 0.78, r * 0.34, abs(wide)) * ss(-0.01 * r, -0.42 * r, q.y)
+         * ss(0.05, 0.17, t) * ss(0.94, 0.78, t);
+  }
+
+  vec3 rabbitColor(vec3 p, vec3 n0){
+    float front = -n0.y;
+    vec3 col = C_FUR;
+    /* 肚子胸口更白 */
+    float hh = uHeadR;
+    col = mix(col, C_BELLY, 0.9 * ss(0.10, 0.55, front)
+              * ss(0.16 * hh, 0.48 * hh, p.z) * ss(1.04 * hh, 0.80 * hh, p.z));
+    /* 脚掌浅一点 */
+    col = mix(col, C_PAW, 0.8 * ss(0.30 * hh, 0.14 * hh, min(distance(p, uFootR), distance(p, uFootL))));
+    /* 耳朵内侧 */
+    col = mix(col, C_EAR, max(earInner(p, uEarRA, uEarRB, uEarRR), earInner(p, uEarLA, uEarLB, uEarLR)));
+
+    /* 脸：在脑袋的球面坐标里画，s 左右、t 上下、f 朝前 */
+    vec3 h = p - uHead;
+    float hl = length(h);
+    if (hl > uHeadR || hl < 1e-5) return col;
+    vec2 st = vec2(h.x, h.z) / hl;
+    float f = -h.y / hl;
+    if (f < 0.12) return col;
+    float on = ss(0.12, 0.34, f);
+
+    col = mix(col, C_BLUSH, 0.55 * ss(1.0, 0.25, min(
+      el2(st, vec2( 0.62, -0.16), vec2(0.24, 0.19)),
+      el2(st, vec2(-0.62, -0.16), vec2(0.24, 0.19)))) * on);
+
+    float eye = min(el2(st, vec2( 0.34, 0.07), vec2(0.215, 0.255)),
+                    el2(st, vec2(-0.34, 0.07), vec2(0.215, 0.255)));
+    col = mix(col, C_EYE, ss(1.04, 0.96, eye) * on);
+    float g1 = min(el2(st, vec2( 0.405, 0.155), vec2(0.080, 0.092)),
+                   el2(st, vec2(-0.275, 0.155), vec2(0.080, 0.092)));
+    col = mix(col, vec3(1.0), ss(1.05, 0.85, g1) * ss(1.10, 1.00, eye) * on);
+    float g2 = min(el2(st, vec2( 0.272, -0.045), vec2(0.048, 0.054)),
+                   el2(st, vec2(-0.408, -0.045), vec2(0.048, 0.054)));
+    col = mix(col, vec3(1.0), 0.8 * ss(1.05, 0.85, g2) * ss(1.10, 1.00, eye) * on);
+
+    float brow = min(el2(st, vec2( 0.38, 0.45), vec2(0.135, 0.030)),
+                     el2(st, vec2(-0.38, 0.45), vec2(0.135, 0.030)));
+    col = mix(col, C_INK, 0.5 * ss(1.06, 0.9, brow) * on);
+
+    col = mix(col, C_NOSE, ss(1.10, 0.90, el2(st, vec2(0.0, -0.30), vec2(0.088, 0.064))) * on);
+
+    /* 嘴：一竖 + 两道笑弧 */
+    float m = 0.0;
+    if (st.y < -0.33 && st.y > -0.62 && abs(st.x) < 0.30) {
+      m = max(m, ss(0.030, 0.016, abs(st.x)) * ss(-0.44, -0.40, st.y));
+      float arc = abs(length(vec2(abs(st.x) - 0.105, st.y + 0.425)) - 0.105);
+      m = max(m, ss(0.030, 0.016, arc) * ss(-0.395, -0.415, st.y) * ss(0.245, 0.225, abs(st.x)));
+    }
+    col = mix(col, C_INK, 0.85 * m * on);
+    return col;
+  }
+
+  void main(){
+    vec3 V = normalize(uCam - vWorld);
+    vec3 n = vN;
+    float nl = length(n);
+    n = nl < 1e-6 ? V : n / nl;            // 压成一张纸时法向量退化，退回朝向观众
+    if (dot(n, V) < 0.0) n = -n;           // 两面都当成朝我们的一面来打光
+    vec3 L = normalize(uLight);
+    float diff = max(dot(n, L), 0.0);
+    float spec = pow(max(dot(reflect(-L, n), V), 0.0), 30.0);
+    float back = 0.26 * max(dot(n, normalize(vec3(-0.919, -0.283, -0.15))), 0.0);  // 补光也跟着转了 135°
+    vec3 base = rabbitColor(vModel, normalize(vNrm0));
+    vec3 col = base * (0.52 + 0.48 * diff + back) + vec3(1.0) * 0.10 * spec;
+    float edge = 1.0 - abs(dot(n, V));
+    col = mix(col, C_INK, smoothstep(0.70, 0.96, edge));     // 卡通描边
+    if (uGhost > 0.5) col = mix(uGhostCol, vec3(1.0), 0.25 * diff);
+    outColor = vec4(col, uAlpha);
+  }`;
+
+  var VS_LINE = `#version 300 es
+  in vec3 aPos; in vec3 aCol;
+  uniform mat4 uVP;
+  out vec3 vCol;
+  void main(){ vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`;
+  var FS_LINE = `#version 300 es
+  precision highp float;
+  in vec3 vCol; uniform float uAlpha;
+  out vec4 outColor;
+  void main(){ outColor = vec4(vCol, uAlpha); }`;
+
+  var VS_SURF = `#version 300 es
+  in vec3 aPos; in vec3 aNrm; in vec4 aCol;
+  uniform mat4 uVP;
+  out vec4 vCol; out vec3 vN; out vec3 vWorld;
+  void main(){ vCol = aCol; vN = aNrm; vWorld = aPos; gl_Position = uVP * vec4(aPos, 1.0); }`;
+  var FS_SURF = `#version 300 es
+  precision highp float;
+  in vec4 vCol; in vec3 vN; in vec3 vWorld;
+  uniform vec3 uCam; uniform float uAlpha;
+  out vec4 outColor;
+  void main(){
+    vec3 V = normalize(uCam - vWorld);
+    vec3 n = vN; float nl = length(n);
+    n = nl < 1e-5 ? V : n/nl;
+    float f = 0.55 + 0.45 * abs(dot(n, V));
+    outColor = vec4(vCol.rgb * f, vCol.a * uAlpha);
+  }`;
+
+  function compile(gl, type, src) {
+    var sh = gl.createShader(type);
+    gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh) + '\n' + src);
+    return sh;
+  }
+  function program(gl, vs, fs) {
+    var p = gl.createProgram();
+    gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+
+  /* 兔子做得比"一个单位"还小，是有意的：账本里的数最大到 3，
+     兔子最多会被拉到十来倍，画框又必须钉死不动（不然放大就看不出来了），
+     所以先把兔子缩小，给拉伸留出地方。 */
+  var RABBIT_HEIGHT = 2.2 / 3;
+
+  /* ---------------- 全局状态 ---------------- */
+  var COL = {
+    right: [0.85, 0.27, 0.24], into: [0.13, 0.60, 0.42], up: [0.20, 0.40, 0.80],
+    cube: [0.52, 0.40, 0.78], ell: [0.90, 0.52, 0.15], eig: [0.83, 0.60, 0.06],
+    kern: [0.80, 0.16, 0.42], img: [0.10, 0.62, 0.62], plane: [0.44, 0.32, 0.78],
+    ghost: [0.52, 0.58, 0.72]
+  };
+  var S = {
+    M: LA.id(),
+    steps: [{ kind: 'lerp', to: LA.id(), label: '什么都不做' }],
+    mode: 'direct',
+    t: 1, playing: false, lastTime: 0,
+    /* az = 135° 是标准轴测的方位：往右在左下、往里在右下、往上朝上，三根轴分得开。
+       兔子已经绕 z 转了 135°（见 RABBIT 那边的 YAW），所以这个镜头下它正面朝我们。 */
+    cam: { az: 3 * Math.PI / 4, el: 0.22, dist: 3.35, target: [0, 0, 0.46] },
+    show: { ghost: true, cube: true, ell: false, eig: true, kern: true, floor: true, label: true },
+    autofit: false,
+    analysis: null
+  };
+
+  var gl, canvas, overlay, octx, mesh, progMesh, progLine, progSurf, buf = {}, DPR = 1;
+
+  /* ---------------- 变换的分步动画 ---------------- */
+  function outer(a, b) {
+    return [[a[0] * b[0], a[0] * b[1], a[0] * b[2]],
+            [a[1] * b[0], a[1] * b[1], a[1] * b[2]],
+            [a[2] * b[0], a[2] * b[1], a[2] * b[2]]];
+  }
+  function rodrigues(axis, ang) {
+    var c = Math.cos(ang), s = Math.sin(ang), t = 1 - c, u = axis;
+    return [
+      [c + u[0] * u[0] * t, u[0] * u[1] * t - u[2] * s, u[0] * u[2] * t + u[1] * s],
+      [u[1] * u[0] * t + u[2] * s, c + u[1] * u[1] * t, u[1] * u[2] * t - u[0] * s],
+      [u[2] * u[0] * t - u[1] * s, u[2] * u[1] * t + u[0] * s, c + u[2] * u[2] * t]];
+  }
+  /* 把一个正交矩阵拆成可以连续演的基本动作。
+     纯旋转 → 绕轴转过去；含镜像 → 先把某个方向的系数从 +1 连续走到 −1
+     （中途必然经过"压成一张纸"，这正是照镜子做不到不穿过平面的原因），再转。 */
+  function orthoPrimitives(Q, label) {
+    var info = LA.orthoInfo(Q);
+    if (!info.isReflection) {
+      if (info.angleDeg < 1e-6) return [{ kind: 'lerp', to: LA.id(), label: label + '（其实不用转）' }];
+      return [{ kind: 'rot', axis: info.axis, angle: info.angleDeg * Math.PI / 180, label: label }];
+    }
+    var e = LA.eig(Q), n = null;
+    e.real.forEach(function (g) { if (Math.abs(g.lambda + 1) < 1e-6 && !n) n = g.vectors[0]; });
+    if (!n) n = info.axis;
+    var Href = LA.msub(LA.id(), LA.mscale(outer(n, n), 2));
+    var R = LA.mmul(Q, Href);
+    var ri = LA.orthoInfo(R);
+    var out = [{ kind: 'flip', n: n, label: label + ' 之一：翻面（要穿过"压成一张纸"那一刻）' }];
+    if (ri.angleDeg > 1e-6) out.push({ kind: 'rot', axis: ri.axis, angle: ri.angleDeg * Math.PI / 180, label: label + ' 之二：转过去' });
+    return out;
+  }
+  function stepMatrix(st, u) {
+    if (st.kind === 'lerp') return LA.madd(LA.mscale(LA.id(), 1 - u), LA.mscale(st.to, u));
+    if (st.kind === 'rot') return rodrigues(st.axis, st.angle * u);
+    if (st.kind === 'flip') {
+      var c = 1 - 2 * u;                       // +1 → 0（压平）→ −1（翻面）
+      return LA.madd(LA.id(), LA.mscale(outer(st.n, st.n), c - 1));
+    }
+    return LA.id();
+  }
+  function buildSteps(A, mode) {
+    if (mode === 'polar') {
+      var p = LA.polar(A);
+      return [{ kind: 'lerp', to: p.S, label: '第一步：沿三个互相垂直的方向各拉一下（对称的 S）' }]
+        .concat(orthoPrimitives(p.Q, '第二步：整只兔子转个身（正交的 Q）'));
+    }
+    if (mode === 'svd') {
+      var s = LA.svd(A);
+      return orthoPrimitives(LA.T(s.V), '第一步：先转到"好拉"的方向（Vᵀ）')
+        .concat([{ kind: 'lerp', to: LA.diag(s.S), label: '第二步：沿三根轴各拉一下（Σ，拉伸倍数就是奇异值）' }])
+        .concat(orthoPrimitives(s.U, '第三步：再转到最后的朝向（U）'));
+    }
+    return [{ kind: 'lerp', to: A, label: '一步到位' }];
+  }
+  function pruneSteps(steps) {
+    var out = steps.filter(function (st) {
+      if (st.kind === 'lerp') return LA.fro(LA.msub(st.to, LA.id())) > 1e-9;
+      if (st.kind === 'rot') return Math.abs(st.angle) > 1e-9;
+      return true;
+    });
+    return out.length ? out : [{ kind: 'lerp', to: LA.id(), label: '什么都没变' }];
+  }
+  function matrixAt(steps, t) {
+    var N = steps.length;
+    if (!N) return LA.id();
+    var u = Math.max(0, Math.min(1, t)) * N;
+    var k = Math.min(N - 1, Math.floor(u)), f = u - k;
+    if (t >= 1) { k = N - 1; f = 1; }
+    var M = LA.id();
+    for (var i = 0; i < k; i++) M = LA.mmul(stepMatrix(steps[i], 1), M);
+    return { M: LA.mmul(stepMatrix(steps[k], f), M), step: k, frac: f };
+  }
+
+  /* ---------------- 几何：轴、立方体、椭球、平面、直线 ---------------- */
+  var lineVerts, lineCols, surfVerts, surfNrms, surfCols, labels;
+  function addLine(a, b, c) {
+    lineVerts.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+    lineCols.push(c[0], c[1], c[2], c[0], c[1], c[2]);
+  }
+  function addArrow(o, v, c) {           // 一条线 + 末端一个小十字，便于看清落点
+    var tip = LA.vadd(o, v);
+    addLine(o, tip, c);
+    var len = LA.vlen(v) * 0.06 + 0.02;
+    var d = LA.vunit(v);
+    var t1 = LA.vunit(LA.vcross(d, Math.abs(d[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]));
+    var t2 = LA.vcross(d, t1);
+    [t1, t2].forEach(function (t) {
+      addLine(LA.vadd(LA.vsub(tip, LA.vscale(d, len * 2)), LA.vscale(t, len)), tip, c);
+      addLine(LA.vadd(LA.vsub(tip, LA.vscale(d, len * 2)), LA.vscale(t, -len)), tip, c);
+    });
+  }
+  function addTri(p0, p1, p2, c, al) {
+    var n = LA.vunit(LA.vcross(LA.vsub(p1, p0), LA.vsub(p2, p0)));
+    if (al === undefined) al = 1;
+    [p0, p1, p2].forEach(function (p) {
+      surfVerts.push(p[0], p[1], p[2]);
+      surfNrms.push(n[0], n[1], n[2]);
+      surfCols.push(c[0], c[1], c[2], al);
+    });
+  }
+  function addQuadSurf(p0, p1, p2, p3, c, al) { addTri(p0, p1, p2, c, al); addTri(p0, p2, p3, c, al); }
+  /* style === 'axis' 是轴的名字（X／Y／Z）：不加底框、不点圆点，字大一号 */
+  function addLabel(p, text, color, style) { labels.push({ p: p, text: text, color: color, style: style }); }
+
+  function buildScene(M) {
+    lineVerts = []; lineCols = []; surfVerts = []; surfNrms = []; surfCols = []; labels = [];
+    var O = [0, 0, 0];
+    var e1 = [1, 0, 0], e2 = [0, 1, 0], e3 = [0, 0, 1];
+    var AX = 1.25;
+
+    /* 地面格子（原来的，浅灰） */
+    if (S.show.floor) {
+      var g = 3, step = 0.5, grey = [0.80, 0.79, 0.76];
+      for (var i = -g; i <= g; i++) {
+        addLine([i * step, -g * step, 0], [i * step, g * step, 0], grey);
+        addLine([-g * step, i * step, 0], [g * step, i * step, 0], grey);
+      }
+    }
+
+    /* 三根轴：变换前（淡）与变换后（浓） */
+    var axes = [
+      { v: e1, c: COL.right, name: '往右', letter: 'X' },
+      { v: e2, c: COL.into, name: '往里', letter: 'Y' },
+      { v: e3, c: COL.up, name: '往上', letter: 'Z' }
+    ];
+    axes.forEach(function (a) {
+      var pale = a.c.map(function (x) { return 0.65 + x * 0.3; });
+      addLine(O, LA.vscale(a.v, AX), pale);
+      /* 轴的名字钉在没被变换的那根淡轴的头上——它不跟着账本动，才当得起"坐标轴的名字" */
+      if (S.show.label) addLabel(LA.vscale(a.v, AX * 1.08), a.letter, a.c, 'axis');
+      var img = LA.mvec(M, a.v);
+      if (LA.vlen(img) > 1e-6) {
+        addArrow(O, img, a.c);
+        if (S.show.label) addLabel(img, a.letter + '（' + a.name + '）→ (' + LA.fmt(img[0]) + ', ' + LA.fmt(img[1]) + ', ' + LA.fmt(img[2]) + ')', a.c);
+      }
+    });
+
+    /* 单位立方体 → 平行六面体：体积就是 |行列式| */
+    if (S.show.cube) {
+      var c000 = O, c1 = LA.mvec(M, e1), c2 = LA.mvec(M, e2), c3 = LA.mvec(M, e3);
+      var P = {};
+      [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1]].forEach(function (b) {
+        P[b.join('')] = LA.vadd(LA.vadd(LA.vscale(c1, b[0]), LA.vscale(c2, b[1])), LA.vscale(c3, b[2]));
+      });
+      var edges = [['000', '100'], ['000', '010'], ['000', '001'], ['100', '110'], ['100', '101'],
+                   ['010', '110'], ['010', '011'], ['001', '101'], ['001', '011'],
+                   ['110', '111'], ['101', '111'], ['011', '111']];
+      edges.forEach(function (e) { addLine(P[e[0]], P[e[1]], COL.cube); });
+      var faces = [['000', '100', '110', '010'], ['001', '101', '111', '011'], ['000', '100', '101', '001'],
+                   ['010', '110', '111', '011'], ['000', '010', '011', '001'], ['100', '110', '111', '101']];
+      faces.forEach(function (f) { addQuadSurf(P[f[0]], P[f[1]], P[f[2]], P[f[3]], COL.cube, 0.26); });
+    }
+
+    /* 单位球 → 椭球：三根半轴就是 σᵢ·uᵢ。画成线框，免得把兔子整个吞掉 */
+    if (S.show.ell) {
+      var NU = 36, NV = 18, sph = function (th, ph) {
+        return LA.mvec(M, [Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)]);
+      };
+      var pale = [COL.ell[0] * 0.55 + 0.45, COL.ell[1] * 0.55 + 0.42, COL.ell[2] * 0.55 + 0.42];
+      for (var iv = 1; iv < NV; iv++) {                 // 纬线
+        if (iv % 2) continue;
+        var th = Math.PI * iv / NV;
+        for (var iu = 0; iu < NU; iu++) {
+          addLine(sph(th, 2 * Math.PI * iu / NU), sph(th, 2 * Math.PI * (iu + 1) / NU), pale);
+        }
+      }
+      for (var ju = 0; ju < NU; ju += 3) {              // 经线
+        var ph = 2 * Math.PI * ju / NU;
+        for (var jv = 0; jv < NV; jv++) {
+          addLine(sph(Math.PI * jv / NV, ph), sph(Math.PI * (jv + 1) / NV, ph), pale);
+        }
+      }
+      var sv = S.analysis.svd;
+      for (var q = 0; q < 3; q++) {
+        if (sv.S[q] < 1e-9) continue;
+        var ax = LA.vscale(LA.col(sv.U, q), sv.S[q]);
+        addLine(LA.vscale(ax, -1), ax, COL.ell);
+        if (S.show.label) addLabel(ax, 'σ' + '₁₂₃'[q] + ' = ' + LA.fmt(sv.S[q]), COL.ell);
+      }
+    }
+
+    /* 特征方向：不歪的那些方向 */
+    if (S.show.eig && S.analysis) {
+      var ev = S.analysis.eig;
+      ev.real.forEach(function (g, gi) {
+        g.vectors.forEach(function (v) {
+          var col = gi === 0 ? COL.eig : (gi === 1 ? [0.55, 0.45, 0.10] : [0.35, 0.55, 0.12]);
+          if (Math.abs(g.lambda) < 1e-9) col = COL.kern;
+          addLine(LA.vscale(v, -1.5), LA.vscale(v, 1.5), col);       // 整条直线都不歪
+          addArrow(O, v, col);                                        // 单位长度的一支
+          var img2 = LA.vscale(v, g.lambda);                          // 它被送成 λ 倍
+          if (LA.vlen(img2) > 1e-6) addArrow(O, img2, col);
+          if (S.show.label) addLabel(v, 'λ = ' + LA.fmt(g.lambda), col);
+        });
+      });
+      if (ev.complex) {     // 复特征值：画出那张"只在里面打转"的平面和转轴
+        var pl = ev.complex.plane, R = 1.1;
+        for (var a2 = 0; a2 < 36; a2++) {
+          var t0 = 2 * Math.PI * a2 / 36, t1 = 2 * Math.PI * (a2 + 1) / 36;
+          var q0 = LA.vadd(LA.vscale(pl[0], R * Math.cos(t0)), LA.vscale(pl[1], R * Math.sin(t0)));
+          var q1 = LA.vadd(LA.vscale(pl[0], R * Math.cos(t1)), LA.vscale(pl[1], R * Math.sin(t1)));
+          addTri(O, q0, q1, COL.plane, 0.32);
+          addLine(q0, q1, COL.plane);
+        }
+        if (S.show.label) addLabel(LA.vadd(LA.vscale(pl[0], R * 0.75), LA.vscale(pl[1], R * 0.55)),
+          '这张平面上只是转 ' + LA.fmt(ev.complex.angleDeg, 1) + '°', COL.plane);
+      }
+    }
+
+    /* 核与像 */
+    if (S.show.kern && S.analysis) {
+      var ker = S.analysis.kernel;
+      if (ker.length === 1) {
+        addLine(LA.vscale(ker[0], -1.6), LA.vscale(ker[0], 1.6), COL.kern);
+        if (S.show.label) addLabel(LA.vscale(ker[0], 1.35), '核：这个方向被吃掉了', COL.kern);
+      } else if (ker.length === 2) {
+        var R2 = 1.3;
+        for (var b2 = 0; b2 < 24; b2++) {
+          var s0 = 2 * Math.PI * b2 / 24, s1 = 2 * Math.PI * (b2 + 1) / 24;
+          addTri(O, LA.vadd(LA.vscale(ker[0], R2 * Math.cos(s0)), LA.vscale(ker[1], R2 * Math.sin(s0))),
+                    LA.vadd(LA.vscale(ker[0], R2 * Math.cos(s1)), LA.vscale(ker[1], R2 * Math.sin(s1))), COL.kern, 0.30);
+          addLine(LA.vadd(LA.vscale(ker[0], R2 * Math.cos(s0)), LA.vscale(ker[1], R2 * Math.sin(s0))),
+                  LA.vadd(LA.vscale(ker[0], R2 * Math.cos(s1)), LA.vscale(ker[1], R2 * Math.sin(s1))), COL.kern);
+        }
+        if (S.show.label) addLabel(LA.vscale(LA.vadd(ker[0], ker[1]), 1.2), '核：整整一张平面都被吃掉了', COL.kern);
+      }
+      var im = S.analysis.image;
+      if (im.length === 1) {
+        addLine(LA.vscale(im[0], -1.6), LA.vscale(im[0], 1.6), COL.img);
+        if (S.show.label) addLabel(LA.vscale(im[0], 1.35), '像：整只兔子被压到这条线上', COL.img);
+      } else if (im.length === 2) {
+        var R3 = 1.4;
+        for (var b3 = 0; b3 < 24; b3++) {
+          var u0 = 2 * Math.PI * b3 / 24, u1 = 2 * Math.PI * (b3 + 1) / 24;
+          addTri(O, LA.vadd(LA.vscale(im[0], R3 * Math.cos(u0)), LA.vscale(im[1], R3 * Math.sin(u0))),
+                    LA.vadd(LA.vscale(im[0], R3 * Math.cos(u1)), LA.vscale(im[1], R3 * Math.sin(u1))), COL.img, 0.30);
+          addLine(LA.vadd(LA.vscale(im[0], R3 * Math.cos(u0)), LA.vscale(im[1], R3 * Math.sin(u0))),
+                  LA.vadd(LA.vscale(im[0], R3 * Math.cos(u1)), LA.vscale(im[1], R3 * Math.sin(u1))), COL.img);
+        }
+        if (S.show.label) addLabel(LA.vscale(LA.vadd(im[0], im[1]), 1.15), '像：兔子被压到这张平面上', COL.img);
+      }
+    }
+    if (S.show.label) addLabel([0, 0, 0], '出发点', [0.35, 0.35, 0.40]);
+  }
+
+  /* ---------------- 取景 ----------------
+     ⚠ 默认**不自动取景**。画框一跟着兔子缩放，"放大 2 倍"在屏幕上就还是一样大——
+     要教的东西正好被抹掉了。所以画框钉死，兔子变大就是真的变大。 */
+  function fitCamera(M) {
+    if (!S.autofit || !mesh) return;
+    fitNow(M);
+  }
+  function fitNow(M) {
+    if (!mesh) return;
+    var r = 0, P = mesh.pos, zmax = 0.6;
+    for (var i = 0; i < P.length; i += 3) {
+      var q = LA.mvec(M, [P[i], P[i + 1], P[i + 2]]);
+      r = Math.max(r, Math.hypot(q[0], q[1], q[2]));
+      zmax = Math.max(zmax, q[2]);
+    }
+    r = Math.max(r, 1.25);
+    S.cam.dist = r * 2.15;
+    S.cam.target = [0, 0, zmax * 0.42];
+  }
+  window.__fitNow = function () { fitNow(matrixAt(S.steps, S.t).M); draw(); };
+
+  /* ---------------- 画一帧 ---------------- */
+  function viewProj() {
+    var c = S.cam;
+    var eye = [
+      c.target[0] + c.dist * Math.cos(c.el) * Math.sin(c.az),
+      c.target[1] - c.dist * Math.cos(c.el) * Math.cos(c.az),
+      c.target[2] + c.dist * Math.sin(c.el)];
+    var P = m4perspective(38 * Math.PI / 180, canvas.width / canvas.height, 0.05, 200);
+    var V = m4lookAt(eye, c.target, [0, 0, 1]);
+    return { vp: m4mul(P, V), eye: eye };
+  }
+
+  function draw() {
+    if (!gl || !mesh) return;
+    var cur = matrixAt(S.steps, S.t);
+    var M = cur.M;
+    buildScene(M);
+    var vpEye = viewProj(), VP = vpEye.vp, eye = vpEye.eye;
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.976, 0.965, 0.945, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(true);
+    gl.disable(gl.CULL_FACE);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    /* 1. 变换后的兔子（不透明） */
+    gl.disable(gl.BLEND);
+    gl.useProgram(progMesh);
+    bindMeshAttribs();
+    gl.uniformMatrix4fv(gl.getUniformLocation(progMesh, 'uVP'), false, VP);
+    /* 主光：原来是 (−0.45, −0.75, 0.55)，跟着兔子一起绕 z 转了 135°，
+       这样它相对兔子还是"左前上方"打过来，脸不会背光 */
+    gl.uniform3fv(gl.getUniformLocation(progMesh, 'uLight'), new Float32Array([0.849, 0.212, 0.55]));
+    gl.uniform3fv(gl.getUniformLocation(progMesh, 'uCam'), new Float32Array(eye));
+    gl.uniformMatrix3fv(gl.getUniformLocation(progMesh, 'uM'), false, mat3ToGL(M));
+    gl.uniformMatrix3fv(gl.getUniformLocation(progMesh, 'uNrmM'), false, mat3ToGL(cofactor(M)));
+    setPartUniforms();
+    gl.uniform1f(gl.getUniformLocation(progMesh, 'uAlpha'), 1.0);
+    gl.uniform1f(gl.getUniformLocation(progMesh, 'uGhost'), 0.0);
+    gl.drawElements(gl.TRIANGLES, mesh.count, mesh.idx.BYTES_PER_ELEMENT === 4 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, 0);
+
+    gl.enable(gl.BLEND);
+
+    /* 2. 线（轴、立方体、特征方向） */
+    drawLines(VP);
+
+    /* 3. 半透明的东西：原来那只兔子、平行六面体、椭球、各种平面 */
+    gl.depthMask(false);
+    /* 变换前的兔子只在"确实变了"的时候画；和本体完全重合时画它只会打架出条纹 */
+    if (S.show.ghost && LA.fro(LA.msub(M, LA.id())) > 1e-4) {
+      gl.useProgram(progMesh);
+      bindMeshAttribs();
+      gl.uniformMatrix3fv(gl.getUniformLocation(progMesh, 'uM'), false, mat3ToGL(LA.id()));
+      gl.uniformMatrix3fv(gl.getUniformLocation(progMesh, 'uNrmM'), false, mat3ToGL(LA.id()));
+      gl.uniform1f(gl.getUniformLocation(progMesh, 'uGhost'), 1.0);
+      gl.uniform3fv(gl.getUniformLocation(progMesh, 'uGhostCol'), new Float32Array(COL.ghost));
+      var eType = mesh.idx.BYTES_PER_ELEMENT === 4 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+      /* 先画被挡住的那部分（深度测试反过来），再画没被挡住的。
+         兔子一放大，原来那只会整个躲进新兔子肚子里；不这么画就看不见参照了。 */
+      gl.depthFunc(gl.GREATER);
+      gl.uniform1f(gl.getUniformLocation(progMesh, 'uAlpha'), 0.30);
+      gl.drawElements(gl.TRIANGLES, mesh.count, eType, 0);
+      gl.depthFunc(gl.LESS);
+      gl.uniform1f(gl.getUniformLocation(progMesh, 'uAlpha'), 0.34);
+      gl.drawElements(gl.TRIANGLES, mesh.count, eType, 0);
+    }
+    drawSurfaces(VP, eye);
+    gl.depthMask(true);
+
+    drawLabels(VP);
+    updateLiveReadout(cur);
+  }
+
+  function cofactor(M) {   // 法向量要用 (M⁻¹)ᵀ ∝ 余子式矩阵；奇异时它照样有定义
+    return [
+      [M[1][1] * M[2][2] - M[1][2] * M[2][1], M[1][2] * M[2][0] - M[1][0] * M[2][2], M[1][0] * M[2][1] - M[1][1] * M[2][0]],
+      [M[0][2] * M[2][1] - M[0][1] * M[2][2], M[0][0] * M[2][2] - M[0][2] * M[2][0], M[0][1] * M[2][0] - M[0][0] * M[2][1]],
+      [M[0][1] * M[1][2] - M[0][2] * M[1][1], M[0][2] * M[1][0] - M[0][0] * M[1][2], M[0][0] * M[1][1] - M[0][1] * M[1][0]]];
+  }
+
+  function setPartUniforms() {
+    var P = mesh.parts, u = function (n) { return gl.getUniformLocation(progMesh, n); };
+    gl.uniformMatrix3fv(u('uRinv'), false, mat3ToGL(mesh.modelFromWorld));
+    gl.uniform3fv(u('uHead'), new Float32Array(P.head));
+    gl.uniform1f(u('uHeadR'), P.headR);
+    gl.uniform3fv(u('uEarRA'), new Float32Array(P.earR.a));
+    gl.uniform3fv(u('uEarRB'), new Float32Array(P.earR.b));
+    gl.uniform2fv(u('uEarRR'), new Float32Array([P.earR.r0, P.earR.r1]));
+    gl.uniform3fv(u('uEarLA'), new Float32Array(P.earL.a));
+    gl.uniform3fv(u('uEarLB'), new Float32Array(P.earL.b));
+    gl.uniform2fv(u('uEarLR'), new Float32Array([P.earL.r0, P.earL.r1]));
+    gl.uniform3fv(u('uFootR'), new Float32Array(P.foot[0]));
+    gl.uniform3fv(u('uFootL'), new Float32Array(P.foot[1]));
+  }
+  function bindMeshAttribs() {
+    var loc;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
+    loc = gl.getAttribLocation(progMesh, 'aPos'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrm);
+    loc = gl.getAttribLocation(progMesh, 'aNrm'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.idx);
+  }
+
+  function drawLines(VP) {
+    if (!lineVerts.length) return;
+    gl.useProgram(progLine);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.lineP);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVerts), gl.DYNAMIC_DRAW);
+    var l1 = gl.getAttribLocation(progLine, 'aPos'); gl.enableVertexAttribArray(l1); gl.vertexAttribPointer(l1, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.lineC);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineCols), gl.DYNAMIC_DRAW);
+    var l2 = gl.getAttribLocation(progLine, 'aCol'); gl.enableVertexAttribArray(l2); gl.vertexAttribPointer(l2, 3, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(gl.getUniformLocation(progLine, 'uVP'), false, VP);
+    gl.uniform1f(gl.getUniformLocation(progLine, 'uAlpha'), 0.95);
+    gl.drawArrays(gl.LINES, 0, lineVerts.length / 3);
+  }
+
+  function drawSurfaces(VP, eye) {
+    if (!surfVerts.length) return;
+    gl.useProgram(progSurf);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.surfP);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfVerts), gl.DYNAMIC_DRAW);
+    var a1 = gl.getAttribLocation(progSurf, 'aPos'); gl.enableVertexAttribArray(a1); gl.vertexAttribPointer(a1, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.surfN);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfNrms), gl.DYNAMIC_DRAW);
+    var a2 = gl.getAttribLocation(progSurf, 'aNrm'); gl.enableVertexAttribArray(a2); gl.vertexAttribPointer(a2, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.surfC);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfCols), gl.DYNAMIC_DRAW);
+    var a3 = gl.getAttribLocation(progSurf, 'aCol'); gl.enableVertexAttribArray(a3); gl.vertexAttribPointer(a3, 4, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(gl.getUniformLocation(progSurf, 'uVP'), false, VP);
+    gl.uniform3fv(gl.getUniformLocation(progSurf, 'uCam'), new Float32Array(eye));
+    gl.uniform1f(gl.getUniformLocation(progSurf, 'uAlpha'), 0.30);
+    gl.drawArrays(gl.TRIANGLES, 0, surfVerts.length / 3);
+  }
+
+  function project(p, VP) {
+    var x = VP[0] * p[0] + VP[4] * p[1] + VP[8] * p[2] + VP[12];
+    var y = VP[1] * p[0] + VP[5] * p[1] + VP[9] * p[2] + VP[13];
+    var w = VP[3] * p[0] + VP[7] * p[1] + VP[11] * p[2] + VP[15];
+    if (w <= 0.0001) return null;
+    return [(x / w * 0.5 + 0.5) * overlay.width / DPR, (1 - (y / w * 0.5 + 0.5)) * overlay.height / DPR];
+  }
+  function drawLabels(VP) {
+    octx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    octx.clearRect(0, 0, overlay.width / DPR, overlay.height / DPR);
+    if (!S.show.label) return;
+    octx.font = '600 13px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+    octx.textBaseline = 'middle';
+    labels.forEach(function (L) {
+      var q = project(L.p, VP);
+      if (!q) return;
+      var col = 'rgb(' + L.color.map(function (c) { return Math.round(c * 235); }).join(',') + ')';
+      if (L.style === 'axis') {                 // X／Y／Z：干干净净一个字母
+        octx.font = '700 17px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+        octx.textAlign = 'center';
+        octx.lineWidth = 3; octx.strokeStyle = 'rgba(249,246,240,0.9)';
+        octx.strokeText(L.text, q[0], q[1]);    // 先描一圈底色，压在格子上也看得清
+        octx.fillStyle = col;
+        octx.fillText(L.text, q[0], q[1]);
+        octx.textAlign = 'left';
+        octx.font = '600 13px -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+        return;
+      }
+      var w = octx.measureText(L.text).width;
+      octx.fillStyle = 'rgba(255,253,249,0.82)';
+      octx.fillRect(q[0] + 6, q[1] - 9, w + 8, 18);
+      octx.fillStyle = col;
+      octx.fillText(L.text, q[0] + 10, q[1]);
+      octx.strokeStyle = col; octx.lineWidth = 1;
+      octx.beginPath(); octx.arc(q[0], q[1], 2.5, 0, 7); octx.stroke();
+    });
+  }
+
+  /* ---------------- 播放 ---------------- */
+  function tick(now) {
+    if (S.playing) {
+      var dt = (now - S.lastTime) / 1000;
+      S.lastTime = now;
+      var dur = 1.1 * S.steps.length;
+      S.t += dt / dur;
+      if (S.t >= 1) { S.t = 1; S.playing = false; }
+      var sl = document.getElementById('tslider');
+      if (sl) sl.value = String(Math.round(S.t * 1000));
+      draw();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function updateLiveReadout(cur) {
+    var el = document.getElementById('liveMat');
+    if (!el) return;
+    var showStep = S.steps.length > 1 || S.t < 1;
+    var lab = document.getElementById('stepLabel');
+    if (lab) lab.textContent = showStep ? (S.steps[cur.step] ? S.steps[cur.step].label : '') : '';
+    el.innerHTML = window.PANELS.matHTML(cur.M, { cls: S.t < 1 ? 'live' : '' });
+    var pct = document.getElementById('tpct');
+    if (pct) pct.textContent = Math.round(S.t * 100) + '%';
+  }
+
+  /* ---------------- 交互 ---------------- */
+  function setupInteraction() {
+    var dragging = false, lx = 0, ly = 0;
+    function down(e) { dragging = true; lx = e.clientX; ly = e.clientY; canvas.style.cursor = 'grabbing'; }
+    function move(e) {
+      if (!dragging) return;
+      S.cam.az += (e.clientX - lx) * 0.008;
+      S.cam.el = Math.max(-1.35, Math.min(1.35, S.cam.el + (e.clientY - ly) * 0.008));
+      lx = e.clientX; ly = e.clientY;
+      draw();
+    }
+    function up() { dragging = false; canvas.style.cursor = 'grab'; }
+    overlay.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    overlay.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      S.autofit = false;
+      var af = document.getElementById('autofit'); if (af) af.checked = false;
+      S.cam.dist = Math.max(1.5, Math.min(60, S.cam.dist * (1 + e.deltaY * 0.0015)));
+      draw();
+    }, { passive: false });
+    overlay.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) { dragging = true; lx = e.touches[0].clientX; ly = e.touches[0].clientY; }
+    }, { passive: true });
+    overlay.addEventListener('touchmove', function (e) {
+      if (!dragging || e.touches.length !== 1) return;
+      e.preventDefault();
+      S.cam.az += (e.touches[0].clientX - lx) * 0.010;
+      S.cam.el = Math.max(-1.35, Math.min(1.35, S.cam.el + (e.touches[0].clientY - ly) * 0.010));
+      lx = e.touches[0].clientX; ly = e.touches[0].clientY;
+      draw();
+    }, { passive: false });
+    overlay.addEventListener('touchend', function () { dragging = false; });
+  }
+
+  function resize() {
+    var wrap = document.getElementById('viewWrap');
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(w * DPR); canvas.height = Math.round(h * DPR);
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    overlay.width = Math.round(w * DPR); overlay.height = Math.round(h * DPR);
+    overlay.style.width = w + 'px'; overlay.style.height = h + 'px';
+    draw();
+  }
+
+  /* ---------------- 读取／写入九个数 ---------------- */
+  function readMatrix() {
+    var M = LA.zeros();
+    for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+      var el = document.getElementById('m' + i + j);
+      var v = parseFloat(el.value);
+      if (!isFinite(v)) v = 0;
+      if (v > 3) v = 3;
+      if (v < -3) v = -3;
+      el.value = String(v);
+      M[i][j] = v;
+    }
+    return M;
+  }
+  function writeMatrix(M) {
+    for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+      document.getElementById('m' + i + j).value = String(Math.round(M[i][j] * 1000) / 1000);
+    }
+  }
+
+  /* 真的去量：把每个顶点乘过去，取包围盒。比"拿原包围盒的八个角乘一乘"准。 */
+  function measureSize(M) {
+    var P = mesh.pos, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9], i, t;
+    for (i = 0; i < P.length; i += 3) {
+      var q = LA.mvec(M, [P[i], P[i + 1], P[i + 2]]);
+      for (t = 0; t < 3; t++) { if (q[t] < lo[t]) lo[t] = q[t]; if (q[t] > hi[t]) hi[t] = q[t]; }
+    }
+    return { w: hi[0] - lo[0], d: hi[1] - lo[1], h: hi[2] - lo[2] };
+  }
+
+  function apply(animate) {
+    S.M = readMatrix();
+    S.analysis = LA.analyze(S.M);
+    S.size = { before: measureSize(LA.id()), after: measureSize(S.M) };
+    S.steps = pruneSteps(buildSteps(S.M, S.mode));
+    fitCamera(S.M);
+    window.PANELS.render(S.analysis, S);
+    if (animate) { S.t = 0; S.playing = true; S.lastTime = performance.now(); }
+    else { S.t = 1; S.playing = false; }
+    var sl = document.getElementById('tslider'); if (sl) sl.value = String(Math.round(S.t * 1000));
+    draw();
+  }
+  window.__apply = apply;
+  window.__writeMatrix = writeMatrix;
+  window.__state = S;
+  window.__draw = draw;
+
+  /* ---------------- 启动 ---------------- */
+  function boot() {
+    canvas = document.getElementById('gl');
+    overlay = document.getElementById('ov');
+    octx = overlay.getContext('2d');
+    gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
+    if (!gl) {
+      document.getElementById('viewWrap').innerHTML =
+        '<div class="nogl">这台设备的浏览器没能打开 WebGL 2，画不出三维兔子。<br>换一个新一点的浏览器（Chrome / Edge / Safari 15+）就可以了。</div>';
+      return;
+    }
+    progMesh = program(gl, VS_MESH, FS_MESH);
+    progLine = program(gl, VS_LINE, FS_LINE);
+    progSurf = program(gl, VS_SURF, FS_SURF);
+
+    /* 建模：隐式曲面 → surface nets。一次性算好，之后每帧只是把矩阵乘上去 */
+    setTimeout(function () {
+      var t0 = performance.now();
+      mesh = RABBIT.normalize(RABBIT.build(0.023), RABBIT_HEIGHT);
+      var t1 = performance.now();
+      window.__mesh_bbox = mesh.bbox;
+      window.__gl_samples = gl.getParameter(gl.SAMPLES);
+      var info = document.getElementById('meshInfo');
+      if (info) info.textContent = '三维兔子：' + mesh.verts.toLocaleString() + ' 个顶点 / '
+        + mesh.tris.toLocaleString() + ' 个三角形，建模用时 ' + Math.round(t1 - t0) + ' 毫秒';
+
+      buf.pos = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos); gl.bufferData(gl.ARRAY_BUFFER, mesh.pos, gl.STATIC_DRAW);
+      buf.nrm = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrm); gl.bufferData(gl.ARRAY_BUFFER, mesh.nrm, gl.STATIC_DRAW);
+      buf.idx = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.idx, gl.STATIC_DRAW);
+      buf.lineP = gl.createBuffer(); buf.lineC = gl.createBuffer();
+      buf.surfP = gl.createBuffer(); buf.surfN = gl.createBuffer(); buf.surfC = gl.createBuffer();
+
+      setupInteraction();
+      window.addEventListener('resize', resize);
+      resize();
+      apply(false);
+      requestAnimationFrame(tick);
+      document.body.classList.add('ready');
+    }, 16);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+
+</script>
+<script>
+/* ---------- 控件接线 ---------- */
+(function(){
+  var PRESETS = [
+    ['什么都不做',       [[1,0,0],[0,1,0],[0,0,1]]],
+    ['放大 1.5 倍',      [[1.5,0,0],[0,1.5,0],[0,0,1.5]]],
+    ['只拉高（上×2）',   [[1,0,0],[0,1,0],[0,0,2]]],
+    ['压扁成一张纸',     [[1,0,0],[0,1,0],[0,0,0]]],
+    ['拍成一张照片',     [[1,0,0],[0,0,0],[0,0,1]]],
+    ['照镜子（左右）',   [[-1,0,0],[0,1,0],[0,0,1]]],
+    ['绕"上"转 90°',    [[0,-1,0],[1,0,0],[0,0,1]]],
+    ['斜拉（切变）',     [[1,0,0.8],[0,1,0],[0,0,1]]],
+    ['转着缩',           [[0,-1.2,0],[1.2,0,0],[0,0,0.8]]],
+    ['三个垂直的不歪方向',[[2,0.6,0],[0.6,1.5,0],[0,0,1]]],
+    ['压成一条线',       [[1,1,1],[1,1,1],[1,1,1]]],
+    ['随便来一个',       null]
+  ];
+  var box = document.getElementById('presets');
+  PRESETS.forEach(function(p){
+    var b = document.createElement('button');
+    b.textContent = p[0];
+    b.onclick = function(){
+      var M = p[1];
+      if(!M){
+        M = [0,1,2].map(function(){ return [0,1,2].map(function(){
+          return Math.round((Math.random()*4.4-2.2)*2)/2; }); });
+      }
+      window.__writeMatrix(M);
+      window.__apply(true);
+    };
+    box.appendChild(b);
+  });
+
+  document.getElementById('btnApply').onclick = function(){ window.__apply(true); };
+  document.getElementById('btnJump').onclick  = function(){ window.__apply(false); };
+  document.getElementById('btnReset').onclick = function(){
+    window.__writeMatrix([[1,0,0],[0,1,0],[0,0,1]]); window.__apply(false);
+  };
+  document.getElementById('btnPlay').onclick = function(){
+    var S = window.__state; S.t = 0; S.playing = true; S.lastTime = performance.now();
+  };
+  document.getElementById('tslider').oninput = function(e){
+    var S = window.__state; S.playing = false; S.t = (+e.target.value)/1000; window.__draw();
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=mode]'), function(r){
+    r.onchange = function(){ window.__state.mode = r.value; window.__apply(true); };
+  });
+  var TG = {ghost:'tg-ghost',cube:'tg-cube',ell:'tg-ell',eig:'tg-eig',kern:'tg-kern',floor:'tg-floor',label:'tg-label'};
+  Object.keys(TG).forEach(function(k){
+    document.getElementById(TG[k]).onchange = function(e){
+      window.__state.show[k] = e.target.checked; window.__draw();
+    };
+  });
+  document.getElementById('autofit').onchange = function(e){
+    window.__state.autofit = e.target.checked;
+    if (e.target.checked) window.__fitNow();
+  };
+  document.getElementById('btnFit').onclick = function(){ window.__fitNow(); };
+  /* 三个视角都是"相对兔子"说的；兔子绕 z 转了 135°，方位角就整体跟着加 135° */
+  var YAW_AZ = 3 * Math.PI / 4;
+  function setView(az,el){ var S=window.__state; S.cam.az=az; S.cam.el=el; window.__draw(); }
+  document.getElementById('btnView').onclick  = function(){ setView(YAW_AZ + 0,     0.16); };
+  document.getElementById('btnView2').onclick = function(){ setView(YAW_AZ - 1.45,  0.12); };
+  document.getElementById('btnView3').onclick = function(){ setView(YAW_AZ - 0.4,   1.15); };
+  document.querySelectorAll('.mgrid input').forEach(function(inp){
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') window.__apply(true); });
+  });
+})();
+</script>
+</body>
+</html>

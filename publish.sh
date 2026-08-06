@@ -4,6 +4,8 @@
 #   ./publish.sh            重建 + 校验 + 打包（**不碰 Drive**，日常改稿用这个）
 #   ./publish.sh --upload   上面全做完，再把十二件一起推到 Drive
 #   ./publish.sh --vol vol2 只重建校验某一册（不打包、不上传）
+#   ./publish.sh --web      校验互动页 → 推 Drive ＋ 推 book.changming.cyou
+#                           （加 --check-only 就只校验不推）
 #
 # 权威源是本机 ~/math-notes。Drive 只是交付镜像，改完不必每次都推。
 #
@@ -73,6 +75,55 @@ RCLONE="$HOME/.local/bin/rclone"
 DRIVE_ID=1omcMKl3BdXlDWnWOOJnRPdBHuuSmcvkG
 TARBALL="数学概念笔记-构建源码.tar.gz"
 
+# ---------- 互动页（第三册的三维兔子）----------
+# 它不在十二件里，**故意的**：十二件那道网是为"成书别半截交付"设的，
+# 掺进一个网页资产只会把那道网稀释掉。所以它走自己这条 --web 路，
+# 自己的闸（check_interactive.py）、自己的两个去处（Drive 存档 ＋ 站点）。
+#
+# ⚠ 这一页从前只活在 Drive 上，没有源。谁要改都得先下载——正是
+# 「并发会话必读.md」记的那个坑。2026-08-06 收进仓库，本机这棵树才是源。
+WEB_SRC="vol3/interactive/兔子的线性变换-三维版.html"
+WEB_DRIVE="兔子的线性变换-三维版.html"      # Drive「Claude」根目录，保持用户熟悉的位置
+WEB_HOST="root@book.changming.cyou"
+WEB_PATH="/var/www/book.changming.cyou"
+
+if [ "${1:-}" = "--web" ]; then
+  say "互动页校验"
+  [ -f "$WEB_SRC" ] || die "找不到 $WEB_SRC"
+  python3 vol3/interactive/check_interactive.py "$WEB_SRC" || die "互动页校验未通过 —— 不许上传"
+  if [ "${2:-}" = "--check-only" ]; then echo; echo "✓ 只校验，未上传"; exit 0; fi
+
+  say "推 Drive（存档）"
+  "$RCLONE" copyto "$WEB_SRC" "Gdrive:$WEB_DRIVE" --drive-root-folder-id="$DRIVE_ID" \
+    || die "Drive 上传失败"
+  echo "  ✓ $WEB_DRIVE"
+
+  say "推 book.changming.cyou（默认页）"
+  # 先传临时名 → 服务器端核 md5 → 原子改名。中间不留半截文件给 nginx 读。
+  # 认证：这台还没装公钥，会问 root 密码（你自己跑就行）。
+  # 装了公钥之后这一步无人值守也能过 —— 密码一律不进脚本、不进仓库。
+  LOCAL_MD5=$(md5 -q "$WEB_SRC" 2>/dev/null || md5sum "$WEB_SRC" | cut -d' ' -f1)
+  scp -q "$WEB_SRC" "$WEB_HOST:$WEB_PATH/.index.html.new" || die "scp 失败（没装公钥的话它会问密码）"
+  ssh "$WEB_HOST" "
+    set -e
+    cd '$WEB_PATH'
+    NEW=\$(md5sum .index.html.new | cut -d' ' -f1)
+    [ \"\$NEW\" = '$LOCAL_MD5' ] || { rm -f .index.html.new; echo 'md5 对不上'; exit 1; }
+    [ -f index.html ] && cp -a index.html \"index.html.bak-\$(date +%Y%m%d-%H%M%S)\"
+    chmod 644 .index.html.new
+    mv -f .index.html.new index.html
+  " || die "站点部署失败"
+  echo "  ✓ $WEB_HOST:$WEB_PATH/index.html（换前那份留成 index.html.bak-时间戳）"
+
+  say "线上复核"
+  TMP=$(mktemp); curl -sS -m 30 -o "$TMP" "https://book.changming.cyou/" || die "拉不回线上页面"
+  ONLINE=$(md5 -q "$TMP" 2>/dev/null || md5sum "$TMP" | cut -d' ' -f1); rm -f "$TMP"
+  [ "$ONLINE" = "$LOCAL_MD5" ] || die "线上 md5 $ONLINE ≠ 本机 $LOCAL_MD5 —— 没换成功或被缓存挡住"
+  echo "  ✓ 线上与本机逐字节一致（$LOCAL_MD5）"
+  echo; echo "✓ 互动页已上线：https://book.changming.cyou/"
+  exit 0
+fi
+
 # 分册：目录参数 | docx 所在目录 | 稿件后缀
 VOLS=("::上部分" "vol2:vol2:下部分" "vol3:vol3:第三册" "vol4:vol4:第四册")
 
@@ -132,6 +183,7 @@ FILES=(build_docx.py cn_fractions.py export_manuscript.py figs.py restructure.py
        TITLE content/*.md
        vol2/TITLE vol2/figs.py vol2/content/*.md
        vol3/TITLE vol3/figs.py vol3/assets/rabbit.png vol3/content/*.md
+       "$WEB_SRC" vol3/interactive/check_interactive.py
        vol4/TITLE vol4/figs.py vol4/content/*.md)
 # gzip -n 不能省：tar -czf 会把当前时间写进 gzip 头，同样的源码连打两次哈希都不一样，
 # "Drive 和本机是否一致"就没法用 md5 核对了（两个会话的协作全靠这条核对）。
