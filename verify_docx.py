@@ -390,8 +390,8 @@ for x in badslash[:5]:
 #   **导函数／微分／f′(a)**；"导数"只许出现在 BOX[grown]（课本对照）和
 #   00-front（给大人的记号表）。"导函数"三字不含"导数"子串，天然不冲突；
 #   "二阶导数"含"导数"，正好一并逼成"二阶导函数"。
-#   "求导"另有两处锚（第四篇第六节、附录 B 微分词条），都是"课本也叫求导"式的
-#   对照句，判据＝该行含"课本"二字；别的地方出现"求导"一律报。
+#   08-07 三轮（用户："'微分一遍'还是改成'等式两边求导'吧"）：**动词回归"求导"**，
+#   不再受限——本闸只禁裸"导数"这个名词。
 #   只对 vol2 生效：第三、四册和第一册不受这条口径约束。
 termbad = []
 if BOOK.rstrip(os.sep).endswith('vol2'):
@@ -403,11 +403,9 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
             if line.lstrip().startswith('BOX[grown]'):
                 continue
             if '导数' in line:
-                termbad.append('%s:%d  裸"导数"（正文应说 导函数/微分/f′(a)）' % (base, ln))
-            if '求导' in line and '课本' not in line:
-                termbad.append('%s:%d  "求导"出现在锚句之外（正文动词用"微分"）' % (base, ln))
+                termbad.append('%s:%d  裸"导数"（正文应说 导函数/f′(a)；动词用"求导"）' % (base, ln))
     print('\n[3.986] 第二册术语口径（微分/导函数）')
-    check(not termbad, '正文没有裸"导数"，"求导"只在课本对照句里 (%d 处)' % len(termbad))
+    check(not termbad, '正文没有裸"导数" (%d 处)' % len(termbad))
     for x in termbad[:8]:
         print('        ->', x)
 
