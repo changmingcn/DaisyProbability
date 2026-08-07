@@ -384,6 +384,33 @@ check(not badslash, '正文里没有"数字 / 数字"式的裸斜杠 (%d 处)' %
 for x in badslash[:5]:
     print('        ->', x)
 
+# ---- 3.986 第二册正文不许出现裸"导数"（口径：微分＝正比小函数、点值＝导函数）
+#   由来（2026-08-07，用户定的术语改革）：下册"尽量用微分代替导数，避不过去就用
+#   导函数，要体现微分是一个函数"。正文（含附录 A–D 的表格）一律说
+#   **导函数／微分／f′(a)**；"导数"只许出现在 BOX[grown]（课本对照）和
+#   00-front（给大人的记号表）。"导函数"三字不含"导数"子串，天然不冲突；
+#   "二阶导数"含"导数"，正好一并逼成"二阶导函数"。
+#   "求导"另有两处锚（第四篇第六节、附录 B 微分词条），都是"课本也叫求导"式的
+#   对照句，判据＝该行含"课本"二字；别的地方出现"求导"一律报。
+#   只对 vol2 生效：第三、四册和第一册不受这条口径约束。
+termbad = []
+if BOOK.rstrip(os.sep).endswith('vol2'):
+    for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+        base = os.path.basename(f)
+        if base == '00-front.md':
+            continue
+        for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+            if line.lstrip().startswith('BOX[grown]'):
+                continue
+            if '导数' in line:
+                termbad.append('%s:%d  裸"导数"（正文应说 导函数/微分/f′(a)）' % (base, ln))
+            if '求导' in line and '课本' not in line:
+                termbad.append('%s:%d  "求导"出现在锚句之外（正文动词用"微分"）' % (base, ln))
+    print('\n[3.986] 第二册术语口径（微分/导函数）')
+    check(not termbad, '正文没有裸"导数"，"求导"只在课本对照句里 (%d 处)' % len(termbad))
+    for x in termbad[:8]:
+        print('        ->', x)
+
 # ---- 3.99 接招的必须是姐姐，不能是"我们"
 #   由来（用户 2026-07-31）："妹妹发问、提出 ε，姐姐接招、给出 N 或 δ，这个在后来没有
 #   得到完整执行，好些地方变成了妹妹发问、我们回答。"查下来 50 处，连第一篇那个

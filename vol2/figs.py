@@ -129,7 +129,7 @@ def fig04():
 
 # ---------------------------------------------------------------- 05
 def fig05():
-    """导数的正负：在涨还是在跌。"""
+    """f′ 的正负：在涨还是在跌。"""
     fig, ax = plt.subplots(figsize=(6.0, 3.2))
     t = np.linspace(-0.3, 3.3, 300)
     y = t ** 3 / 3 - 1.5 * t ** 2 + 2 * t + 1.2
@@ -144,9 +144,9 @@ def fig05():
         ax.text(v, yy + (0.28 if lab == '最高点' else -0.42), lab,
                 ha='center', fontsize=10.5, color=NAVY)
     # 图例放左上会压住纵轴说明和"最高点"标签 —— 挪到曲线下方的空白处
-    ax.text(1.45, 0.92, '绿色：在涨（导数是正的）', fontsize=10.5, color=GREEN)
-    ax.text(1.45, 0.57, '橙色：在跌（导数是负的）', fontsize=10.5, color=ORANGE)
-    ax.text(1.45, 0.22, '拐弯处：导数正好是 0', fontsize=10.5, color=NAVY)
+    ax.text(1.45, 0.92, '绿色：在涨（f′ 是正的）', fontsize=10.5, color=GREEN)
+    ax.text(1.45, 0.57, '橙色：在跌（f′ 是负的）', fontsize=10.5, color=ORANGE)
+    ax.text(1.45, 0.22, '拐弯处：f′ 正好是 0', fontsize=10.5, color=NAVY)
     save(fig, 'fig-05-sign.png')
 
 
@@ -330,7 +330,7 @@ CUBIC = lambda x: x ** 3 - 3 * x
 
 # ---------------------------------------------------------------- 13
 def fig13():
-    """一点的导数管不住一整段。"""
+    """一点的 f′ 管不住一整段。"""
     fig, ax = plt.subplots(figsize=(6.2, 3.6))
     axes_signed(ax, -2.35, 2.35, -3.6, 3.4)
     t = np.linspace(-2.13, 2.13, 400)
@@ -342,7 +342,7 @@ def fig13():
     ax.plot(u, y0 + k * (u - a0), color=NAVY, lw=2.0, zorder=4)
     ax.plot([a0], [y0], 'o', ms=8, color=NAVY, zorder=5)
     ax.text(-2.25, 2.9, '左边这一点：切线朝上，', fontsize=10.5, color=NAVY, ha='left')
-    ax.text(-2.25, 2.35, '导数是正的', fontsize=10.5, color=NAVY, ha='left')
+    ax.text(-2.25, 2.35, 'f′ 是正的', fontsize=10.5, color=NAVY, ha='left')
     ax.annotate('', xy=(a0 - 0.02, y0 + 0.55), xytext=(-1.9, 2.05),
                 arrowprops=dict(arrowstyle='->', color=NAVY, lw=1.2))
     ax.plot([-1, 1], [-3.35, -3.35], color=ORANGE, lw=2.6, solid_capstyle='butt')
@@ -388,7 +388,7 @@ def fig14():
 
 # ---------------------------------------------------------------- 15
 def fig15():
-    """顶上是平的：两边的平均变化率把导数夹成 0。"""
+    """顶上是平的：两边的平均变化率把 f′ 夹成 0。"""
     fig, ax = plt.subplots(figsize=(6.0, 3.4))
     g = lambda x: 3.0 - (x - 2.0) ** 2
     axes_signed(ax, 0.0, 4.1, 0.0, 3.9)
@@ -487,11 +487,11 @@ def fig18():
 
 # ---------------------------------------------------------------- 19
 def fig19():
-    """三张图对齐：机器、它的导数、导数的导数。"""
+    """三张图对齐：机器、它的导函数、导函数的导函数。"""
     fig, axs = plt.subplots(3, 1, figsize=(5.8, 5.6))
     t = np.linspace(-2.05, 2.05, 400)
-    funcs = ((CUBIC, '机器', 3.4), (lambda x: 3 * x ** 2 - 3, '它的导数', 9.5),
-             (lambda x: 6 * x, '导数的导数', 12.5))
+    funcs = ((CUBIC, '机器', 3.4), (lambda x: 3 * x ** 2 - 3, '它的导函数', 9.5),
+             (lambda x: 6 * x, '导函数的导函数', 12.5))
     for ax, (fn, name, ylim) in zip(axs, funcs):
         axes_signed(ax, -2.2, 2.2, -ylim, ylim)
         ax.plot(t, fn(t), color=NAVY, lw=2.2, zorder=3)
