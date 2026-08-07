@@ -1210,11 +1210,64 @@ def fig32():
     save(fig, 'fig-32-diagonal.png')
 
 
+# ---------------------------------------------------------------- 33（第三篇篇首）
+# 正文（第三篇篇首）里印着这三个克数，就在这里算、在这里对账 ——
+# 重量跟面积走，所以边长翻倍、重量翻的是四倍；要正好两倍重，
+# 边长得乘上"自己乘自己等于 2"的那个数。这三条一错，篇首那段对话就塌了。
+_CAKE = ((10.0, 100), (20.0, 400), (200 ** 0.5, 200))
+for _s, _g in _CAKE:
+    assert round(_s * _s) == _g, '边长 %s 的框，克数和正文对不上' % _s
+assert abs(_CAKE[2][0] / _CAKE[0][0] - 2 ** 0.5) < 1e-12, \
+    '200 克那个框的边长不是 10 乘"自己乘自己等于 2"的那个数'
+assert 14.1 < _CAKE[2][0] < 14.15, '正文说边长卡在 14.1 和 14.15 之间'
+
+
+def fig33():
+    """蛋糕框：边长翻倍，重量翻的是四倍；200 克那个框夹在两者中间。
+
+    三个方框画在同一把尺子上（aspect equal），大小直接看得出来 ——
+    这是这张图存在的全部理由，别改成各自缩放的三块子图。
+    """
+    fig, ax = plt.subplots(figsize=(8.6, 4.3))
+    specs = ((_CAKE[0][0], '10 厘米见方', '100 克', NAVY, LIGHT),
+             (_CAKE[1][0], '20 厘米见方', '400 克，不是 200 克', RED, BAND),
+             (_CAKE[2][0], '14.14… 厘米见方', '200 克', GREEN, '#DBEFE4'))
+    x = 0.0
+    for s, top, bottom, edge, face in specs:
+        ax.add_patch(Rectangle((x, 0), s, s, facecolor=face, edgecolor=edge,
+                               lw=2.0, zorder=2))
+        ax.text(x + s / 2, s + 1.0, top, ha='center', va='bottom',
+                fontsize=10.5, color=edge)
+        ax.text(x + s / 2, -1.4, bottom, ha='center', va='top',
+                fontsize=11.5, color=edge)
+        x += s + 5.0
+
+    # 中间那个框切成四格 —— "边长翻倍、重量翻四倍"要看得见，不能只在正文里断言：
+    # 四格每一格正好是左边那个 10 厘米的框
+    mid_x = _CAKE[0][0] + 5.0
+    half = _CAKE[1][0] / 2
+    ax.plot([mid_x + half, mid_x + half], [0, _CAKE[1][0]],
+            color=RED, lw=1.1, ls=(0, (4, 3)), zorder=3)
+    ax.plot([mid_x, mid_x + _CAKE[1][0]], [half, half],
+            color=RED, lw=1.1, ls=(0, (4, 3)), zorder=3)
+    for dx in (0.5, 1.5):
+        for dy in (0.5, 1.5):
+            ax.text(mid_x + half * dx, half * dy, '100 克', ha='center',
+                    va='center', fontsize=9.5, color=RED, zorder=4)
+
+    # 三个框底边对齐在同一条线上，否则"谁大谁小"要靠猜
+    ax.plot([-1.5, x - 3.5], [0, 0], color=GREY, lw=1.0, zorder=1)
+
+    ax.set_xlim(-2.0, 56.0); ax.set_ylim(-5.2, 24.0)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-33-cake-frame.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27, fig28, fig29, fig30, fig31, fig32):
+              fig26, fig27, fig28, fig29, fig30, fig31, fig32, fig33):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
