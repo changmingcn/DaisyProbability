@@ -802,11 +802,72 @@ def fig30():
     save(fig, 'fig-30-promise.png')
 
 
+def fig31():
+    """微分的几何意义：左＝一点上按切线走（真变化＝微分＋零头）；右＝整条曲线用小切线段顶替。"""
+    fig, axs = plt.subplots(1, 2, figsize=(6.8, 3.1))
+    # 左：站在 a ＝ 1，挪 h ＝ 0.9（f ＝ a^2，切线陡度 2）
+    ax = axs[0]
+    axes(ax, 2.45, 4.7, '', '')
+    a, h = 1.0, 0.9
+    t = np.linspace(0, 2.15, 300)
+    ax.plot(t, t ** 2, color=NAVY, lw=2.2, zorder=3)
+    u = np.linspace(0.35, 2.1, 10)
+    ax.plot(u, a ** 2 + 2 * a * (u - a), color=GREEN, lw=1.8, zorder=2)
+    y0, y_tan, y_true = a ** 2, a ** 2 + 2 * a * h, (a + h) ** 2
+    # 数值与几何都钉死：微分＝2h、零头＝h^2、真变化＝两者之和
+    assert abs(y_tan - y0 - 2 * h) < 1e-12 and abs(y_true - y_tan - h * h) < 1e-12
+    ax.plot([a, a + h], [y0, y0], color=GREY, lw=1.3, zorder=2)
+    ax.plot([a], [y0], 'o', ms=7, color=ORANGE, zorder=5)
+    ax.plot([a + h, a + h], [y0, y_tan], color=GREEN, lw=3.4, zorder=4,
+            solid_capstyle='butt')
+    ax.plot([a + h, a + h], [y_tan, y_true], color=ORANGE, lw=3.4, zorder=4,
+            solid_capstyle='butt')
+    ax.plot([a + h], [y_true], 'o', ms=6, color=NAVY, zorder=5)
+    ax.text(a + h / 2, y0 - 0.16, '挪动 h', ha='center', va='top',
+            fontsize=10, color=NAVY)
+    ax.text(a + h + 0.07, (y0 + y_tan) / 2, '微分：按切线走，\n升的这一段',
+            ha='left', va='center', fontsize=9.5, color=GREEN, linespacing=1.3)
+    ax.text(a + h + 0.07, (y_tan + y_true) / 2, '零头', ha='left', va='center',
+            fontsize=9.5, color=ORANGE)
+    ax.text(0.42, 3.95, '爬曲线，升的是一整段：', fontsize=9.5, color=NAVY)
+    ax.text(0.42, 3.55, '微分＋零头', fontsize=9.5, color=NAVY)
+    ax.text(0.30, -0.60, '切线', fontsize=9.5, color=GREEN, ha='left')
+    # 右：整条曲线切成小段，每段用自己的小切线段顶替
+    ax = axs[1]
+    axes(ax, 2.45, 4.7, '', '')
+    ax.plot(t, t ** 2, color=GREY, lw=2.6, zorder=2)
+    n = 5
+    xs = np.linspace(0.1, 2.0, n + 1)
+    for i in range(n):
+        lo, hi = xs[i], xs[i + 1]
+        m = (lo + hi) / 2
+        ax.plot([lo, hi], [m ** 2 + 2 * m * (lo - m), m ** 2 + 2 * m * (hi - m)],
+                color=ORANGE, lw=2.0, zorder=4)
+        ax.plot([lo], [m ** 2 + 2 * m * (lo - m)], 'o', ms=3.5, color=ORANGE, zorder=5)
+    ax.plot([xs[-1]], [((xs[-2] + xs[-1]) / 2) ** 2 + 2 * ((xs[-2] + xs[-1]) / 2)
+            * (xs[-1] - (xs[-2] + xs[-1]) / 2)], 'o', ms=3.5, color=ORANGE, zorder=5)
+    ax.text(0.18, 4.15, '每一小段，都用它自己的', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 3.75, '切线小段顶替', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 3.2, '段切得越细，贴得越紧', fontsize=9.5, color=NAVY)
+    # 不变量：段数翻倍，折线偏差缩到四分之一（眼睛判构图，这个判几何）
+    def polyerr(n):
+        xs = np.linspace(0.1, 2.0, n + 1)
+        worst = 0.0
+        for i in range(n):
+            m = (xs[i] + xs[i + 1]) / 2
+            tt = np.linspace(xs[i], xs[i + 1], 60)
+            worst = max(worst, np.max(np.abs((m ** 2 + 2 * m * (tt - m)) - tt ** 2)))
+        return worst
+    e5, e10 = polyerr(5), polyerr(10)
+    assert e10 < e5 and 0.2 < e10 / e5 < 0.3, (e5, e10)
+    save(fig, 'fig-31-tangent-pieces.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30):
+              fig28, fig29, fig30, fig31):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
