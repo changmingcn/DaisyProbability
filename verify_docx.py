@@ -244,7 +244,7 @@ for b in named[:8]:
 #   由来（2026-07-31 第二册审查）：第三篇有 7 处 2xh/3xh/4xh，是 x→a 全局替换的残留；
 #   "2xh" 里 x 根本没有定义。第一册的 x 是合法的（第五篇构造出来的那个数），
 #   区别就在于第一册的附录 A 给 x 立了词条，第二册没有 —— 按这个判据分册自适应，
-#   不写死文件名。「长大以后的写法」里引用课本记号（dy/dx）永远放行。
+#   不写死文件名；这里只查自变量是否在本册符号表登记过。
 x_declared = False
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     for line in open(f, encoding='utf-8'):
@@ -381,7 +381,7 @@ for x in badfrac[:5]:
 #   [3.95] 只管 ＝＜＞≤≥ 那几个关系符；slash_fractions.py 是**白名单**逐条替换
 #   （1/2^n^、p/q……），没列进去的一律不碰，全角 ／ 更是从来不在名单里。
 #   **只查"两侧都是数字"**是有意收窄的：全树扫过，附录的 `A1–A4 / B1–B4`（分组）、
-#   灰盒里的 `dy/dx`『ds/dt』（长大以后的写法）、`vol4/figs.py`（路径）都不该报，
+#   字母斜杠和 `vol4/figs.py`（路径）都不该由这条数字分数闸误报；
 #   而它们两侧都不是数字。这样零误报——宁可窄，也不装一条会喊狼来了的闸。
 SLASHNUM = re.compile(r'[0-9]\s*[／/]\s*[0-9]')
 SLASHSKIP = re.compile(r'(\[\[[^\]]*\]\]|\{\{.*?\}\}|//)')   # 已转换的分数、保护区、盒内换行
@@ -400,29 +400,37 @@ check(not badslash, '正文里没有"数字 / 数字"式的裸斜杠 (%d 处)' %
 for x in badslash[:5]:
     print('        ->', x)
 
-# ---- 3.986 第二册正文不许出现裸"导数"（口径：微分＝正比小函数、点值＝导函数）
-#   由来（2026-08-07，用户定的术语改革）：下册"尽量用微分代替导数，避不过去就用
-#   导函数，要体现微分是一个函数"。正文（含附录 A–D 的表格）一律说
-#   **导函数／微分／f′(a)**；"导数"只许出现在 BOX[grown]（课本对照）和
-#   00-front（给大人的记号表）。"导函数"三字不含"导数"子串，天然不冲突；
-#   "二阶导数"含"导数"，正好一并逼成"二阶导函数"。
-#   08-07 三轮（用户："'微分一遍'还是改成'等式两边求导'吧"）：**动词回归"求导"**，
-#   不再受限——本闸只禁裸"导数"这个名词。
-#   只对 vol2 生效：第三、四册和第一册不受这条口径约束。
+# ---- 3.986 第二册不许再用“导函数”这个名称
+#   2026-08-07 最终口径：求导是 f → f′ 的操作；f′(x) 是某一点的导数（一个数）；
+#   微分 dx → dy＝f′(x)dx 才是局部线性替身。f′ 仍然是函数，但不另称“导函数”。
 termbad = []
 if BOOK.rstrip(os.sep).endswith('vol2'):
     for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
         base = os.path.basename(f)
-        if base == '00-front.md':
-            continue
         for ln, line in enumerate(open(f, encoding='utf-8'), 1):
-            if line.lstrip().startswith('BOX[grown]'):
-                continue
-            if '导数' in line:
-                termbad.append('%s:%d  裸"导数"（正文应说 导函数/f′(a)；动词用"求导"）' % (base, ln))
-    print('\n[3.986] 第二册术语口径（微分/导函数）')
-    check(not termbad, '正文没有裸"导数" (%d 处)' % len(termbad))
+            if '导函数' in line:
+                termbad.append('%s:%d  “导函数”（应分成求导操作、点值导数和微分）' % (base, ln))
+    print('\n[3.986] 第二册术语口径（导数/求导/微分）')
+    check(not termbad, '没有使用“导函数”这个名称 (%d 处)' % len(termbad))
     for x in termbad[:8]:
+        print('        ->', x)
+
+# ---- 3.987 第二册微分一律写成向量式，不写成分数
+#   差商仍可写成上下排分数；这里只拦截分子、分母都以 d 开头的莱布尼兹式，
+#   以及 dy/dx、ds/dt 一类裸写法。这样导数仍是点值，微分始终显成线性函数。
+DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*d[^\]]*\]\]')
+DIFFQUOT_BARE = re.compile(r'\bd[^\s/|]{0,12}\s*/\s*d[^\s/|]{1,12}')
+diffquotbad = []
+if BOOK.rstrip(os.sep).endswith('vol2'):
+    for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+        base = os.path.basename(f)
+        for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+            for m in list(DIFFQUOT_BOX.finditer(line)) + list(DIFFQUOT_BARE.finditer(line)):
+                diffquotbad.append('%s:%d  %s（改写成 dx → dy＝f′(x)dx）'
+                                    % (base, ln, m.group(0)))
+    print('\n[3.987] 第二册微分记号')
+    check(not diffquotbad, '没有微分的分数形式 (%d 处)' % len(diffquotbad))
+    for x in diffquotbad[:8]:
         print('        ->', x)
 
 # ---- 3.99 接招的必须是姐姐，不能是"我们"

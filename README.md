@@ -16,7 +16,7 @@ figs.py           第一册插图
 vol2/figs.py      第二册插图
 vol3/figs.py      第三册插图
 build_docx.py     轻标记 → docx
-verify_docx.py    17 项校验（任何 FAIL 都不许交付）
+verify_docx.py    22 个检查抬头（任何 FAIL 都不许交付；第二册当前打印 24 项 PASS）
 export_manuscript.py  轻标记 → 干净 Markdown 稿件
 ```
 

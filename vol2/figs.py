@@ -487,11 +487,11 @@ def fig18():
 
 # ---------------------------------------------------------------- 19
 def fig19():
-    """三张图对齐：机器、它的导函数、导函数的导函数。"""
+    """三张图对齐：f、求导得到 f′、再求导得到 f″。"""
     fig, axs = plt.subplots(3, 1, figsize=(5.8, 5.6))
     t = np.linspace(-2.05, 2.05, 400)
-    funcs = ((CUBIC, '机器', 3.4), (lambda x: 3 * x ** 2 - 3, '它的导函数', 9.5),
-             (lambda x: 6 * x, '导函数的导函数', 12.5))
+    funcs = ((CUBIC, '原函数 f', 3.4), (lambda x: 3 * x ** 2 - 3, '求导得到 f′', 9.5),
+             (lambda x: 6 * x, '再求导得到 f″', 12.5))
     for ax, (fn, name, ylim) in zip(axs, funcs):
         axes_signed(ax, -2.2, 2.2, -ylim, ylim)
         ax.plot(t, fn(t), color=NAVY, lw=2.2, zorder=3)
@@ -805,29 +805,29 @@ def fig30():
 def fig31():
     """微分的几何意义：左＝一点上按切线走（真变化＝微分＋零头）；右＝整条曲线用小切线段顶替。"""
     fig, axs = plt.subplots(1, 2, figsize=(6.8, 3.1))
-    # 左：站在 a ＝ 1，挪 h ＝ 0.9（f ＝ a^2，切线陡度 2）
+    # 左：站在 a ＝ 1，输入 dx ＝ 0.9（f ＝ a^2，切线陡度 2）
     ax = axs[0]
     axes(ax, 2.45, 4.7, '', '')
-    a, h = 1.0, 0.9
+    a, dx = 1.0, 0.9
     t = np.linspace(0, 2.15, 300)
     ax.plot(t, t ** 2, color=NAVY, lw=2.2, zorder=3)
     u = np.linspace(0.35, 2.1, 10)
     ax.plot(u, a ** 2 + 2 * a * (u - a), color=GREEN, lw=1.8, zorder=2)
-    y0, y_tan, y_true = a ** 2, a ** 2 + 2 * a * h, (a + h) ** 2
-    # 数值与几何都钉死：微分＝2h、零头＝h^2、真变化＝两者之和
-    assert abs(y_tan - y0 - 2 * h) < 1e-12 and abs(y_true - y_tan - h * h) < 1e-12
-    ax.plot([a, a + h], [y0, y0], color=GREY, lw=1.3, zorder=2)
+    y0, y_tan, y_true = a ** 2, a ** 2 + 2 * a * dx, (a + dx) ** 2
+    # 数值与几何都钉死：dy＝2dx、零头＝dx^2、真变化＝两者之和
+    assert abs(y_tan - y0 - 2 * dx) < 1e-12 and abs(y_true - y_tan - dx * dx) < 1e-12
+    ax.plot([a, a + dx], [y0, y0], color=GREY, lw=1.3, zorder=2)
     ax.plot([a], [y0], 'o', ms=7, color=ORANGE, zorder=5)
-    ax.plot([a + h, a + h], [y0, y_tan], color=GREEN, lw=3.4, zorder=4,
+    ax.plot([a + dx, a + dx], [y0, y_tan], color=GREEN, lw=3.4, zorder=4,
             solid_capstyle='butt')
-    ax.plot([a + h, a + h], [y_tan, y_true], color=ORANGE, lw=3.4, zorder=4,
+    ax.plot([a + dx, a + dx], [y_tan, y_true], color=ORANGE, lw=3.4, zorder=4,
             solid_capstyle='butt')
-    ax.plot([a + h], [y_true], 'o', ms=6, color=NAVY, zorder=5)
-    ax.text(a + h / 2, y0 - 0.16, '挪动 h', ha='center', va='top',
+    ax.plot([a + dx], [y_true], 'o', ms=6, color=NAVY, zorder=5)
+    ax.text(a + dx / 2, y0 - 0.16, '输入 dx', ha='center', va='top',
             fontsize=10, color=NAVY)
-    ax.text(a + h + 0.07, (y0 + y_tan) / 2, '微分：按切线走，\n升的这一段',
+    ax.text(a + dx + 0.07, (y0 + y_tan) / 2, '输出 dy：按切线走，\n升的这一段',
             ha='left', va='center', fontsize=9.5, color=GREEN, linespacing=1.3)
-    ax.text(a + h + 0.07, (y_tan + y_true) / 2, '零头', ha='left', va='center',
+    ax.text(a + dx + 0.07, (y_tan + y_true) / 2, '零头', ha='left', va='center',
             fontsize=9.5, color=ORANGE)
     ax.text(0.42, 3.95, '爬曲线，升的是一整段：', fontsize=9.5, color=NAVY)
     ax.text(0.42, 3.55, '微分＋零头', fontsize=9.5, color=NAVY)
@@ -902,7 +902,7 @@ def fig32():
 
 
 def fig33():
-    """跨线数陡度（给第十篇灰盒配）：一步跨几条竖线、几条横线，两数一比就是陡度。"""
+    """微分的输入输出：同样的 dx 经不同导数倍率，得到不同 dy。"""
     fig, ax = plt.subplots(figsize=(6.2, 3.4))
     xmax, ymax = 2.35, 4.7
     axes(ax, xmax, ymax, '', '')
@@ -918,12 +918,12 @@ def fig33():
                     arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.2), zorder=4)
         # 不变量：同样横跨一格（一条竖线），缓处跨 1 条横线、陡处跨 3 条
         assert int(k * dx / 0.5) in (1, 3), (a, k * dx)
-    ax.text(0.18, 1.55, '缓处：跨 1 格，', fontsize=9.5, color=ORANGE)
-    ax.text(0.18, 1.15, '过 1 条横线', fontsize=9.5, color=ORANGE)
-    ax.text(1.28, 3.95, '陡处：跨 1 格，', fontsize=9.5, color=ORANGE)
-    ax.text(1.28, 3.55, '过 3 条横线', fontsize=9.5, color=ORANGE)
-    ax.text(0.16, 4.35, '同一步，过的横线越多，坡越陡', fontsize=10, color=NAVY)
-    ax.text(0.30, -0.50, '横线数一比竖线数，就是陡度', fontsize=9.5, color=NAVY)
+    ax.text(0.18, 1.55, '缓处：输入同样的 dx，', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 1.15, '输出较小的 dy', fontsize=9.5, color=ORANGE)
+    ax.text(1.28, 3.95, '陡处：输入同样的 dx，', fontsize=9.5, color=ORANGE)
+    ax.text(1.28, 3.55, '输出较大的 dy', fontsize=9.5, color=ORANGE)
+    ax.text(0.16, 4.35, '导数给倍率，微分 dx → dy', fontsize=10, color=NAVY)
+    ax.text(0.30, -0.50, '坡越陡，同一个 dx 线性换出的 dy 越大', fontsize=9.5, color=NAVY)
     save(fig, 'fig-33-crossing-lines.png')
 
 
