@@ -359,6 +359,31 @@ check(not badfrac, '分数里没有正文用的 ~下标~ (%d 处)' % len(badfrac
 for x in badfrac[:5]:
     print('        ->', x)
 
+# ---- 3.985 正文里不许有裸的斜杠分数（体例：分数一律上下排 [[分子|分母]]）
+#   由来（2026-08-06，用户挑错）：第二篇 B4 写成"1／1、2／1、2、3／1、2、3、4／……"，
+#   那里的 ／ 本意是**分组分隔符**，可孩子只会读成分数。四道闸一道都查不到它：
+#   [3.95] 只管 ＝＜＞≤≥ 那几个关系符；slash_fractions.py 是**白名单**逐条替换
+#   （1/2^n^、p/q……），没列进去的一律不碰，全角 ／ 更是从来不在名单里。
+#   **只查"两侧都是数字"**是有意收窄的：全树扫过，附录的 `A1–A4 / B1–B4`（分组）、
+#   灰盒里的 `dy/dx`『ds/dt』（长大以后的写法）、`vol4/figs.py`（路径）都不该报，
+#   而它们两侧都不是数字。这样零误报——宁可窄，也不装一条会喊狼来了的闸。
+SLASHNUM = re.compile(r'[0-9]\s*[／/]\s*[0-9]')
+SLASHSKIP = re.compile(r'(\[\[[^\]]*\]\]|\{\{.*?\}\}|//)')   # 已转换的分数、保护区、盒内换行
+badslash = []
+for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+    for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+        if line.lstrip().startswith('BOX[grown]'):     # 「长大以后」允许课本写法
+            continue
+        bare = SLASHSKIP.sub(' ', line)
+        for m in SLASHNUM.finditer(bare):
+            badslash.append('%s:%d  …%s…（分数要写成 [[分子|分母]]；只是分隔符就别用斜杠）'
+                            % (os.path.basename(f), ln,
+                               bare[max(0, m.start() - 12):m.end() + 12].strip()))
+print('\n[3.985] 裸的斜杠分数')
+check(not badslash, '正文里没有"数字 / 数字"式的裸斜杠 (%d 处)' % len(badslash))
+for x in badslash[:5]:
+    print('        ->', x)
+
 # ---- 3.99 接招的必须是姐姐，不能是"我们"
 #   由来（用户 2026-07-31）："妹妹发问、提出 ε，姐姐接招、给出 N 或 δ，这个在后来没有
 #   得到完整执行，好些地方变成了妹妹发问、我们回答。"查下来 50 处，连第一篇那个
