@@ -612,16 +612,16 @@ def fig21():
         ax.set_xlim(0, 1); ax.set_ylim(0.05, 1.02)
         ax.axis('off')
 
-    # ① 贴墙检：人群前的挡墙里，必有贴得最紧的一道
-    ax = P[0]; ax.set_title('① 贴墙检', fontsize=10.5, color=NAVY, pad=3)
+    # ② 贴墙检：人群前的挡墙里，必有贴得最紧的一道
+    ax = P[1]; ax.set_title('② 贴墙检', fontsize=10.5, color=NAVY, pad=3)
     for x in (0.10, 0.16, 0.23, 0.29, 0.34, 0.38, 0.41):
         ax.plot([x], [YT], 'o', ms=4.5, color=NAVY, zorder=3)
     for x in (0.68, 0.80, 0.90):
         ax.plot([x, x], [YT, 0.82], color=GREY, lw=1.6, zorder=3)
     ax.plot([0.55, 0.55], [YT, 0.82], color=ORANGE, lw=2.6, zorder=4)
 
-    # ② 行军检：只进不退、前有墙拦，必定抵达
-    ax = P[1]; ax.set_title('② 行军检', fontsize=10.5, color=NAVY, pad=3)
+    # ③ 行军检：只进不退、前有墙拦，必定抵达
+    ax = P[2]; ax.set_title('③ 行军检', fontsize=10.5, color=NAVY, pad=3)
     xs = [0.08, 0.24, 0.38, 0.49, 0.57, 0.62, 0.65]
     for i, x in enumerate(xs):
         ax.plot([x], [YT], 'o', ms=4.5, color=NAVY, zorder=3)
@@ -632,8 +632,8 @@ def fig21():
     ax.plot([0.67], [YT], 'o', ms=6.5, color=ORANGE, zorder=4)
     ax.plot([0.88, 0.88], [YT, 0.82], color=GREY, lw=1.6, zorder=3)
 
-    # ③ 包围检：包围圈越缩越小，恰好圈住一个点
-    ax = P[2]; ax.set_title('③ 包围检', fontsize=10.5, color=NAVY, pad=3)
+    # ④ 包围检：包围圈越缩越小，恰好圈住一个点
+    ax = P[3]; ax.set_title('④ 包围检', fontsize=10.5, color=NAVY, pad=3)
     for (a, b), y in zip(((0.15, 0.90), (0.27, 0.77), (0.37, 0.65), (0.43, 0.56)),
                          (0.88, 0.75, 0.62, 0.51)):
         ax.plot([a, b], [y, y], color=NAVY, lw=1.6, zorder=3)
@@ -641,8 +641,8 @@ def fig21():
         ax.plot([b, b], [y - 0.028, y + 0.028], color=NAVY, lw=1.6, zorder=3)
     ax.plot([0.485], [YT], 'o', ms=6.5, color=ORANGE, zorder=4)
 
-    # ④ 撑伞检：无限把伞，挑有限几把照样盖住
-    ax = P[3]; ax.set_title('④ 撑伞检', fontsize=10.5, color=NAVY, pad=3)
+    # ⑤ 撑伞检：无限把伞，挑有限几把照样盖住
+    ax = P[4]; ax.set_title('⑤ 撑伞检', fontsize=10.5, color=NAVY, pad=3)
     ax.plot([0.15, 0.88], [YT, YT], color=NAVY, lw=2.6, zorder=3)
     ax.plot([0.15], [YT], 'o', ms=4.5, color=NAVY, zorder=4)
     ax.plot([0.88], [YT], 'o', ms=4.5, color=NAVY, zorder=4)
@@ -654,8 +654,8 @@ def fig21():
         ax.add_patch(Arc((c, YT), 2 * r, 1.9 * r, theta1=0, theta2=180,
                          edgecolor=ORANGE, lw=2.0, zorder=4))
 
-    # ⑤ 拥挤检：有限街段塞进无限多人，必有一处挤爆
-    ax = P[4]; ax.set_title('⑤ 拥挤检', fontsize=10.5, color=NAVY, pad=3)
+    # ⑥ 拥挤检：有限街段塞进无限多人，必有一处挤爆
+    ax = P[5]; ax.set_title('⑥ 拥挤检', fontsize=10.5, color=NAVY, pad=3)
     for x in (0.18, 0.82):
         ax.plot([x, x], [YT, 0.74], color=GREY, lw=1.6, zorder=3)
     for x in (0.24, 0.33, 0.41, 0.48, 0.54, 0.585, 0.615, 0.635, 0.648, 0.656):
@@ -663,8 +663,8 @@ def fig21():
     ax.add_patch(Circle((0.645, YT), 0.055, fill=False, edgecolor=ORANGE,
                         lw=2.0, zorder=4))
 
-    # ⑥ 突围检：被围住的无限队伍，挑出一支小队齐奔一点
-    ax = P[5]; ax.set_title('⑥ 突围检', fontsize=10.5, color=NAVY, pad=3)
+    # ⑦ 突围检：被围住的无限队伍，挑出一支小队齐奔一点
+    ax = P[6]; ax.set_title('⑦ 突围检', fontsize=10.5, color=NAVY, pad=3)
     ax.add_patch(Rectangle((0.13, YT), 0.74, 0.42, fill=False,
                            edgecolor=GREY, lw=1.3, ls=(0, (4, 3)), zorder=2))
     pts = ((0.20, 0.66), (0.33, 0.50), (0.46, 0.70), (0.58, 0.55),
@@ -677,8 +677,8 @@ def fig21():
                     arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.1))
     ax.plot([tgt[0]], [tgt[1]], 'o', ms=6.0, color=ORANGE, zorder=4)
 
-    # ⑦ 收拢检：队伍自我收拢，脚下必有砖接住
-    ax = P[6]; ax.set_title('⑦ 收拢检', fontsize=10.5, color=NAVY, pad=3)
+    # ⑧ 收拢检：队伍自我收拢，脚下必有砖接住
+    ax = P[7]; ax.set_title('⑧ 收拢检', fontsize=10.5, color=NAVY, pad=3)
     ax.add_patch(Rectangle((0.475, Y0), 0.115, Y1 - Y0, facecolor=BAND,
                            edgecolor=ORANGE, lw=1.6, zorder=2))
     for x in (0.10, 0.22, 0.33, 0.42):
@@ -690,8 +690,8 @@ def fig21():
     ax.annotate('', xy=(0.57, 0.60), xytext=(0.88, 0.60),
                 arrowprops=dict(arrowstyle='-|>', color=GREY, lw=1.2))
 
-    # ⑧ 切割检：一刀下去，刀刃必落在砖上
-    ax = P[7]; ax.set_title('⑧ 切割检', fontsize=10.5, color=NAVY, pad=3)
+    # ① 切割检：一刀下去，刀刃必落在砖上
+    ax = P[0]; ax.set_title('① 切割检', fontsize=10.5, color=NAVY, pad=3)
     ax.plot([0.57, 0.57], [0.46, 0.88], color=RED, lw=2.4, zorder=3)
     ax.add_patch(Polygon([[0.57, 0.46], [0.545, 0.40], [0.595, 0.40]],
                          closed=True, color=RED, zorder=3))
