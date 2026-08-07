@@ -278,3 +278,34 @@ for it in "${ITEMS[@]}"; do
 done
 echo
 [ "$n" -eq 12 ] && echo "✓ 十二件全部上传" || die "只上传了 $n/12 件 —— Drive 现在是分叉状态，务必补齐"
+
+# ---------- 转换验图：回读四份 Doc，数图必须和本机 docx 一致 ----------
+# 由来（2026-08-07）：上、下册的 Doc 对象坏在 Google 侧——同样的 docx 灌进去，
+# 图全被吞成一个 70 字节占位符，冲洗/重传都救不回，最后只能弃 id 换新对象。
+# 特征：对象一旦坏掉，**任何**更新式导入都丢图；同字节新建对象则完好。
+# 这道网在每次上传后当场抓它：回读导出 docx，数媒体文件，差一张都算 FAIL。
+say "转换验图（回读四份 Doc）"
+sleep 20   # 导入转换是异步的，给 Google 一点时间
+convert_ok=1
+for it in "${ITEMS[@]}"; do
+  IFS='|' read -r src dst kind <<< "$it"
+  [ "$kind" = docx ] || continue
+  tmp="$(mktemp -t docrt).docx"
+  if "$RCLONE" copyto "Gdrive:$dst" "$tmp" --drive-root-folder-id="$DRIVE_ID" \
+       --drive-export-formats docx >/dev/null 2>&1; then
+    if python3 - "$src" "$tmp" <<'PYCHK'
+import sys, zipfile
+n_local = len([n for n in zipfile.ZipFile(sys.argv[1]).namelist() if n.startswith('word/media/')])
+n_remote = len([n for n in zipfile.ZipFile(sys.argv[2]).namelist() if n.startswith('word/media/')])
+print(f"    本机 {n_local} 张 / Doc {n_remote} 张", end=" ")
+sys.exit(0 if n_local == n_remote else 1)
+PYCHK
+    then echo "✓ $dst"
+    else echo "✗ $dst —— Doc 对象疑似坏了（丢图）。修法：换新对象——rclone deletefile 旧的，再 copyto 新建（id 会变，用户旧链接失效要说明）"; convert_ok=0
+    fi
+  else
+    echo "  ✗ $dst 回读失败"; convert_ok=0
+  fi
+  rm -f "$tmp"
+done
+[ "$convert_ok" -eq 1 ] || die "有 Doc 转换丢图 —— 别当交付完成，按上面的修法处理"
