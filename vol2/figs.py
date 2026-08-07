@@ -211,14 +211,14 @@ def fig08():
     ax.plot(t, t ** 2, color=NAVY, lw=2.2, zorder=3)
     ax.plot([a, a], [0, a ** 2], color=NAVY, lw=1.2, ls=':')
     ax.plot([a + h, a + h], [0, (a + h) ** 2], color=ORANGE, lw=1.2, ls=':')
-    ax.text(a * 0.62, 0.30, r'$A(a)$', ha='center', fontsize=13, color=NAVY, zorder=5)
+    ax.text(a * 0.62, 0.30, r'$A(x)$', ha='center', fontsize=13, color=NAVY, zorder=5)
     ax.text(0.06, 4.7, '已经攒下的面积', fontsize=10.5, color=NAVY)
     ax.annotate('', xy=(a * 0.66, 0.75), xytext=(0.5, 4.45),
                 arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.0))
     ax.text(a + h + 0.1, 1.4, '多出来的一小条', fontsize=10.5, color=ORANGE)
     ax.text(a + h + 0.1, 0.85, '宽是 h，高差不多是', fontsize=10.5, color=ORANGE)
-    ax.text(a + h + 0.1, 0.30, r'$f(a)$', fontsize=12, color=ORANGE)
-    ax.text(a, -0.55, r'$a$', ha='center', fontsize=12, color=NAVY)
+    ax.text(a + h + 0.1, 0.30, r'$f(x)$', fontsize=12, color=ORANGE)
+    ax.text(a, -0.55, r'$x$', ha='center', fontsize=12, color=NAVY)
     save(fig, 'fig-08-area-function.png')
 
 

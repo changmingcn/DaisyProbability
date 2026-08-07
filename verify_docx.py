@@ -275,6 +275,22 @@ check(not selfref, '没有"某篇引用它自己"的残留 (%d 处)' % len(selfr
 for b in selfref[:8]:
     print('        ->', b)
 
+# ---- 3.945 第二册自变量已于 08-07 全册改回 x（用户定：大家习惯 dx；数字挨 x 省乘号）
+#   反向抓残留的独立 a（"2ah"这类字母连写的 a 由第二遍替换处理过，这里连它一起抓）。
+#   FIG 文件名是标识符不是正文，照 [3.94] 的老规矩剥掉再查。只对 vol2 生效。
+if BOOK.rstrip(os.sep).endswith('vol2'):
+    straya = []
+    for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+        for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+            probe = re.sub(r'(?m)^\s*FIG:\s*\S+', 'FIG:', line)
+            for m in re.finditer(r'(?<![A-Za-z])a(?![A-Za-z])|(?<![A-Za-z])a(?=h)', probe):
+                straya.append('%s:%d  …%s…' % (os.path.basename(f), ln,
+                              probe[max(0, m.start() - 10):m.end() + 10].strip()))
+    print('\n[3.945] 第二册自变量残留 a')
+    check(not straya, '正文没有残留的自变量 a (%d 处)' % len(straya))
+    for xx in straya[:8]:
+        print('        ->', xx)
+
 # ---- 3.95 公式里不许夹中文：符号和汉字不能用 ＝ ／ ≤ 直接连起来
 #   反面教材（用户 2026-07-31 指出）："不到 ε 的一半 ＋ ε 的一半 ＝ ε"、"低估 ≤ 真面积"。
 #   汉字要么先命名成符号，要么把整句写成句子（不带关系符）。
