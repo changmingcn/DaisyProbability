@@ -863,11 +863,49 @@ def fig31():
     save(fig, 'fig-31-tangent-pieces.png')
 
 
+def fig32():
+    """可微性的几何：左＝尖角（切线定不下来）；右＝浑身毛刺的曲线（处处连着、处处是尖）。"""
+    fig, axs = plt.subplots(1, 2, figsize=(6.8, 3.0))
+    # 左：绝对值机器的 V 字尖角
+    ax = axs[0]
+    axes(ax, 2.45, 2.6, '', '')
+    c, y0 = 1.2, 0.55
+    t1 = np.linspace(0.15, c, 60); t2 = np.linspace(c, 2.3, 60)
+    ax.plot(t1, y0 + (c - t1), color=ORANGE, lw=2.4, zorder=3)
+    ax.plot(t2, y0 + (t2 - c), color=GREEN, lw=2.4, zorder=3)
+    ax.plot([c], [y0], 'o', ms=8, color=NAVY, zorder=5)
+    # 尖角两侧陡度 −1 与 ＋1，对不上——这正是"切线定不下来"的几何
+    slope_left = ((y0 + (c - t1[0])) - (y0 + (c - t1[-2]))) / (t1[0] - t1[-2])
+    slope_right = ((y0 + (t2[-1] - c)) - (y0 + (t2[1] - c))) / (t2[-1] - t2[1])
+    assert abs(slope_left + 1) < 1e-9 and abs(slope_right - 1) < 1e-9 and slope_left != slope_right
+    ax.text(1.72, 1.30, '右边的陡度', fontsize=9.5, color=GREEN)
+    ax.text(0.24, 1.30, '左边的陡度', fontsize=9.5, color=ORANGE)
+    ax.text(0.62, 2.28, '尖角上，切线定不下来', fontsize=10, color=NAVY)
+    ax.text(0.55, -0.42, '连着，可是在尖角上不可微', fontsize=9.5, color=NAVY)
+    # 右：毛刺曲线（魏尔斯特拉斯函数的有限层近亲）
+    ax = axs[1]
+    axes(ax, 2.45, 2.6, '', '')
+    x = np.linspace(0.05, 2.35, 4200)
+    def W(layers):
+        return sum(0.55 ** k * np.cos(5 ** k * 2.6 * x) for k in range(layers))
+    y = W(6)
+    y = 1.25 + 0.85 * y / np.max(np.abs(y))
+    ax.plot(x, y, color=NAVY, lw=0.9, zorder=3)
+    ax.text(0.28, 2.28, '处处连着，处处是毛刺', fontsize=10, color=NAVY)
+    ax.text(0.30, -0.42, '放大多少倍，毛刺都不消失', fontsize=9.5, color=NAVY)
+    # 不变量：叠的层数越多，最陡处越陡（毛刺越看越尖），3 层到 6 层至少陡 3 倍
+    def maxslope(layers):
+        yy = W(layers)
+        return np.max(np.abs(np.diff(yy) / np.diff(x)))
+    assert maxslope(6) > 3 * maxslope(3), (maxslope(3), maxslope(6))
+    save(fig, 'fig-32-spikes.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30, fig31):
+              fig28, fig29, fig30, fig31, fig32):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
