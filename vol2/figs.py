@@ -901,11 +901,37 @@ def fig32():
     save(fig, 'fig-32-spikes.png')
 
 
+def fig33():
+    """跨线数陡度（给第十篇灰盒配）：一步跨几条竖线、几条横线，两数一比就是陡度。"""
+    fig, ax = plt.subplots(figsize=(6.2, 3.4))
+    xmax, ymax = 2.35, 4.7
+    axes(ax, xmax, ymax, '', '')
+    for gx in np.arange(0.0, 2.21, 0.5):
+        ax.plot([gx, gx], [0, 4.4], color=LIGHT, lw=1.0, zorder=1)
+    for gy in np.arange(0.0, 4.41, 0.5):
+        ax.plot([0, 2.2], [gy, gy], color=LIGHT, lw=1.0, zorder=1)
+    t = np.linspace(0, 2.08, 300)
+    ax.plot(t, t ** 2, color=NAVY, lw=2.2, zorder=3)
+    for a, dx in ((0.5, 0.5), (1.55, 0.5)):
+        y0, k = a * a, 2 * a
+        ax.annotate('', xy=(a + dx, y0 + k * dx), xytext=(a, y0),
+                    arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.2), zorder=4)
+        # 不变量：同样横跨一格（一条竖线），缓处跨 1 条横线、陡处跨 3 条
+        assert int(k * dx / 0.5) in (1, 3), (a, k * dx)
+    ax.text(0.18, 1.55, '缓处：跨 1 格，', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 1.15, '过 1 条横线', fontsize=9.5, color=ORANGE)
+    ax.text(1.28, 3.95, '陡处：跨 1 格，', fontsize=9.5, color=ORANGE)
+    ax.text(1.28, 3.55, '过 3 条横线', fontsize=9.5, color=ORANGE)
+    ax.text(0.16, 4.35, '同一步，过的横线越多，坡越陡', fontsize=10, color=NAVY)
+    ax.text(0.30, -0.50, '横线数一比竖线数，就是陡度', fontsize=9.5, color=NAVY)
+    save(fig, 'fig-33-crossing-lines.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30, fig31, fig32):
+              fig28, fig29, fig30, fig31, fig32, fig33):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
