@@ -1263,11 +1263,76 @@ def fig33():
     save(fig, 'fig-33-cake-frame.png')
 
 
+# ---------------------------------------------------------------- 34（第五篇第二节）
+# 两排点必须真的把刀口夹在中间、而且一步比一步紧 —— 这张图的全部意思就在这里，
+# 眼睛看不出 1.412 和 1.4141 谁更靠近，只能让脚本算。
+_CUT = 2 ** 0.5
+# 最靠里的两点离刀口约 0.004，占画幅 1.6% —— 再往里就被绿点整个盖住，图上什么也看不见了
+_LEFT = [1.335, 1.378, 1.400, 1.410]
+_RIGHT = [1.515, 1.470, 1.432, 1.419]
+assert max(_LEFT) < _CUT < min(_RIGHT), '两排点没有把刀口夹住'
+for _seq in (_LEFT, _RIGHT):
+    _gaps = [abs(v - _CUT) for v in _seq]
+    assert all(_gaps[i] > _gaps[i + 1] for i in range(len(_gaps) - 1)), \
+        '这一排点没有一步比一步紧'
+
+
+def fig34():
+    """一刀和一队落在同一个位置：上排切一刀，下排挤一队，中间一条虚线钉住。"""
+    fig, ax = plt.subplots(figsize=(8.0, 3.1))
+    lo, hi = 1.30, 1.56
+    ticks = [1.3, 1.4, 1.5]
+    labs = ['1.3', '1.4', '1.5']
+    TOP, BOT = 0.62, 0.0
+
+    # 上排：切一刀
+    ax.add_patch(Rectangle((lo, TOP - 0.035), _CUT - lo, 0.07,
+                           facecolor=LIGHT, edgecolor='none', zorder=1))
+    ax.add_patch(Rectangle((_CUT, TOP - 0.035), hi - _CUT, 0.07,
+                           facecolor=BAND, edgecolor='none', zorder=1))
+    numberline(ax, lo, hi, y=TOP, ticks=ticks, ticklabels=labs)
+    ax.plot([_CUT, _CUT], [TOP - 0.075, TOP + 0.115], color=RED, lw=2.4,
+            zorder=4)
+    ax.text(_CUT - 0.010, TOP + 0.135, '刀口', ha='right', va='bottom',
+            fontsize=10.5, color=RED)
+    ax.text(lo + 0.040, TOP + 0.075, '左堆', fontsize=11, color=NAVY)
+    ax.text(hi - 0.040, TOP + 0.075, '右堆', fontsize=11, color=ORANGE,
+            ha='right')
+    ax.text(lo - 0.025, TOP, '切一刀', ha='right', va='center',
+            fontsize=11.5, color=NAVY)
+
+    # 下排：挤一队（两侧往中间靠，一步比一步紧）
+    numberline(ax, lo, hi, y=BOT, ticks=ticks, ticklabels=labs)
+    for v in _LEFT:
+        ax.plot([v], [BOT], 'o', ms=6, color=NAVY, zorder=3)
+    for v in _RIGHT:
+        ax.plot([v], [BOT], 'o', ms=6, color=ORANGE, zorder=3)
+    ax.annotate('', xy=(_CUT - 0.014, BOT + 0.10), xytext=(lo + 0.030, BOT + 0.10),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.3))
+    ax.annotate('', xy=(_CUT + 0.014, BOT + 0.10), xytext=(hi - 0.030, BOT + 0.10),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=1.3))
+    ax.text(lo - 0.025, BOT, '挤一队', ha='right', va='center',
+            fontsize=11.5, color=NAVY)
+
+    # 把两排钉在同一个位置上 —— 这条虚线是这张图的论点
+    ax.plot([_CUT, _CUT], [BOT + 0.035, TOP - 0.085], color=GREY, lw=1.1,
+            ls=(0, (3, 3)), zorder=2)
+    for y in (TOP, BOT):
+        ax.plot([_CUT], [y], 'o', ms=8.5, color=GREEN, mec='white', mew=1.2,
+                zorder=5)
+    ax.text(_CUT + 0.012, (TOP + BOT) / 2, '同一个位置', fontsize=11,
+            color=GREEN, va='center')
+
+    ax.set_xlim(lo - 0.095, hi + 0.02); ax.set_ylim(-0.20, TOP + 0.26)
+    ax.axis('off')
+    save(fig, 'fig-34-cut-and-squeeze.png')
+
+
 if __name__ == '__main__':
     print('generating figures ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17,
               fig18, fig19, fig20, fig21, fig22, fig23, fig24, fig25,
-              fig26, fig27, fig28, fig29, fig30, fig31, fig32, fig33):
+              fig26, fig27, fig28, fig29, fig30, fig31, fig32, fig33, fig34):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
