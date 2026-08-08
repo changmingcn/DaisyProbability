@@ -10,10 +10,15 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle, FancyBboxPatch, Circle
+from matplotlib.offsetbox import AnnotationBbox, HPacker, TextArea
 
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans GB', 'Arial Unicode MS', 'Songti SC']
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['mathtext.fontset'] = 'dejavusans'
+# 个别需要把变量 x 与乘号 × 拉开字形差异的图，可显式选 custom。
+plt.rcParams['mathtext.rm'] = 'Georgia'
+plt.rcParams['mathtext.it'] = 'Georgia:italic'
+plt.rcParams['mathtext.bf'] = 'Georgia:bold'
 
 NAVY, ORANGE, GREEN = '#1F3A6E', '#E8743B', '#2E9E6B'
 GREY, LIGHT, BAND = '#9AA5B1', '#DCE7F7', '#FBE3D6'
@@ -1000,12 +1005,14 @@ def fig35():
 
     ax.text(side / 2, side / 2, '原来的面积 9', ha='center', va='center',
             fontsize=12, color=NAVY)
+    # Georgia 的斜体 x 带弯钩、左右不对称；正体乘号 × 仍保持几何对称。
+    math_style = dict(math_fontfamily='custom')
     ax.text(side / 2, side + step / 2, r'$3dx$', ha='center', va='center',
-            fontsize=12, color=GREEN)
+            fontsize=12, color=GREEN, **math_style)
     ax.text(side + step / 2, side / 2, r'$3dx$', ha='center', va='center',
-            fontsize=12, color=GREEN, rotation=90)
+            fontsize=12, color=GREEN, rotation=90, **math_style)
     ax.text(side + step / 2, side + step / 2, r'$dx^2$', ha='center',
-            va='center', fontsize=13, color=ORANGE, zorder=6)
+            va='center', fontsize=13, color=ORANGE, zorder=6, **math_style)
 
     # 尺寸：旧边长是 3，新添的一小段是 dx
     ydim = -0.34
@@ -1015,10 +1022,17 @@ def fig35():
     ax.annotate('', xy=(side + step, ydim), xytext=(side, ydim),
                 arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.2))
     ax.text(side + step / 2, ydim - 0.11, r'$dx$', ha='center', va='top',
-            fontsize=10.5, color=ORANGE)
+            fontsize=10.5, color=ORANGE, **math_style)
 
-    ax.text(1.86, -0.82, '两条绿色窄边合起来是 6dx：跟 dx 成正比',
-            ha='center', fontsize=10.5, color=GREEN)
+    footer = HPacker(children=[
+        TextArea('两条绿色窄边合起来是 ', textprops=dict(fontsize=10.5, color=GREEN)),
+        TextArea(r'$6dx$', textprops=dict(fontsize=10.5, color=GREEN, **math_style)),
+        TextArea('：跟 ', textprops=dict(fontsize=10.5, color=GREEN)),
+        TextArea(r'$dx$', textprops=dict(fontsize=10.5, color=GREEN, **math_style)),
+        TextArea(' 成正比', textprops=dict(fontsize=10.5, color=GREEN)),
+    ], align='center', pad=0, sep=0)
+    ax.add_artist(AnnotationBbox(footer, (1.86, -0.82), frameon=False,
+                                 box_alignment=(0.5, 0.5)))
     ax.annotate('右上角是弯曲留下的小角', xy=(side + step, side + step / 2),
                 xytext=(4.15, 3.35), ha='left', va='center', fontsize=10, color=ORANGE,
                 arrowprops=dict(arrowstyle='->', color=ORANGE, lw=1.2))

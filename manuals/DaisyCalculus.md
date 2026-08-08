@@ -377,7 +377,7 @@ Drive 上那三份是交付镜像，**不是源**。
 
 `publish.sh` 的 `DRIVE_ID` 仍是 Claude 文件夹本身，子目录写在 `ITEMS` 表的 dst 路径里（`$D1`…`$D4`）。
 **⚠ `01-三册成书`／`02-三份稿件` 这两个目录名已经和内容对不上了**（里面各是四份）——08-02 有意没改：改目录名要先在 Drive 上服务端挪、再改 `$D1`／`$D2`，顺序反了会多出一个新目录。等哪天顺手再改。
-**⚠ 2026-08-07 Doc 对象损坏事故（图刷不出来）与三条新知**：①**那四份"docx"其实是导入型 Google 文档**（publish.sh 用 `--drive-import-formats docx` 上传、Google 服务端转换；rclone 显示 wordprocessingml mime＋Size −1＋无 md5——08-02 那句"是真的 .docx"作废）；②**对象会坏**：上、下册的 Doc 当天起凡更新式导入必丢图（87 张全被吞成一个 70 字节占位符），同字节**新建**对象则完好，冲洗（先灌无图小文件再灌真身）也救不回——**坏了唯一修法＝弃 id 换新对象**（rclone deletefile 旧的进回收站 → copyto 新建/moveto 顶位；上册现 id 1rRxXPAZ…、下册现 id 1sf-rtXQ…；08-07 下册补第 35 图时再次触发并换新，旧链接已死）；③**publish.sh --upload 末尾新增"转换验图"闸**：回读四份 Doc 导出 docx、数媒体文件与本机对账，差一张当场 die——这一坑从此自动抓。**排查手法留档**：先本机验 docx（PNG 头＋[3] 计数）→ rclone 无 md5 说明对象类型 → 90 图探针排除 Google 全局故障 → 旧 commit worktree 重建排除当日内容 → 同字节新建 vs 更新对照钉死"对象坏"。**两条别踩**：① rclone 按**路径**认文件、不按 id——改了 `$D1`…`$D4` 的名字，Drive 上会多出一个新目录、旧的原地不动，要改名先在 Drive 上挪好再改表，然后跑一次 `--upload` 核对没多出副本；② 移动 Google Doc 用 `rclone moveto` 是**服务端移动，文件 id 与分享链接不变**（这次九件的 id 逐个核对过），别用"下载再传"的土办法，那会换掉 id、旧链接全断。
+**⚠ 2026-08-07 Doc 对象损坏事故（图刷不出来）与三条新知**：①**那四份"docx"其实是导入型 Google 文档**（publish.sh 用 `--drive-import-formats docx` 上传、Google 服务端转换；rclone 显示 wordprocessingml mime＋Size −1＋无 md5——08-02 那句"是真的 .docx"作废）；②**对象会坏**：上、下册的 Doc 当天起凡更新式导入必丢图（87 张全被吞成一个 70 字节占位符），同字节**新建**对象则完好，冲洗（先灌无图小文件再灌真身）也救不回——**坏了唯一修法＝弃 id 换新对象**（rclone deletefile 旧的进回收站 → copyto 新建/moveto 顶位；上册现 id 1rRxXPAZ…、下册现 id 19ZpaETk…；08-07 下册补第 35 图及调字体时再次触发并换新，旧链接已死）；③**publish.sh --upload 末尾新增"转换验图"闸**：回读四份 Doc 导出 docx、数媒体文件与本机对账，差一张当场 die——这一坑从此自动抓。**排查手法留档**：先本机验 docx（PNG 头＋[3] 计数）→ rclone 无 md5 说明对象类型 → 90 图探针排除 Google 全局故障 → 旧 commit worktree 重建排除当日内容 → 同字节新建 vs 更新对照钉死"对象坏"。**两条别踩**：① rclone 按**路径**认文件、不按 id——改了 `$D1`…`$D4` 的名字，Drive 上会多出一个新目录、旧的原地不动，要改名先在 Drive 上挪好再改表，然后跑一次 `--upload` 核对没多出副本；② 移动 Google Doc 用 `rclone moveto` 是**服务端移动，文件 id 与分享链接不变**（这次九件的 id 逐个核对过），别用"下载再传"的土办法，那会换掉 id、旧链接全断。
 
 ### 改书名的固定打法（2026-08-02 一册二册改名时定的）
 
@@ -463,6 +463,7 @@ python3 export_html.py vol2 --all -o /tmp/vol2.html # 整册
 
 - `content/*.md` 轻标记：`#`篇 `##`节 `###`小节 `FIG:` `BOX[remember|key|task|dialog|grown]:`（`//` 换行）`TABLE:` `CENTER:`；行内 `**粗**` `~下标~` `^上标^` `[[分子|分母]]`；`{{…}}` 内不被转换脚本改动。
 - `figs.py` / `vol2/figs.py`：中文用 **Hiragino Sans GB**，数学走 **mathtext**，**两者绝不混在同一个字符串里**。
+- **插图里要让变量 x 与乘号 × 一眼分开**：变量用 **Georgia 数学斜体**（弯钩明显、左右不对称），乘号保持正体、对称的 ×；一句中文里夹公式时，用 `TextArea`＋`HPacker` 分装后拼起来，别为了省事把中文和 mathtext 塞进同一个字符串。第二册 fig-35 是现成范例；这里只让该图显式选 `custom`，不要贸然改全册数学字体。
 - `cn_fractions.py` / `slash_fractions.py`：汉字分数、斜杠分数 → 分数标记，**幂等**。
 
 **血泪教训：**
