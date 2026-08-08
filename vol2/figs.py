@@ -932,59 +932,95 @@ def fig32():
 
 
 def fig33():
-    """两把 1-形式尺：同一箭头的横纵读数，以及方格纸跨线计数。"""
-    fig, axs = plt.subplots(1, 2, figsize=(7.4, 3.35))
+    """把两把 1-形式直尺立成透明薄片；切向箭头用跨格数报读数。"""
+    fig = plt.figure(figsize=(7.4, 4.65))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_position([0.08, 0.02, 0.88, 0.76])
 
-    # 左：曲线上同一支切向箭头，dx 与 dy 分别读横、纵有向变化。
-    ax = axs[0]
-    t = np.linspace(-0.15, 2.35, 300)
-    curve = 0.42 * t ** 2 + 0.22
-    ax.plot(t, curve, color=NAVY, lw=2.2, zorder=2)
-    p, step = 0.72, 0.82
-    y0, slope = 0.42 * p ** 2 + 0.22, 0.84 * p
-    x1, y1 = p + step, y0 + slope * step
-    ax.plot([p], [y0], 'o', ms=6.5, color=NAVY, zorder=5)
-    ax.annotate('', xy=(x1, y1), xytext=(p, y0),
-                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.4), zorder=4)
-    ax.annotate('', xy=(x1, y0 - 0.16), xytext=(p, y0 - 0.16),
-                arrowprops=dict(arrowstyle='<->', color=GREEN, lw=1.8), zorder=4)
-    ax.annotate('', xy=(x1 + 0.13, y1), xytext=(x1 + 0.13, y0),
-                arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.8), zorder=4)
-    ax.plot([p, x1], [y0, y0], color=LIGHT, lw=1.0, ls='--', zorder=1)
-    ax.plot([x1, x1], [y0, y1], color=LIGHT, lw=1.0, ls='--', zorder=1)
-    ax.text(p - 0.10, y0 + 0.09, 'p', fontsize=10, color=NAVY)
-    ax.text((p + x1) / 2, y0 - 0.36, 'dx 尺读横向', fontsize=9.5,
-            color=GREEN, ha='center')
-    ax.text(x1 + 0.22, (y0 + y1) / 2, 'dy 尺\n读竖向', fontsize=9.5,
-            color=ORANGE, va='center')
-    ax.text(1.08, 2.52, '同一支箭头，两把尺子', fontsize=10.5,
-            color=NAVY, ha='center')
-    assert np.isclose(y1 - y0, slope * (x1 - p))
-    ax.set_xlim(-0.18, 2.45); ax.set_ylim(-0.02, 2.75); ax.axis('off')
+    # 数学仍只有 x、y 两个方向；mpl 的第二个坐标只把薄片向里展开。
+    xmin, xmax = 0.34, 1.68
+    dmin, dmax = -0.52, 0.52
+    ymin, ymax = 0.32, 2.58
+    blue = '#5A8FD8'
 
-    # 右：1-形式的标准“平行线族”直觉；横跨相同一格，陡箭头跨更多横线。
-    ax = axs[1]
-    for gx in np.arange(0, 4.1, 1.0):
-        ax.plot([gx, gx], [0, 4], color=LIGHT, lw=1.05, zorder=1)
-    for gy in np.arange(0, 4.1, 1.0):
-        ax.plot([0, 4], [gy, gy], color=LIGHT, lw=1.05, zorder=1)
-    arrows = [((0.45, 0.45), (1.45, 1.45), GREEN, '缓：跨 1 竖格、1 横格'),
-              ((2.25, 0.45), (3.25, 3.45), ORANGE, '陡：跨 1 竖格、3 横格')]
-    for (x0, yy0), (xx1, yy1), color, label in arrows:
-        ax.annotate('', xy=(xx1, yy1), xytext=(x0, yy0),
-                    arrowprops=dict(arrowstyle='-|>', color=color, lw=2.3), zorder=4)
-        ax.text((x0 + xx1) / 2, yy1 + 0.20, label, fontsize=8.8,
-                color=color, ha='center')
-    # 不变量：两箭都横跨一格；缓箭跨一横格，陡箭跨三横格。
-    assert arrows[0][1][0] - arrows[0][0][0] == 1
-    assert arrows[1][1][0] - arrows[1][0][0] == 1
-    assert arrows[0][1][1] - arrows[0][0][1] == 1
-    assert arrows[1][1][1] - arrows[1][0][1] == 3
-    ax.text(2.0, 4.28, '跨线就是尺子的读数', fontsize=10.5,
-            color=NAVY, ha='center')
-    ax.text(2.0, -0.38, '竖线给 dx 刻度，横线给 dy 刻度', fontsize=9.3,
-            color=NAVY, ha='center')
-    ax.set_xlim(-0.08, 4.08); ax.set_ylim(-0.58, 4.52); ax.axis('off')
+    # dx 的等刻度：x 固定的竖墙，每两墙相隔 0.5。
+    wall_x = np.array([0.5, 1.0, 1.5])
+    depth_grid, height_grid = np.meshgrid([dmin, dmax], [ymin, ymax])
+    for xv in wall_x:
+        wall = np.full_like(depth_grid, xv)
+        ax.plot_surface(wall, depth_grid, height_grid, color=blue, alpha=0.075,
+                        edgecolor=blue, linewidth=0.75, shade=False)
+
+    # dy 的等刻度：y 固定的水平楼板，每两板也相隔 0.5。
+    floor_y = np.array([0.5, 1.0, 1.5, 2.0, 2.5])
+    x_grid, depth_grid = np.meshgrid([xmin, xmax], [dmin, dmax])
+    for yv in floor_y:
+        floor = np.full_like(x_grid, yv)
+        ax.plot_surface(x_grid, depth_grid, floor, color=ORANGE, alpha=0.065,
+                        edgecolor=ORANGE, linewidth=0.70, shade=False)
+
+    # 深蓝曲线是 y=x²；沿展示用的深度方向略微铺宽，成为一条透明轨道。
+    x = np.linspace(0.38, 1.60, 240)
+    depth = np.linspace(-0.26, 0.26, 2)
+    curve_x, curve_depth = np.meshgrid(x, depth)
+    curve_y = curve_x ** 2
+    ax.plot_surface(curve_x, curve_depth, curve_y, color=NAVY, alpha=0.09,
+                    linewidth=0, shade=False)
+    front = -0.285
+    ax.plot(x, np.full_like(x, front), x ** 2, color=NAVY, lw=3.0, zorder=20)
+
+    # p=1 处的坡度是 2。箭头横走 0.5、竖升 1：一格蓝墙、两格橙板。
+    p = np.array([1.0, front - 0.008, 1.0])
+    arrow = np.array([0.5, 0.0, 1.0])
+    slope = 2.0
+    ax.scatter(*p, s=58, color=NAVY, depthshade=False, zorder=30)
+    ax.quiver(*p, *arrow, color=GREEN, linewidth=3.8,
+              arrow_length_ratio=0.14, normalize=False, zorder=40)
+    lam = np.linspace(-0.18, 0.59, 2)
+    ax.plot(p[0] + lam, np.full_like(lam, p[1] + 0.002),
+            p[2] + slope * lam, color=GREEN, lw=1.25, ls='--',
+            alpha=0.82, zorder=25)
+
+    # 三个圈把可数的不变量钉住：一格蓝刻度、两格橙刻度。
+    crossings = [(1.0, 1.0, NAVY), (1.25, 1.5, ORANGE),
+                 (1.5, 2.0, GREEN)]
+    for xv, yv, color in crossings:
+        ax.scatter(xv, p[1] - 0.01, yv, s=66, facecolor='white',
+                   edgecolor=color, linewidth=2.0, depthshade=False, zorder=50)
+
+    # 只画 x、y 两支坐标箭头；向里的方向故意不命名。
+    base = (0.40, -0.47, 0.38)
+    ax.quiver(*base, 0.42, 0, 0, color=blue, linewidth=1.9,
+              arrow_length_ratio=0.13)
+    ax.quiver(*base, 0, 0, 0.58, color=ORANGE, linewidth=1.9,
+              arrow_length_ratio=0.13)
+    ax.text(0.84, -0.47, 0.36, '$x$', color=blue, fontsize=14)
+    ax.text(0.37, -0.47, 1.01, '$y$', color=ORANGE, fontsize=14)
+    ax.text(0.90, p[1] - 0.045, 0.80, '$p$', color=NAVY, fontsize=13)
+    ax.text(1.43, p[1] - 0.025, 2.08, '切向箭头', color=GREEN, fontsize=10.5)
+    ax.text(0.40, front - 0.02, 0.48, '$y=x^2$', color=NAVY, fontsize=11)
+
+    fig.text(0.06, 0.955, '把两把直尺的刻度，立成两叠透明薄片',
+             color=NAVY, fontsize=15.5, fontweight='bold', va='top')
+    fig.text(0.07, 0.875, '蓝色竖墙：箭头横跨 1 格，$dx$ 读 1 格',
+             color=blue, fontsize=11.5, va='top')
+    fig.text(0.07, 0.815, '橙色楼板：同一箭头上升 2 格，$dy$ 读 2 格',
+             color=ORANGE, fontsize=11.5, va='top')
+    fig.text(0.07, 0.735, '所以在 $p$ 点：$dy=2dx$，这里 $f\\prime(p)=2$',
+             color=NAVY, fontsize=12.5, fontweight='bold', va='top')
+    fig.text(0.73, 0.035, '向里的深度只为把薄片展开看清，\n不添第三把直尺。',
+             color=GREY, fontsize=8.8, ha='center', va='bottom')
+
+    # 图上说出的三笔账必须真的成立，避免透视图只“看着差不多”。
+    assert np.isclose(2 * p[0], slope)
+    assert np.isclose(arrow[2], slope * arrow[0])
+    assert np.isclose(arrow[0] / (wall_x[1] - wall_x[0]), 1)
+    assert np.isclose(arrow[2] / (floor_y[1] - floor_y[0]), 2)
+
+    ax.set_xlim(xmin, xmax); ax.set_ylim(dmin, dmax); ax.set_zlim(ymin, ymax)
+    ax.set_box_aspect((1.35, 1.00, 2.15))
+    ax.view_init(elev=21, azim=-58)
+    ax.set_axis_off()
 
     save(fig, 'fig-33-crossing-lines.png')
 
