@@ -5,17 +5,19 @@
 约定同第一册：中文用 Hiragino Sans GB，数学走 mathtext，两者绝不混在同一个字符串里。
 """
 import os
+import re
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle, FancyBboxPatch, Circle
 from matplotlib.offsetbox import AnnotationBbox, HPacker, TextArea
+from matplotlib.text import Text
 
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans GB', 'Arial Unicode MS', 'Songti SC']
 plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['mathtext.fontset'] = 'dejavusans'
-# 个别需要把变量 x 与乘号 × 拉开字形差异的图，可显式选 custom。
+plt.rcParams['mathtext.fontset'] = 'custom'
+# 下册插图的拉丁字母统一走 Georgia 斜体；乘号 × 仍由正体字体绘制。
 plt.rcParams['mathtext.rm'] = 'Georgia'
 plt.rcParams['mathtext.it'] = 'Georgia:italic'
 plt.rcParams['mathtext.bf'] = 'Georgia:bold'
@@ -28,6 +30,13 @@ os.makedirs(OUT, exist_ok=True)
 
 
 def save(fig, name):
+    # 把中文说明里夹着的 h、dx、f 等拉丁片段也交给 Georgia mathtext。
+    # 已经写成 $...$ 的数学式不再套第二层。
+    for artist in fig.findobj(match=Text):
+        raw = artist.get_text()
+        if '$' not in raw and re.search(r'[A-Za-z]', raw):
+            artist.set_text(re.sub(r'[A-Za-z]+',
+                                   lambda m: r'$\mathit{%s}$' % m.group(0), raw))
     fig.savefig(os.path.join(OUT, name), dpi=200, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     print('  wrote', name)
@@ -303,17 +312,31 @@ def fig11():
 # ---------------------------------------------------------------- 12
 def fig12():
     """会跳的机器：左右两边奔向不同的数，极限不存在。"""
-    fig, ax = plt.subplots(figsize=(5.6, 2.9))
-    axes(ax, 2.6, 2.3, ylabel='吐出来的数')
-    ax.plot([0.05, 1.5], [0.5, 0.5], color=NAVY, lw=2.6)
-    ax.plot([1.5, 2.4], [1.6, 1.6], color=NAVY, lw=2.6)
-    ax.plot([1.5], [0.5], 'o', ms=8, mfc='white', mec=NAVY, mew=2, zorder=5)
-    ax.plot([1.5], [1.6], 'o', ms=8, color=NAVY, zorder=5)
-    ax.plot([1.5, 1.5], [0.5, 1.6], color=GREY, lw=1.0, ls=':')
-    ax.text(1.5, -0.16, r'$c$', ha='center', va='top', fontsize=13, color=NAVY)
-    ax.text(0.55, 0.72, '左边一直奔向这里', fontsize=10, color=NAVY)
-    ax.text(1.62, 1.82, '右边一直奔向那里', fontsize=10, color=NAVY)
-    ax.text(0.06, 2.15, '两边不一样 —— 在 c 处没有极限', fontsize=11, color=ORANGE)
+    fig, ax = plt.subplots(figsize=(6.2, 3.25))
+    c, left_y, right_y = 1.5, 0.55, 1.55
+
+    # 轴名放到轴的外侧；结论独占标题行，不再和任何说明共用左上角。
+    ax.annotate('', xy=(2.72, 0), xytext=(-0.02, 0),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.5))
+    ax.annotate('', xy=(0, 2.18), xytext=(0, -0.08),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.5))
+    ax.set_title('左右奔向不同高度：在 c 处没有极限',
+                 fontsize=12, color=ORANGE, pad=8)
+    ax.text(-0.13, 1.12, '吐出来的数', ha='center', va='center', rotation=90,
+            fontsize=10, color=NAVY)
+    ax.text(2.70, -0.16, '投进去的数', ha='right', va='top', fontsize=10, color=NAVY)
+
+    ax.plot([0.05, c], [left_y, left_y], color=NAVY, lw=2.8)
+    ax.plot([c, 2.45], [right_y, right_y], color=NAVY, lw=2.8)
+    ax.plot([c], [left_y], 'o', ms=9, mfc='white', mec=NAVY, mew=2.2, zorder=5)
+    ax.plot([c], [right_y], 'o', ms=9, color=NAVY, zorder=5)
+    ax.plot([c, c], [left_y, right_y], color=GREY, lw=1.1, ls=':')
+    ax.text(c, -0.16, r'$c$', ha='center', va='top', fontsize=13, color=NAVY)
+    ax.text(0.34, left_y + 0.18, '从左边来，奔向 0.5', fontsize=10, color=NAVY)
+    ax.text(1.68, right_y + 0.18, '从右边来，奔向 1.6', fontsize=10, color=NAVY)
+
+    assert left_y != right_y
+    ax.set_xlim(-0.28, 2.82); ax.set_ylim(-0.32, 2.25); ax.axis('off')
     save(fig, 'fig-12-jump.png')
 
 

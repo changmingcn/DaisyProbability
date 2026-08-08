@@ -110,24 +110,15 @@ def style_run(run, size=11, bold=False, color=BLACK, italic=False,
     rFonts.set(qn('w:hAnsi'), latin_font)
 
 
-VOL2_X_WORDS = {'x', 'dx', 'xh', 'nx'}
-
-
-def split_variable_x(text):
-    """下册把数学变量 x 单独切成 run；max、convex 等英文词不拆。"""
-    if not IS_VOL2 or 'x' not in text:
+def split_latin_text(text):
+    """下册把所有拉丁字母切成单独 run，统一使用 Georgia 斜体。"""
+    if not IS_VOL2 or not re.search(r'[A-Za-z]', text):
         return [(text, False)]
     out, cursor = [], 0
     for match in re.finditer(r'[A-Za-z]+', text):
         if match.start() > cursor:
             out.append((text[cursor:match.start()], False))
-        word = match.group(0)
-        if word in VOL2_X_WORDS:
-            for part in re.split(r'(x)', word):
-                if part:
-                    out.append((part, part == 'x'))
-        else:
-            out.append((word, False))
+        out.append((match.group(0), True))
         cursor = match.end()
     if cursor < len(text):
         out.append((text[cursor:], False))
@@ -135,13 +126,13 @@ def split_variable_x(text):
 
 
 def add_text_runs(par, text, size, bold, color, subscript=False, superscript=False):
-    """写普通文字；下册的变量 x 用左右不对称的 Georgia 斜体。"""
-    for part, is_variable_x in split_variable_x(text):
+    """写普通文字；下册所有拉丁字母统一用 Georgia 斜体。"""
+    for part, is_latin in split_latin_text(text):
         if not part:
             continue
         run = par.add_run(part)
-        style_run(run, size, bold, color, italic=is_variable_x,
-                  latin_font=VARIABLE_FONT if is_variable_x else LAT_FONT)
+        style_run(run, size, bold, color, italic=is_latin,
+                  latin_font=VARIABLE_FONT if is_latin else LAT_FONT)
         run.font.subscript = subscript
         run.font.superscript = superscript
 

@@ -12,6 +12,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 第二个参数指定分册目录（默认当前册）；两册共用同一套管线
 BOOK = os.path.join(HERE, sys.argv[1]) if len(sys.argv) > 1 else HERE
+IS_VOL2 = os.path.basename(os.path.normpath(BOOK)) == 'vol2'
 TITLE = (open(os.path.join(BOOK, 'TITLE'), encoding='utf-8').read().strip()
         if os.path.exists(os.path.join(BOOK, 'TITLE')) else '给小学生讲微积分（上）')
 DOCX = os.path.join(BOOK, TITLE + '.docx')
@@ -48,8 +49,24 @@ for b in bad[:10]:
     print('        ->', b)
 
 # ---- 2. 上下标真的生效了
-subs = sum(1 for p in walk_paragraphs() for r in p.runs if r.font.subscript)
-sups = sum(1 for p in walk_paragraphs() for r in p.runs if r.font.superscript)
+def vert_count(attr):
+    if not IS_VOL2:
+        return sum(1 for p in walk_paragraphs() for r in p.runs if getattr(r.font, attr))
+    # 下册的上标 n−1 会按字体拆成 Georgia 的 n 与正体的 −1；它们仍是同一个上标。
+    # 因此按每段里连续的上下标组计数，而不是把字体切换误算成新的标记。
+    total = 0
+    for p in walk_paragraphs():
+        active = False
+        for r in p.runs:
+            current = bool(getattr(r.font, attr))
+            if current and not active:
+                total += 1
+            active = current
+    return total
+
+
+subs = vert_count('subscript')
+sups = vert_count('superscript')
 # 和源文件对账。注意 [[...]] 里的 ^ 是 mathtext（画进分数图里），不产生 docx 上标。
 SKIP_SPAN = re.compile(r'\[\[[^\]]+\]\]|\{\{.*?\}\}')
 src_sub = src_sup = 0
@@ -58,9 +75,10 @@ for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     src_sub += len(re.findall(r'~[^~\n]+~', body))
     src_sup += len(re.findall(r'\^[^^\n]+\^', body))
 print('\n[2] 上下标')
-check(subs == src_sub, '下标 run %d ＝ 源文件 ~…~ 标记 %d' % (subs, src_sub))
-check(sups == src_sup, '上标 run %d ＝ 源文件 ^…^ 标记 %d（其余已并入分数图）'
-      % (sups, src_sup))
+unit = '组' if IS_VOL2 else 'run'
+check(subs == src_sub, '下标%s %d ＝ 源文件 ~…~ 标记 %d' % (unit, subs, src_sub))
+check(sups == src_sup, '上标%s %d ＝ 源文件 ^…^ 标记 %d（其余已并入分数图）'
+      % (unit, sups, src_sup))
 
 # ---- 3. 插图：源文件里引用的每一张都被嵌进去了
 refs = []
