@@ -438,7 +438,8 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
 # ---- 3.986 第二册术语口径：不把一次性的专业标签塞进微分主线
 #   2026-08-07 最终口径：求导是 f → f′ 的操作；f′(x) 是某一点的导数（一个数）；
 #   微分 dx → dy＝f′(x)dx 才是局部线性替身。f′ 仍然是函数，但不另称“导函数”。
-#   2026-08-08 追加：计算 f′ 写“对函数求导数／求导”；微分说成给函数做一次“直尺改造”。
+#   2026-08-08 追加：计算 f′ 写“对函数求导数／求导”；微分说成把 y＝f(x)
+#   改造成局部直尺 dy＝f′(x)dx。不能只说“改造”，必须把改造前后都写出来。
 #   学生正文不用“求微分”“算子”“微分变换”；这些词都不能帮助后文继续推理。
 termbad = []
 if BOOK.rstrip(os.sep).endswith('vol2'):
@@ -453,8 +454,14 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
                 termbad.append('%s:%d  “算子”（正文改用“直尺改造”的画面）' % (base, ln))
             if '微分变换' in line:
                 termbad.append('%s:%d  “微分变换”（正文改用“直尺改造”的画面）' % (base, ln))
+            if '把函数 y 改造成' in line:
+                termbad.append('%s:%d  直尺改造没有写出原函数 y＝f(x) 和所得微分' % (base, ln))
+    fifth_text = open(os.path.join(CONTENT, '05-differential.md'), encoding='utf-8').read()
+    canonical_remodel = '把函数 **y ＝ f(x)** 改造成一把只管附近变化的直尺 **dy ＝ f′(x)dx**'
+    if canonical_remodel not in fifth_text:
+        termbad.append('05-differential.md  缺少写全改造前后的主句')
     print('\n[3.986] 第二册术语口径（导数/求导/微分）')
-    check(not termbad, '没有使用“导函数”“求微分”“算子”或“微分变换” (%d 处)' % len(termbad))
+    check(not termbad, '直尺改造写全 y＝f(x) → dy＝f′(x)dx，且没有一次性专业标签 (%d 处)' % len(termbad))
     for x in termbad[:8]:
         print('        ->', x)
 
