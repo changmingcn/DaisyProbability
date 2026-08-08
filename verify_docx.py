@@ -436,8 +436,9 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
 
 # ---- 3.987 第二册以 dy＝f′(p)dx 为主，分数式只在指定位置出现
 #   2026-08-07 用户放松旧禁令：第五篇可用 dy/dx 解释两把 1-形式尺的倍率；
-#   2026-08-08 第十篇只把 d²y/dx² 当作 f″(x) 的常见写法，解释明确留待以后；
-#   附录 A 收录。裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
+#   2026-08-08 第十篇先把 d²y/dx² 当作 f″(x) 的常见写法；
+#   第十一篇借双入口直尺解释 d²f/(dx)²，并以加速度作一次回声；附录 A 收录。
+#   裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
 DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*d[^\]]*\]\]')
 DIFFQUOT_BARE = re.compile(r'\bd[^\s/|]{0,12}\s*/\s*d[^\s/|]{1,12}')
 diffquotbad = []
@@ -445,6 +446,7 @@ diffquot_seen = {}
 diffquot_allowed = {
     '05-differential.md': {'[[dy|dx]]'},
     '10-shape.md': {'[[d^{2}y|dx^{2}]]'},
+    '11-area.md': {'[[d^{2}f|(dx)^{2}]]', '[[d^{2}s|(dt)^{2}]]'},
     '14-appendix.md': {'[[dy|dx]]', '[[d^{2}y|dx^{2}]]'},
 }
 if BOOK.rstrip(os.sep).endswith('vol2'):
@@ -465,7 +467,7 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
         for token in sorted(missing):
             diffquotbad.append('%s  缺少应有的受控记号 %s' % (base, token))
     print('\n[3.987] 第二册微分记号')
-    check(not diffquotbad, '分数式只在第五、十篇和附录出现指定记号 (%d 处越界/缺失)' % len(diffquotbad))
+    check(not diffquotbad, '分数式只在第五、十、十一篇和附录出现指定记号 (%d 处越界/缺失)' % len(diffquotbad))
     for x in diffquotbad[:8]:
         print('        ->', x)
 
