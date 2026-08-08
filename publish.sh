@@ -4,6 +4,7 @@
 #   ./publish.sh            重建 + 校验 + 打包（**不碰 Drive**，日常改稿用这个）
 #   ./publish.sh --upload   上面全做完，再把十二件一起推到 Drive
 #   ./publish.sh --vol vol2 只重建校验某一册（不打包、不上传）
+#   ./publish.sh --upload-vol vol4 只重建并上传概率论三件（Doc、稿件、手册）
 #   ./publish.sh --web      校验互动页 → 推 Drive ＋ 推 book.changming.cyou
 #                           （加 --check-only 就只校验不推）
 #
@@ -40,24 +41,29 @@ say() { echo; echo "──── $* ────"; }
 # 光报错会让这道闸变成每次都要人工处理的路障，于是分两种情形：
 #   两边内容相同 → 说明只是文件被重建过（git checkout / 改完又改回），直接重连；
 #   两边内容不同 → 才是真危险（一边的改动会被另一边盖掉），打出 diff 摘要并中止。
-check_manual_links() {
-  local n a
-  for n in DaisyCalculus DaisyAlgebra DaisyProbability; do
-    a="$HOME/.claude/agents/$n.md"
-    [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
-    [ -e "$a" ] || { ln "$AGENTS/$n.md" "$a" && echo "  ℹ ${n}：agents/ 那份不见了，已从 manuals/ 重连"; continue; }
-    [ "$a" -ef "$AGENTS/$n.md" ] && continue
-    if diff -q "$a" "$AGENTS/$n.md" >/dev/null; then
-      rm "$a" && ln "$AGENTS/$n.md" "$a"
-      echo "  ℹ ${n}：硬链接断过但两边内容一致，已重连"
-    else
-      echo "  ⚠ $n 两边内容不一致（$(diff "$a" "$AGENTS/$n.md" | grep -c '^[<>]') 行不同）：" >&2
-      diff "$a" "$AGENTS/$n.md" | head -6 >&2
-      die "${n}：agents/ 与 manuals/ 已分叉，别让任何一边被无声盖掉。
+check_manual_link() {
+  local n="$1" a
+  a="$HOME/.claude/agents/$n.md"
+  [ -e "$AGENTS/$n.md" ] || die "手册不见了：manuals/$n.md"
+  [ -e "$a" ] || { ln "$AGENTS/$n.md" "$a" && echo "  ℹ ${n}：agents/ 那份不见了，已从 manuals/ 重连"; return; }
+  [ "$a" -ef "$AGENTS/$n.md" ] && return
+  if diff -q "$a" "$AGENTS/$n.md" >/dev/null; then
+    rm "$a" && ln "$AGENTS/$n.md" "$a"
+    echo "  ℹ ${n}：硬链接断过但两边内容一致，已重连"
+  else
+    echo "  ⚠ $n 两边内容不一致（$(diff "$a" "$AGENTS/$n.md" | grep -c '^[<>]') 行不同）：" >&2
+    diff "$a" "$AGENTS/$n.md" | head -6 >&2
+    die "${n}：agents/ 与 manuals/ 已分叉，别让任何一边被无声盖掉。
    看全文差异：diff $a $AGENTS/$n.md
    若 manuals/ 那份对（常见：你刚用 Edit 改了它）：./publish.sh --relink
    若 agents/ 那份对：先把它的内容 Edit 进 manuals/，再 ./publish.sh --relink"
-    fi
+  fi
+}
+
+check_manual_links() {
+  local n
+  for n in DaisyCalculus DaisyAlgebra DaisyProbability; do
+    check_manual_link "$n"
   done
 }
 
@@ -171,6 +177,90 @@ if [ "${1:-}" = "--vol" ]; then
     *) die "未知分册 ${2:-}（可用：vol1 vol2 vol3 vol4）" ;;
   esac
   echo; echo "✓ 单册完成（未打包、未上传）"; exit 0
+fi
+
+# ---------- 只交付第四册 ----------
+# DaisyProbability 的日常出口。它只碰概率论自己的三件：Google Doc、稿件、手册；
+# 不构建、不上传另外三册，也不重打全项目源码包。
+if [ "${1:-}" = "--upload-vol" ]; then
+  [ "${2:-}" = "vol4" ] || die "目前单册上传只支持 vol4（用法：./publish.sh --upload-vol vol4）"
+
+  check_manual_link DaisyProbability
+  build_one vol4 "第四册"
+  if ! python3 audit_refs.py --vol vol4 > "$LOGDIR/refs-vol4.log" 2>&1; then
+    cat "$LOGDIR/refs-vol4.log"
+    die "vol4 引用对账未通过"
+  fi
+  echo "  ✓ vol4 引用对账通过"
+
+  PROB_D1=数学概念笔记/01-三册成书
+  PROB_D2=数学概念笔记/02-三份稿件
+  PROB_D3=数学概念笔记/03-交接手册
+  PROB_DOC_DST="$PROB_D1/给小学生讲概率论.docx"
+  PROB_ITEMS=(
+    "vol4/给小学生讲概率论.docx|$PROB_DOC_DST|docx"
+    "数学概念笔记-第四册-稿件.md|$PROB_D2/数学概念笔记-第四册-稿件.md|raw"
+    "$AGENTS/DaisyProbability.md|$PROB_D3/DaisyProbability.md|raw"
+  )
+
+  say "第四册三件齐否"
+  prob_missing=0
+  for it in "${PROB_ITEMS[@]}"; do
+    IFS='|' read -r src _ _ <<< "$it"
+    [ -f "$src" ] || { echo "  ✗ 缺 $src"; prob_missing=1; }
+  done
+  [ "$prob_missing" -eq 0 ] || die "第四册三件不齐，拒绝上传"
+  echo "  ✓ 第四册三件齐（概率论 Doc ＋ 第四册稿件 ＋ DaisyProbability 手册）"
+
+  prob_id_before=$("$RCLONE" lsjson "Gdrive:$PROB_DOC_DST" \
+    --drive-root-folder-id="$DRIVE_ID" --stat --metadata | \
+    python3 -c 'import json,sys; print(json.load(sys.stdin)["ID"])') || die "读取概率论 Doc id 失败"
+
+  say "推 Drive（只推第四册三件）"
+  prob_n=0
+  trap '[ "${prob_n:-0}" -gt 0 ] && [ "${prob_n:-0}" -lt 3 ] && echo "
+⚠ 第四册只推上去 $prob_n/3 件，重跑 ./publish.sh --upload-vol vol4 补齐" >&2' EXIT
+  for it in "${PROB_ITEMS[@]}"; do
+    IFS='|' read -r src dst kind <<< "$it"
+    if [ "$kind" = docx ]; then
+      "$RCLONE" copyto "$src" "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID" --drive-import-formats docx
+    else
+      "$RCLONE" copyto "$src" "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID"
+    fi
+    if [ "$?" -eq 0 ]; then
+      prob_n=$((prob_n+1)); echo "  ✓ $dst"
+    else
+      echo "  ✗ $dst"
+    fi
+  done
+  [ "$prob_n" -eq 3 ] || die "第四册只上传了 $prob_n/3 件"
+  trap - EXIT
+
+  say "第四册转换验图与对象核对"
+  sleep 20
+  prob_tmp_dir="$(mktemp -d -t docrt-vol4)"
+  prob_tmp="$prob_tmp_dir/probability.docx"
+  "$RCLONE" copyto "Gdrive:$PROB_DOC_DST" "$prob_tmp" --drive-root-folder-id="$DRIVE_ID" \
+    --drive-export-formats docx >/dev/null 2>&1 || die "概率论 Doc 回读失败"
+  python3 - "vol4/给小学生讲概率论.docx" "$prob_tmp" <<'PYCHK'
+import sys, zipfile
+n_local = len([n for n in zipfile.ZipFile(sys.argv[1]).namelist() if n.startswith('word/media/')])
+n_remote = len([n for n in zipfile.ZipFile(sys.argv[2]).namelist() if n.startswith('word/media/')])
+print(f"  本机 {n_local} 张 / Doc {n_remote} 张", end=" ")
+sys.exit(0 if n_local == n_remote else 1)
+PYCHK
+  [ "$?" -eq 0 ] || die "概率论 Doc 转换丢图"
+  echo "✓"
+  rm -f "$prob_tmp"
+  rmdir "$prob_tmp_dir"
+
+  prob_id_after=$("$RCLONE" lsjson "Gdrive:$PROB_DOC_DST" \
+    --drive-root-folder-id="$DRIVE_ID" --stat --metadata | \
+    python3 -c 'import json,sys; print(json.load(sys.stdin)["ID"])') || die "复查概率论 Doc id 失败"
+  [ "$prob_id_before" = "$prob_id_after" ] || die "概率论 Doc id 改变：$prob_id_before → $prob_id_after"
+  echo "  ✓ 概率论 Doc id 未变（${prob_id_after}）"
+  echo; echo "✓ 第四册三件全部上传；另外三册未构建、未上传"
+  exit 0
 fi
 
 # ---------- 三册全量 ----------
