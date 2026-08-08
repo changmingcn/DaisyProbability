@@ -435,11 +435,11 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
     for x in divsignbad[:8]:
         print('        ->', x)
 
-# ---- 3.986 第二册术语口径：“导函数”与“求微分”都禁用
+# ---- 3.986 第二册术语口径：不把一次性的专业标签塞进微分主线
 #   2026-08-07 最终口径：求导是 f → f′ 的操作；f′(x) 是某一点的导数（一个数）；
 #   微分 dx → dy＝f′(x)dx 才是局部线性替身。f′ 仍然是函数，但不另称“导函数”。
-#   2026-08-08 追加：计算 f′ 写“对函数求导数／求导”；使用算子 d 写“对函数做微分变换”。
-#   微分是一个算子，d 是算子的记号，因此不用“求微分”。
+#   2026-08-08 追加：计算 f′ 写“对函数求导数／求导”；微分说成给函数做一次“直尺改造”。
+#   学生正文不用“求微分”“算子”“微分变换”；这些词都不能帮助后文继续推理。
 termbad = []
 if BOOK.rstrip(os.sep).endswith('vol2'):
     for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
@@ -448,14 +448,18 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
             if '导函数' in line:
                 termbad.append('%s:%d  “导函数”（应分成求导操作、点值导数和微分）' % (base, ln))
             if '求微分' in line:
-                termbad.append('%s:%d  “求微分”（应写“求导数”或“做微分变换”）' % (base, ln))
+                termbad.append('%s:%d  “求微分”（应写“求导数”或“做一次直尺改造”）' % (base, ln))
+            if '算子' in line:
+                termbad.append('%s:%d  “算子”（正文改用“直尺改造”的画面）' % (base, ln))
+            if '微分变换' in line:
+                termbad.append('%s:%d  “微分变换”（正文改用“直尺改造”的画面）' % (base, ln))
     print('\n[3.986] 第二册术语口径（导数/求导/微分）')
-    check(not termbad, '没有使用“导函数”或“求微分” (%d 处)' % len(termbad))
+    check(not termbad, '没有使用“导函数”“求微分”“算子”或“微分变换” (%d 处)' % len(termbad))
     for x in termbad[:8]:
         print('        ->', x)
 
 # ---- 3.987 第二册以 dy＝f′(p)dx 为主，分数式只在指定位置出现
-#   2026-08-07 用户放松旧禁令：第五篇可用 dy/dx 解释两把 1-形式尺的倍率；
+#   2026-08-07 用户放松旧禁令：第五篇可用 dy/dx 解释两把直尺的倍率；
 #   2026-08-08 第十篇先把 d²y/dx² 当作 f″(x) 的常见写法；
 #   第十一篇借双入口直尺解释 d²f/(dx)²，并以加速度作一次回声；附录 A 收录。
 #   裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
