@@ -1298,12 +1298,118 @@ def fig37():
     save(fig, 'fig-37-second-differential.png')
 
 
+def fig38():
+    """换横尺不换微分：y=4x² 改用 u=2x 后成为 y=u²，同一支箭头仍读出 dy=2。"""
+    fig, axs = plt.subplots(1, 2, figsize=(7.4, 4.45))
+    fig.subplots_adjust(left=0.06, right=0.97, top=0.80, bottom=0.24, wspace=0.20)
+
+    blue = '#5A8FD8'
+    panels = [
+        dict(ax=axs[0], xmax=1.55, point=1.0, step=0.25,
+             curve=lambda z: 4 * z ** 2, slope=8.0,
+             ticks=[0, 0.5, 1.0, 1.5],
+             title='$x$ 尺：$y=4x^2$', point_text='$x=1$',
+             step_text=r'$dx=\frac{1}{4}$', rate_text=r'$dy=8dx=2$'),
+        dict(ax=axs[1], xmax=3.10, point=2.0, step=0.50,
+             curve=lambda z: z ** 2, slope=4.0,
+             ticks=[0, 1.0, 2.0, 3.0],
+             title='$u$ 尺：$y=u^2$', point_text='$u=2$',
+             step_text=r'$du=\frac{1}{2}$', rate_text=r'$dy=4du=2$'),
+    ]
+
+    for item in panels:
+        ax = item['ax']
+        xmax = item['xmax']
+        p = item['point']
+        step = item['step']
+        slope = item['slope']
+        y0 = item['curve'](p)
+        dy = slope * step
+        end = p + step
+
+        # 两幅图使用同一块画布，只更换横尺刻度；纵尺完全不动。
+        ax.annotate('', xy=(xmax, 0), xytext=(-0.04 * xmax, 0),
+                    arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.45))
+        ax.annotate('', xy=(0, 9.35), xytext=(0, -0.25),
+                    arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.45))
+        z = np.linspace(0, xmax * 0.98, 300)
+        ax.plot(z, item['curve'](z), color=NAVY, lw=2.5, zorder=3)
+
+        # p 点的切线和同一支微分箭头；箭头终点在切线上，不冒充曲线真变化。
+        tangent_z = np.linspace(p - 0.17 * xmax, p + 0.30 * xmax, 60)
+        ax.plot(tangent_z, y0 + slope * (tangent_z - p),
+                color=GREEN, lw=1.35, ls='--', alpha=0.80, zorder=2)
+        ax.annotate('', xy=(end, y0 + dy), xytext=(p, y0),
+                    arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=3.0,
+                                    mutation_scale=14), zorder=6)
+        ax.plot([p], [y0], 'o', ms=7.5, color=ORANGE, zorder=7)
+        ax.plot([end], [y0 + dy], 'o', ms=7, markerfacecolor='white',
+                markeredgecolor=GREEN, markeredgewidth=1.8, zorder=7)
+
+        # 横读数与竖读数分色画出；同一支箭头的两份读数一眼可核。
+        bracket_y = y0 - 0.65
+        ax.annotate('', xy=(end, bracket_y), xytext=(p, bracket_y),
+                    arrowprops=dict(arrowstyle='<->', color=blue, lw=1.8))
+        ax.plot([p, p], [bracket_y, y0], color=blue, lw=0.9, ls=':')
+        ax.plot([end, end], [bracket_y, y0 + dy], color=GREY, lw=0.9, ls=':')
+        ax.text((p + end) / 2, bracket_y - 0.34, item['step_text'],
+                ha='center', va='top', fontsize=11.2, color=blue)
+
+        bracket_x = end + 0.055 * xmax
+        ax.annotate('', xy=(bracket_x, y0 + dy), xytext=(bracket_x, y0),
+                    arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.8))
+        ax.text(bracket_x + 0.035 * xmax, y0 + dy / 2, '$dy=2$',
+                ha='left', va='center', fontsize=11.2, color=ORANGE)
+
+        for tick in item['ticks']:
+            ax.plot([tick, tick], [-0.10, 0.10], color=NAVY, lw=0.8)
+            ax.text(tick, -0.38, f'{tick:g}', ha='center', va='top',
+                    fontsize=8.8, color=NAVY)
+        for tick in (2, 4, 6, 8):
+            ax.plot([-0.015 * xmax, 0.015 * xmax], [tick, tick], color=NAVY, lw=0.8)
+            ax.text(-0.035 * xmax, tick, str(tick), ha='right', va='center',
+                    fontsize=8.5, color=NAVY)
+
+        ax.text(0.5, 1.05, item['title'], transform=ax.transAxes,
+                ha='center', va='bottom', fontsize=13.0, color=NAVY,
+                fontweight='bold')
+        ax.text(p - 0.04 * xmax, y0 + 0.55, item['point_text'],
+                ha='right', va='bottom', fontsize=10.5, color=ORANGE)
+        ax.text(0.5, -0.16, item['rate_text'], transform=ax.transAxes,
+                ha='center', va='top', fontsize=12.0, color=GREEN,
+                fontweight='bold')
+        ax.set_xlim(-0.10 * xmax, 1.08 * xmax)
+        ax.set_ylim(-0.75, 9.75)
+        ax.axis('off')
+
+    fig.text(0.5, 0.965, '换的只是横尺，同一个微分仍在量同一支箭头',
+             ha='center', va='top', fontsize=15.0, color=NAVY,
+             fontweight='bold')
+    fig.text(0.5, 0.855, '$u=2x$', ha='center', va='center', fontsize=12.2,
+             color=ORANGE, fontweight='bold')
+    fig.text(0.5, 0.105, '$du=2dx$，所以 $8dx=4du=2$',
+             ha='center', va='center', fontsize=12.7, color=NAVY,
+             fontweight='bold')
+    fig.text(0.5, 0.035, '倍率减半，横尺读数加倍；竖直读数没有变。',
+             ha='center', va='bottom', fontsize=10.2, color=GREY)
+
+    # 图上每个数都必须对应同一个点、同一支箭头和同一个 dy。
+    x_p, u_p, dx, du, dy = 1.0, 2.0, 0.25, 0.50, 2.0
+    assert np.isclose(u_p, 2 * x_p)
+    assert np.isclose(du, 2 * dx)
+    assert np.isclose(4 * x_p ** 2, u_p ** 2)
+    assert np.isclose(8 * dx, dy) and np.isclose(4 * du, dy)
+    assert np.isclose(x_p / 1.55, u_p / 3.10)
+    assert np.isclose(dx / 1.55, du / 3.10)
+    save(fig, 'fig-38-change-ruler.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
               fig28, fig29, fig30, fig31, fig32, fig33, fig34, fig35, fig36,
-              fig37):
+              fig37, fig38):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
