@@ -984,11 +984,63 @@ def fig34():
     save(fig, 'fig-34-absolute-value-derivative.png')
 
 
+def fig35():
+    """正方形边长从 3 增加 dx：两条线性窄边 6dx，加一个二次小角。"""
+    fig, ax = plt.subplots(figsize=(6.3, 4.1))
+    side, step = 3.0, 0.72
+
+    # 原正方形、两条一阶窄边、右上角二阶小块
+    ax.add_patch(Rectangle((0, 0), side, side, fc=LIGHT, ec=NAVY, lw=1.8, zorder=2))
+    ax.add_patch(Rectangle((side, 0), step, side, fc='#DDF2E9', ec=GREEN,
+                           lw=1.7, zorder=3))
+    ax.add_patch(Rectangle((0, side), side, step, fc='#DDF2E9', ec=GREEN,
+                           lw=1.7, zorder=3))
+    ax.add_patch(Rectangle((side, side), step, step, fc=BAND, ec=ORANGE,
+                           lw=1.7, zorder=4))
+
+    ax.text(side / 2, side / 2, '原来的面积 9', ha='center', va='center',
+            fontsize=12, color=NAVY)
+    ax.text(side / 2, side + step / 2, r'$3dx$', ha='center', va='center',
+            fontsize=12, color=GREEN)
+    ax.text(side + step / 2, side / 2, r'$3dx$', ha='center', va='center',
+            fontsize=12, color=GREEN, rotation=90)
+    ax.text(side + step / 2, side + step / 2, r'$dx^2$', ha='center',
+            va='center', fontsize=13, color=ORANGE, zorder=6)
+
+    # 尺寸：旧边长是 3，新添的一小段是 dx
+    ydim = -0.34
+    ax.annotate('', xy=(side, ydim), xytext=(0, ydim),
+                arrowprops=dict(arrowstyle='<->', color=NAVY, lw=1.2))
+    ax.text(side / 2, ydim - 0.11, '3', ha='center', va='top', fontsize=10.5, color=NAVY)
+    ax.annotate('', xy=(side + step, ydim), xytext=(side, ydim),
+                arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.2))
+    ax.text(side + step / 2, ydim - 0.11, r'$dx$', ha='center', va='top',
+            fontsize=10.5, color=ORANGE)
+
+    ax.text(1.86, -0.82, '两条绿色窄边合起来是 6dx：跟 dx 成正比',
+            ha='center', fontsize=10.5, color=GREEN)
+    ax.annotate('右上角是弯曲留下的小角', xy=(side + step, side + step / 2),
+                xytext=(4.15, 3.35), ha='left', va='center', fontsize=10, color=ORANGE,
+                arrowprops=dict(arrowstyle='->', color=ORANGE, lw=1.2))
+
+    # 不变量：新增面积精确分为两条 3dx 和一个 (dx)^2
+    old_area = side ** 2
+    new_area = (side + step) ** 2
+    linear = 2 * side * step
+    corner = step ** 2
+    assert abs((new_area - old_area) - (linear + corner)) < 1e-12
+    assert abs(linear - 6 * step) < 1e-12
+
+    ax.set_xlim(-0.25, 5.85); ax.set_ylim(-1.08, 4.05)
+    ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-35-square-differential.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30, fig31, fig32, fig33, fig34):
+              fig28, fig29, fig30, fig31, fig32, fig33, fig34, fig35):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
