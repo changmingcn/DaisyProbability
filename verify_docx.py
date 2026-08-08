@@ -435,9 +435,11 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
     for x in divsignbad[:8]:
         print('        ->', x)
 
-# ---- 3.986 第二册不许再用“导函数”这个名称
+# ---- 3.986 第二册术语口径：“导函数”与“求微分”都禁用
 #   2026-08-07 最终口径：求导是 f → f′ 的操作；f′(x) 是某一点的导数（一个数）；
 #   微分 dx → dy＝f′(x)dx 才是局部线性替身。f′ 仍然是函数，但不另称“导函数”。
+#   2026-08-08 追加：计算 f′ 写“对函数求导数／求导”；使用算子 d 写“对函数做微分变换”。
+#   微分是一个算子，d 是算子的记号，因此不用“求微分”。
 termbad = []
 if BOOK.rstrip(os.sep).endswith('vol2'):
     for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
@@ -445,8 +447,10 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
         for ln, line in enumerate(open(f, encoding='utf-8'), 1):
             if '导函数' in line:
                 termbad.append('%s:%d  “导函数”（应分成求导操作、点值导数和微分）' % (base, ln))
+            if '求微分' in line:
+                termbad.append('%s:%d  “求微分”（应写“求导数”或“做微分变换”）' % (base, ln))
     print('\n[3.986] 第二册术语口径（导数/求导/微分）')
-    check(not termbad, '没有使用“导函数”这个名称 (%d 处)' % len(termbad))
+    check(not termbad, '没有使用“导函数”或“求微分” (%d 处)' % len(termbad))
     for x in termbad[:8]:
         print('        ->', x)
 
