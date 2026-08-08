@@ -1182,28 +1182,28 @@ def fig36():
 
 
 def fig37():
-    """第二微分的两个工作位：搬直尺的 b，与交给直尺量的 a。"""
+    """第二微分的两个工作位：搬直尺的 b，与交给直尺量的 u。"""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.2, 3.6),
                                    gridspec_kw={'width_ratios': [1.25, 0.95]})
     math_style = dict(math_fontfamily='custom')
 
-    # 左：平方曲线上两站，给两把微分直尺同一支横向箭头 a。
-    p, b, a = 0.9, 0.72, 0.52
+    # 左：平方曲线上两站，给两把微分直尺同一支横向箭头 u。
+    p, b, u = 0.9, 0.72, 0.52
     xs = np.linspace(0.25, 2.65, 240)
     ax1.plot(xs, xs ** 2, color=NAVY, lw=2.0, zorder=2)
     rises = []
     for base, color in ((p, GREEN), (p + b, ORANGE)):
         y0 = base ** 2
         slope = 2 * base
-        y1 = y0 + slope * a
+        y1 = y0 + slope * u
         rises.append(y1 - y0)
         ax1.plot([base], [y0], 'o', ms=7, color=color, zorder=5)
-        ax1.plot([base, base + a], [y0, y1], color=GREEN, lw=2.2, zorder=4)
-        ax1.annotate('', xy=(base + a, y0 - 0.16), xytext=(base, y0 - 0.16),
+        ax1.plot([base, base + u], [y0, y1], color=GREEN, lw=2.2, zorder=4)
+        ax1.annotate('', xy=(base + u, y0 - 0.16), xytext=(base, y0 - 0.16),
                      arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.3))
-        ax1.text(base + a / 2, y0 - 0.27, r'$a$', ha='center', va='top',
+        ax1.text(base + u / 2, y0 - 0.27, r'$u$', ha='center', va='top',
                  fontsize=10.5, color=ORANGE, **math_style)
-        ax1.plot([base + a, base + a], [y0, y1], color=GREY, lw=1.0, ls=':')
+        ax1.plot([base + u, base + u], [y0, y1], color=GREY, lw=1.0, ls=':')
 
     # 搬家箭头 b。
     ax1.annotate('', xy=(p + b, 0.30), xytext=(p, 0.30),
@@ -1218,7 +1218,7 @@ def fig37():
              va='top', fontsize=10.8, color=NAVY)
     ax1.text(1.43, 5.53, '两把直尺的绿色读数相差', ha='center', va='top',
              fontsize=10.2, color=GREEN)
-    ax1.text(1.43, 5.18, r'$2(p+b)a-2pa=2ba$', ha='center', va='top',
+    ax1.text(1.43, 5.18, r'$2(p+b)u-2pu=2bu$', ha='center', va='top',
              fontsize=11.2, color=GREEN, **math_style)
     ax1.set_xlim(0.15, 2.85); ax1.set_ylim(0.0, 6.15); ax1.axis('off')
 
@@ -1227,7 +1227,7 @@ def fig37():
              fontsize=11.2, color=NAVY, transform=ax2.transAxes,
              **math_style)
     slots = [(0.18, 0.59, NAVY, '搬直尺', r'$dx(b)=b$'),
-             (0.58, 0.59, ORANGE, '量箭头', r'$dx(a)=a$')]
+             (0.58, 0.59, ORANGE, '量箭头', r'$dx(u)=u$')]
     for x0, y0, color, title, formula in slots:
         ax2.add_patch(FancyBboxPatch((x0, y0), 0.25, 0.18,
                                      boxstyle='round,pad=0.025,rounding_size=0.025',
@@ -1247,10 +1247,10 @@ def fig37():
                                  boxstyle='round,pad=0.03,rounding_size=0.025',
                                  fc='#DDF2E9', ec=GREEN, lw=1.6,
                                  transform=ax2.transAxes))
-    ax2.text(0.50, 0.275, r'$(dx)^2(b,a)=ba$', ha='center', va='center',
+    ax2.text(0.50, 0.275, r'$(dx)^2(b,u)=bu$', ha='center', va='center',
              fontsize=11.4, color=GREEN, transform=ax2.transAxes,
              **math_style)
-    ax2.text(0.50, 0.205, r'$d^2f_p(b,a)=f^{\prime\prime}(p)ba$',
+    ax2.text(0.50, 0.205, r'$d^2f_p(b,u)=f^{\prime\prime}(p)bu$',
              ha='center', va='center', fontsize=10.8, color=NAVY,
              transform=ax2.transAxes, **math_style)
     ax2.text(0.50, 0.06, '两个入口各自都是线性的', ha='center', va='bottom',
@@ -1258,7 +1258,7 @@ def fig37():
     ax2.axis('off')
 
     # 不变量：平方函数中，同一箭头在相邻两站的微分读数差恰为 2ab。
-    assert abs((rises[1] - rises[0]) - 2 * a * b) < 1e-12
+    assert abs((rises[1] - rises[0]) - 2 * u * b) < 1e-12
     save(fig, 'fig-37-second-differential.png')
 
 

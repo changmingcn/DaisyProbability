@@ -439,7 +439,7 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
 #   2026-08-08 第十篇先把 d²y/dx² 当作 f″(x) 的常见写法；
 #   第十一篇借双入口直尺解释 d²f/(dx)²，并以加速度作一次回声；附录 A 收录。
 #   裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
-DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*d[^\]]*\]\]')
+DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*\(?d[^\]]*\]\]')
 DIFFQUOT_BARE = re.compile(r'\bd[^\s/|]{0,12}\s*/\s*d[^\s/|]{1,12}')
 diffquotbad = []
 diffquot_seen = {}
