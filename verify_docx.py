@@ -167,11 +167,11 @@ for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     body = open(f, encoding='utf-8').read()
     m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
     if m:
-        chapters[m.group(1)] = set(re.findall(r'(?m)^## ([一二三四五六七八九零])、', body))
+        chapters[m.group(1)] = set(re.findall(r'(?m)^## ([一二三四五六七八九十零]+)、', body))
 bad_refs = []
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     text = open(f, encoding='utf-8').read()
-    for m in re.finditer(r'(第[一二三四五六七八九十]+篇)第([一二三四五六七八九十])节', text):
+    for m in re.finditer(r'(第[一二三四五六七八九十]+篇)第([一二三四五六七八九十]+)节', text):
         # 跨册引用（"第一册第二篇第六节"）说的是另一册的小节，本册无从校验 —— 必须豁免。
         # 由来（2026-08-01 第二册拆篇）：这条以前一直"通过"，纯属巧合——当时本册第二篇
         # 恰好也有第六节。拆篇后本册第二篇只剩三节，它立刻误报。[3.92]/[3.93] 早就做了
@@ -202,9 +202,9 @@ for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     if not m:
         continue                      # 前言/附录没有"本篇"，裸引用无从校验
     own = m.group(1)
-    secs = set(re.findall(r'(?m)^## ([一二三四五六七八九零])、', body))
+    secs = set(re.findall(r'(?m)^## ([一二三四五六七八九十零]+)、', body))
     for ln, line in enumerate(body.split('\n'), 1):
-        for mm in re.finditer(r'(?<!篇)第([一二三四五六七八九十])节', line):
+        for mm in re.finditer(r'(?<!篇)第([一二三四五六七八九十]+)节', line):
             if mm.group(1) not in secs:
                 bare.append('%s:%d  裸引用"第%s节"，但%s没有这一节（只有 %s）'
                             % (os.path.basename(f), ln, mm.group(1), own,

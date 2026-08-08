@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Rectangle, FancyBboxPatch, Circle
+from matplotlib.patches import Rectangle, FancyBboxPatch, Circle, Polygon
 from matplotlib.offsetbox import AnnotationBbox, HPacker, TextArea
 from matplotlib.text import Text
 
@@ -1105,11 +1105,87 @@ def fig35():
     save(fig, 'fig-35-square-differential.png')
 
 
+def fig36():
+    """台阶线盘山：同一批小立方块，按层归组或沿一根绳归组。"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 3.8))
+    n = 4
+
+    def project(i, j, level, k):
+        """把一层 k×k 方格作轻微透视投影。"""
+        x = (i - (k - 1) / 2) * 0.46 + (j - (k - 1) / 2) * 0.15
+        y = level * 0.78 + (j - (k - 1) / 2) * 0.14
+        return x, y
+
+    def layer_corners(level, k):
+        return [project(-0.5, -0.5, level, k),
+                project(k - 0.5, -0.5, level, k),
+                project(k - 0.5, k - 0.5, level, k),
+                project(-0.5, k - 0.5, level, k)]
+
+    # 左：把同一高度的小块先归成一层。
+    for level in range(n):
+        k = n - level
+        face = BAND if level == 1 else LIGHT
+        edge = ORANGE if level == 1 else NAVY
+        ax1.add_patch(Polygon(layer_corners(level, k), closed=True,
+                              facecolor=face, edgecolor=edge, lw=1.4,
+                              zorder=2 + level))
+        cx, cy = project((k - 1) / 2, (k - 1) / 2, level, k)
+        ax1.text(cx, cy + 0.02, rf'${k}^2$', ha='center', va='center',
+                 fontsize=11, color=edge, zorder=10)
+    ax1.plot([0, 0], [-0.42, 3.15], color=GREY, lw=1.2, ls='--', zorder=1)
+    ax1.annotate('', xy=(-1.62, 2.86), xytext=(-1.62, -0.26),
+                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=1.6))
+    ax1.text(-1.74, 1.28, '沿竖轴一层层数', rotation=90, ha='center',
+             va='center', fontsize=10.5, color=GREEN)
+    ax1.text(0, -0.67, '先把同一层归成一片', ha='center', fontsize=10.5,
+             color=NAVY)
+    ax1.set_xlim(-2.0, 2.0); ax1.set_ylim(-0.82, 3.35); ax1.axis('off')
+
+    # 右：每层用蛇形路线穿过全部小块，再接到相邻一层。
+    previous_end = None
+    total_cells = 0
+    for level in range(n):
+        k = n - level
+        ax2.add_patch(Polygon(layer_corners(level, k), closed=True,
+                              facecolor='white', edgecolor=NAVY, lw=1.1,
+                              zorder=2 + level))
+        path = []
+        for j in range(k):
+            order = range(k) if j % 2 == 0 else range(k - 1, -1, -1)
+            for i in order:
+                path.append(project(i, j, level, k))
+        total_cells += len(path)
+        if previous_end is not None:
+            ax2.plot([previous_end[0], path[0][0]], [previous_end[1], path[0][1]],
+                     color=ORANGE, lw=2.5, zorder=8)
+        ax2.plot([p[0] for p in path], [p[1] for p in path], color=ORANGE,
+                 lw=2.8, solid_capstyle='round', zorder=8)
+        ax2.plot([p[0] for p in path], [p[1] for p in path], 'o', ms=3.4,
+                 color=ORANGE, zorder=9)
+        previous_end = path[-1]
+    ax2.plot([0, 0], [-0.42, 3.15], color=GREY, lw=1.2, ls='--', zorder=1)
+    ax2.text(0.10, 3.10, '立在地面上的轴', ha='left', va='bottom',
+             fontsize=9.8, color=GREY)
+    ax2.text(0, -0.67, '再把所有小段按绳的次序串起来', ha='center',
+             fontsize=10.5, color=ORANGE)
+    # 方截面小图：强调纯曲线没有体积，软绳有二维横截面。
+    ax2.add_patch(Rectangle((1.22, 0.18), 0.42, 0.42, fc=BAND, ec=ORANGE,
+                            lw=1.3, zorder=10))
+    ax2.text(1.43, 0.02, r'$(b/n)^2$', ha='center', va='top', fontsize=10,
+             color=ORANGE, zorder=10)
+    ax2.set_xlim(-2.0, 2.0); ax2.set_ylim(-0.82, 3.35); ax2.axis('off')
+
+    # 不变量：四层依次含 4²、3²、2²、1² 个小块；沿绳仍只数这些块。
+    assert total_cells == sum(k * k for k in range(1, n + 1))
+    save(fig, 'fig-36-line-mountain.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30, fig31, fig32, fig33, fig34, fig35):
+              fig28, fig29, fig30, fig31, fig32, fig33, fig34, fig35, fig36):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')

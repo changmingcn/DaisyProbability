@@ -56,7 +56,7 @@ def load(vol, sub):
             continue
         secs, cur, buf = {}, None, []
         for line in body.split('\n'):
-            h = re.match(r'^## ([一二三四五六七八九十零])、(.*)$', line)
+            h = re.match(r'^## ([一二三四五六七八九十零]+)、(.*)$', line)
             if h:
                 if cur:
                     secs[cur] = '\n'.join(buf)
@@ -79,8 +79,8 @@ ALLTEXT = {v: norm('\n'.join(d['body'] for d in BOOKS[v].values())
 
 # 引用：可带册前缀、可带节号
 REF = re.compile(r'(?:(第[一二三]册)\s*)?(第[一二三四五六七八九十]+篇)'
-                 r'(?:第([一二三四五六七八九十])节)?')
-BARE = re.compile(r'(?<![篇册])第([一二三四五六七八九十])节')
+                 r'(?:第([一二三四五六七八九十]+)节)?')
+BARE = re.compile(r'(?<![篇册])第([一二三四五六七八九十]+)节')
 
 # 从引用句里挑"可对账的承诺"：**只认引号里的话**。
 # 加粗试过，全是噪音——加粗是本句自己的强调，不是对目标那一节的转述。
@@ -171,7 +171,7 @@ def main():
                             continue
                         # 引用串本身不是承诺：「第五篇第五节」「第一册第二篇」都要滤掉
                         if re.fullmatch(r'[^一-鿿]*(第[一二三]册)?(第[一二三四五六七八九十]+篇)?'
-                                        r'(第[一二三四五六七八九十]节)?[^一-鿿]*', tok):
+                                        r'(第[一二三四五六七八九十]+节)?[^一-鿿]*', tok):
                             continue
                         ntok += 1
                         lvl, why = locate(tok, tvol, chap, sec, vol, own, line)
