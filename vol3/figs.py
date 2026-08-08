@@ -785,10 +785,43 @@ def figr25():
     save(fig, 'fig-r25-toy-photo.png')
 
 
+def figr26():
+    """向量的算术：左＝加法（接着走），右＝乘倍数（同样的路走几遍）。"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.8, 3.5))
+
+    # 左：(3, 2) ＋ (1, 4) ＝ (4, 6)
+    grid(ax1, 0, 5, 0, 6)
+    axes_cross(ax1, -0.5, 5.4, -1.1, 6.8)
+    ax1.annotate('', xy=(3, 2), xytext=(0, 0),
+                 arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.6))
+    ax1.annotate('', xy=(4, 6), xytext=(3, 2),
+                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=2.6))
+    ax1.plot([4], [6], 'o', ms=8, color=NAVY, zorder=5)
+    ax1.text(4.15, 6.05, '(4, 6)', fontsize=11, color=NAVY)
+    ax1.text(1.9, 0.55, '先照 (3, 2) 走', fontsize=10.5, color=ORANGE, ha='center')
+    ax1.text(3.75, 3.6, '再照 (1, 4) 走', fontsize=10.5, color=GREEN, ha='left')
+    ax1.text(2.5, -0.85, '加法：接着走', fontsize=10.5, color=NAVY, ha='center')
+
+    # 右：2 × (3, 2) ＝ (6, 4)——同一条路走两遍
+    grid(ax2, 0, 7, 0, 5)
+    axes_cross(ax2, -0.5, 7.4, -1.1, 5.2)
+    ax2.annotate('', xy=(3, 2), xytext=(0, 0),
+                 arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.6))
+    ax2.annotate('', xy=(6, 4), xytext=(3.08, 2.05),
+                 arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.6, alpha=0.65))
+    ax2.plot([3], [2], 'o', ms=5.5, color=ORANGE, zorder=5)
+    ax2.text(2.6, 2.35, '(3, 2)', fontsize=10.5, color=ORANGE, ha='right')
+    ax2.plot([6], [4], 'o', ms=8, color=NAVY, zorder=5)
+    ax2.text(6.15, 4.1, '(6, 4)', fontsize=11, color=NAVY)
+    ax2.text(3.5, -0.85, '乘 2 倍：同样的路走两遍', fontsize=10.5, color=NAVY, ha='center')
+
+    save(fig, 'fig-r26-vec-arith.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (figr00, figr01, figr02, figr03, figr04, figr05, figr06,
               figr10, figr11, figr12, figr13, figr15, figr17, figr19,
-              figr20, figr21, figr22, figr23, figr24, figr25):
+              figr20, figr21, figr22, figr23, figr24, figr25, figr26):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
