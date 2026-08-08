@@ -36,6 +36,7 @@ CONTENT = os.path.join(BOOK, 'content')
 TITLE = (open(os.path.join(BOOK, 'TITLE'), encoding='utf-8').read().strip()
          if os.path.exists(os.path.join(BOOK, 'TITLE')) else '给小学生讲微积分（上）')
 OUTPUT = os.path.join(BOOK, TITLE + '.docx')
+IS_VOL2 = os.path.basename(os.path.normpath(BOOK)) == 'vol2'
 
 # 行内分数图片的总高 = 字号 × 这个倍数。分数是上下两层，本来就比一行字高。
 FRAC_SCALE = 1.85
@@ -48,6 +49,7 @@ BLACK = RGBColor(0x22, 0x22, 0x22)
 
 CN_FONT = 'Noto Sans SC'
 LAT_FONT = 'Noto Sans SC'
+VARIABLE_FONT = 'Georgia'
 
 BOXES = {
     'remember': ('DCE7F7', NAVY),      # 必须记住
@@ -91,20 +93,68 @@ def png_size(path):
     return w, h
 
 
-def style_run(run, size=11, bold=False, color=BLACK, italic=False):
+def style_run(run, size=11, bold=False, color=BLACK, italic=False,
+              latin_font=LAT_FONT):
     run.font.size = Pt(size)
     run.bold = bold
     run.italic = italic
     run.font.color.rgb = color
-    run.font.name = LAT_FONT
+    run.font.name = latin_font
     rPr = run._element.get_or_add_rPr()
     rFonts = rPr.find(qn('w:rFonts'))
     if rFonts is None:
         rFonts = OxmlElement('w:rFonts')
         rPr.append(rFonts)
     rFonts.set(qn('w:eastAsia'), CN_FONT)
-    rFonts.set(qn('w:ascii'), LAT_FONT)
-    rFonts.set(qn('w:hAnsi'), LAT_FONT)
+    rFonts.set(qn('w:ascii'), latin_font)
+    rFonts.set(qn('w:hAnsi'), latin_font)
+
+
+VOL2_X_WORDS = {'x', 'dx', 'xh', 'nx'}
+
+
+def split_variable_x(text):
+    """下册把数学变量 x 单独切成 run；max、convex 等英文词不拆。"""
+    if not IS_VOL2 or 'x' not in text:
+        return [(text, False)]
+    out, cursor = [], 0
+    for match in re.finditer(r'[A-Za-z]+', text):
+        if match.start() > cursor:
+            out.append((text[cursor:match.start()], False))
+        word = match.group(0)
+        if word in VOL2_X_WORDS:
+            for part in re.split(r'(x)', word):
+                if part:
+                    out.append((part, part == 'x'))
+        else:
+            out.append((word, False))
+        cursor = match.end()
+    if cursor < len(text):
+        out.append((text[cursor:], False))
+    return out
+
+
+def add_text_runs(par, text, size, bold, color, subscript=False, superscript=False):
+    """写普通文字；下册的变量 x 用左右不对称的 Georgia 斜体。"""
+    for part, is_variable_x in split_variable_x(text):
+        if not part:
+            continue
+        run = par.add_run(part)
+        style_run(run, size, bold, color, italic=is_variable_x,
+                  latin_font=VARIABLE_FONT if is_variable_x else LAT_FONT)
+        run.font.subscript = subscript
+        run.font.superscript = superscript
+
+
+def set_mathtext_font(plt):
+    """分数和矩阵是图片；下册同样让 x 与对称的乘号 × 拉开字形。"""
+    if IS_VOL2:
+        plt.rcParams['mathtext.fontset'] = 'custom'
+        plt.rcParams['mathtext.rm'] = VARIABLE_FONT
+        plt.rcParams['mathtext.it'] = VARIABLE_FONT + ':italic'
+        plt.rcParams['mathtext.bf'] = VARIABLE_FONT + ':bold'
+    else:
+        plt.rcParams['mathtext.fontset'] = 'dejavusans'
 
 
 def frac_png(num, den, color):
@@ -123,7 +173,7 @@ def frac_png(num, den, color):
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        plt.rcParams['mathtext.fontset'] = 'dejavusans'
+        set_mathtext_font(plt)
         fig = plt.figure(figsize=(1.2, 1.2))
         fig.text(0.05, 0.05, r'$\frac{%s}{%s}$' % (num, den),
                  fontsize=46, color='#' + hexcol)
@@ -175,7 +225,7 @@ def matrix_png(body, color):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from matplotlib.lines import Line2D
-        plt.rcParams['mathtext.fontset'] = 'dejavusans'
+        set_mathtext_font(plt)
         CW, CH, BR, PAD = 0.62, 0.55, 0.16, 0.10   # 列宽/行高/括号区/边距（英寸）
         W, H = 2 * BR + CW * nc + 0.10, 2 * PAD + CH * nr
         fig = plt.figure(figsize=(W, H))
@@ -247,13 +297,11 @@ def add_rich(par, text, size=11, color=BLACK, bold_all=False):
                 num, den = split_frac(body)
                 add_frac(par, num, den, size, color)
         elif piece.startswith('~') and piece.endswith('~'):
-            r = par.add_run(piece[1:-1]); style_run(r, size, bold_all, color)
-            r.font.subscript = True
+            add_text_runs(par, piece[1:-1], size, bold_all, color, subscript=True)
         elif piece.startswith('^') and piece.endswith('^'):
-            r = par.add_run(piece[1:-1]); style_run(r, size, bold_all, color)
-            r.font.superscript = True
+            add_text_runs(par, piece[1:-1], size, bold_all, color, superscript=True)
         else:
-            r = par.add_run(piece); style_run(r, size, bold_all, color)
+            add_text_runs(par, piece, size, bold_all, color)
 
 
 # 行距（2026-08-03 用户两次说"略微减少一点、显得紧凑一些"，分两档下调。
