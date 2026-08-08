@@ -1218,83 +1218,116 @@ def fig36():
 
 
 def fig37():
-    """第二微分的两个工作位：搬直尺的 b，与交给直尺量的 u。"""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.2, 3.6),
-                                   gridspec_kw={'width_ratios': [1.25, 0.95]})
+    """固定厚度为 2 的楔形体：同样厚的两片相差一个 2×b×u 小长方体。"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.25, 3.75),
+                                   gridspec_kw={'width_ratios': [1.15, 0.85]})
     math_style = dict(math_fontfamily='custom')
 
-    # 左：平方曲线上两站，给两把微分直尺同一支横向箭头 u。
-    p, b, u = 0.9, 0.72, 0.52
-    xs = np.linspace(0.25, 2.65, 240)
-    ax1.plot(xs, xs ** 2, color=NAVY, lw=2.0, zorder=2)
-    rises = []
-    for base, color in ((p, GREEN), (p + b, ORANGE)):
-        y0 = base ** 2
-        slope = 2 * base
-        y1 = y0 + slope * u
-        rises.append(y1 - y0)
-        ax1.plot([base], [y0], 'o', ms=7, color=color, zorder=5)
-        ax1.plot([base, base + u], [y0, y1], color=GREEN, lw=2.2, zorder=4)
-        ax1.annotate('', xy=(base + u, y0 - 0.16), xytext=(base, y0 - 0.16),
-                     arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.3))
-        ax1.text(base + u / 2, y0 - 0.27, r'$u$', ha='center', va='top',
-                 fontsize=10.5, color=ORANGE, **math_style)
-        ax1.plot([base + u, base + u], [y0, y1], color=GREY, lw=1.0, ls=':')
+    # 左：固定向里厚度为 2 的三角形木楔，在 p 与 p+b 处各立一个截面。
+    length, p, b, u = 3.05, 1.03, 0.82, 0.42
+    ox, oy = 0.46, 0.30
+    front = [(0, 0), (length, 0), (length, length)]
+    back = [(x + ox, y + oy) for x, y in front]
+    ax1.add_patch(Polygon(back, closed=True, fc='#F7F9FC', ec=GREY,
+                          lw=1.1, zorder=1))
+    ax1.add_patch(Polygon(front, closed=True, fc=LIGHT, ec=NAVY,
+                          lw=1.7, zorder=3))
+    ax1.add_patch(Polygon([front[1], back[1], back[2], front[2]], closed=True,
+                          fc='#E8EEF8', ec=NAVY, lw=1.0, alpha=0.82, zorder=2))
+    ax1.add_patch(Polygon([front[0], back[0], back[2], front[2]], closed=True,
+                          fc='#EDF5F1', ec=NAVY, lw=1.0, alpha=0.76, zorder=2))
+    for a, c in zip(front, back):
+        ax1.plot([a[0], c[0]], [a[1], c[1]], color=GREY, lw=1.0, zorder=2)
 
-    # 搬家箭头 b。
-    ax1.annotate('', xy=(p + b, 0.30), xytext=(p, 0.30),
+    for q, color, label in ((p, GREEN, r'$S(p)=2p$'),
+                            (p + b, ORANGE, r'$S(p+b)=2(p+b)$')):
+        section = [(q, 0), (q, q), (q + ox, q + oy), (q + ox, oy)]
+        ax1.add_patch(Polygon(section, closed=True, fc=color, ec=color,
+                              lw=1.45, alpha=0.24, zorder=5))
+        ax1.plot([q, q], [0, q], color=color, lw=2.0, zorder=6)
+        ax1.text(q + 0.15, q + oy + 0.13, label, ha='left', va='bottom',
+                 fontsize=9.6, color=color, **math_style)
+
+    # 同一条 x 轴上，蓝箭头 b 负责搬截面；橙箭头 u 表示薄片厚度。
+    ydim = -0.26
+    ax1.annotate('', xy=(p + b, ydim), xytext=(p, ydim),
                  arrowprops=dict(arrowstyle='<->', color=NAVY, lw=1.5))
-    ax1.text(p + b / 2, 0.18, r'$b$', ha='center', va='top', fontsize=11,
-             color=NAVY, **math_style)
-    ax1.text(p - 0.04, p ** 2 - 0.18, r'$p$', ha='right', va='top', fontsize=10.5,
-             color=GREEN, **math_style)
-    ax1.text(p + b - 0.04, (p + b) ** 2 - 0.18, r'$p+b$', ha='right', va='top',
-             fontsize=10.5, color=ORANGE, **math_style)
-    ax1.text(1.43, 5.92, '同一支橙箭头，交给相邻两站的直尺', ha='center',
-             va='top', fontsize=10.8, color=NAVY)
-    ax1.text(1.43, 5.53, '两把直尺的绿色读数相差', ha='center', va='top',
-             fontsize=10.2, color=GREEN)
-    ax1.text(1.43, 5.18, r'$2(p+b)u-2pu=2bu$', ha='center', va='top',
-             fontsize=11.2, color=GREEN, **math_style)
-    ax1.set_xlim(0.15, 2.85); ax1.set_ylim(0.0, 6.15); ax1.axis('off')
+    ax1.text(p + b / 2, ydim - 0.10, r'$b$', ha='center', va='top',
+             fontsize=11, color=NAVY, **math_style)
+    ax1.annotate('', xy=(p + b + u, 0.18), xytext=(p + b, 0.18),
+                 arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.45))
+    ax1.text(p + b + u / 2, 0.07, r'$u$', ha='center', va='top',
+             fontsize=11, color=ORANGE, **math_style)
+    ax1.text(1.70, 3.55, '沿同一条 $x$ 轴搬截面、切薄片', ha='center',
+             va='top', fontsize=10.7, color=NAVY, **math_style)
+    ax1.text(3.15, 2.78, '向里厚度\n固定为 2', ha='left', va='center',
+             fontsize=9.6, color=GREY)
+    ax1.annotate('', xy=(3.20, 2.98), xytext=(3.56, 2.67),
+                 arrowprops=dict(arrowstyle='->', color=GREY, lw=1.0))
+    ax1.set_xlim(-0.12, 3.80); ax1.set_ylim(-0.52, 3.68)
+    ax1.set_aspect('equal'); ax1.axis('off')
 
-    # 右：两个工作位，各由一份 dx 读取。
-    ax2.text(0.5, 0.94, '两份 $dx$，两个工作位', ha='center', va='top',
-             fontsize=11.2, color=NAVY, transform=ax2.transAxes,
-             **math_style)
-    slots = [(0.18, 0.59, NAVY, '搬直尺', r'$dx(b)=b$'),
-             (0.58, 0.59, ORANGE, '量箭头', r'$dx(u)=u$')]
-    for x0, y0, color, title, formula in slots:
-        ax2.add_patch(FancyBboxPatch((x0, y0), 0.25, 0.18,
-                                     boxstyle='round,pad=0.025,rounding_size=0.025',
-                                     fc='white', ec=color, lw=1.6,
-                                     transform=ax2.transAxes))
-        ax2.text(x0 + 0.125, y0 + 0.125, title, ha='center', va='center',
-                 fontsize=9.8, color=color, transform=ax2.transAxes)
-        ax2.text(x0 + 0.125, y0 + 0.055, formula, ha='center', va='center',
-                 fontsize=10.3, color=color, transform=ax2.transAxes,
-                 **math_style)
-    ax2.text(0.50, 0.52, '×', ha='center', va='center', fontsize=16,
-             color=GREY, transform=ax2.transAxes)
-    ax2.annotate('', xy=(0.50, 0.35), xytext=(0.50, 0.48),
-                 xycoords=ax2.transAxes, textcoords=ax2.transAxes,
-                 arrowprops=dict(arrowstyle='-|>', color=GREEN, lw=1.5))
-    ax2.add_patch(FancyBboxPatch((0.22, 0.15), 0.56, 0.18,
-                                 boxstyle='round,pad=0.03,rounding_size=0.025',
-                                 fc='#DDF2E9', ec=GREEN, lw=1.6,
-                                 transform=ax2.transAxes))
-    ax2.text(0.50, 0.275, r'$(dx)^2(b,u)=bu$', ha='center', va='center',
-             fontsize=11.4, color=GREEN, transform=ax2.transAxes,
-             **math_style)
-    ax2.text(0.50, 0.205, r'$d^2f_p(b,u)=f^{\prime\prime}(p)bu$',
-             ha='center', va='center', fontsize=10.8, color=NAVY,
-             transform=ax2.transAxes, **math_style)
-    ax2.text(0.50, 0.06, '两个入口各自都是线性的', ha='center', va='bottom',
-             fontsize=9.8, color=GREY, transform=ax2.transAxes)
-    ax2.axis('off')
+    # 右：把右薄片拆成“旧薄片 + 多出的 2×b×u 小长方体”。
+    x0, y0 = 0.28, 0.42
+    width, old_h, extra_h = 1.32, 1.36, 0.76
+    dox, doy = 0.47, 0.30
+    # 前面：下半是旧薄片，上半橙色是新增小盒子。
+    ax2.add_patch(Rectangle((x0, y0), width, old_h, fc='#DDF2E9',
+                            ec=GREEN, lw=1.5, zorder=4))
+    ax2.add_patch(Rectangle((x0, y0 + old_h), width, extra_h, fc=BAND,
+                            ec=ORANGE, lw=1.5, zorder=5))
+    # 顶面和右侧面给出向里厚度。
+    top = [(x0, y0 + old_h + extra_h),
+           (x0 + width, y0 + old_h + extra_h),
+           (x0 + width + dox, y0 + old_h + extra_h + doy),
+           (x0 + dox, y0 + old_h + extra_h + doy)]
+    side = [(x0 + width, y0),
+            (x0 + width + dox, y0 + doy),
+            (x0 + width + dox, y0 + old_h + extra_h + doy),
+            (x0 + width, y0 + old_h + extra_h)]
+    ax2.add_patch(Polygon(top, closed=True, fc='#FFF3EA', ec=ORANGE,
+                          lw=1.2, zorder=3))
+    ax2.add_patch(Polygon(side, closed=True, fc='#EAF0F8', ec=NAVY,
+                          lw=1.2, zorder=3))
+    ax2.plot([x0 + dox, x0 + width + dox],
+             [y0 + old_h + doy, y0 + old_h + doy],
+             color=ORANGE, lw=1.0, ls='--', zorder=4)
 
-    # 不变量：平方函数中，同一箭头在相邻两站的微分读数差恰为 2ab。
-    assert abs((rises[1] - rises[0]) - 2 * u * b) < 1e-12
+    ax2.text(x0 + width / 2, y0 + old_h / 2, '旧薄片', ha='center',
+             va='center', fontsize=10.2, color=GREEN, zorder=8)
+    ax2.text(x0 + width / 2, y0 + old_h + extra_h / 2, '多出的\n小盒子',
+             ha='center', va='center', fontsize=10.0, color=ORANGE, zorder=8)
+    # 三条边：u、b、固定深度 2。
+    ax2.annotate('', xy=(x0 + width, y0 - 0.16), xytext=(x0, y0 - 0.16),
+                 arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.4))
+    ax2.text(x0 + width / 2, y0 - 0.27, r'$u$', ha='center', va='top',
+             fontsize=11, color=ORANGE, **math_style)
+    ax2.annotate('', xy=(x0 - 0.14, y0 + old_h + extra_h),
+                 xytext=(x0 - 0.14, y0 + old_h),
+                 arrowprops=dict(arrowstyle='<->', color=NAVY, lw=1.4))
+    ax2.text(x0 - 0.21, y0 + old_h + extra_h / 2, r'$b$', ha='right',
+             va='center', fontsize=11, color=NAVY, **math_style)
+    ax2.annotate('', xy=(x0 + width + dox, y0 + old_h + extra_h + doy + 0.04),
+                 xytext=(x0 + width, y0 + old_h + extra_h + 0.04),
+                 arrowprops=dict(arrowstyle='<->', color=GREY, lw=1.2))
+    ax2.text(x0 + width + dox / 2, y0 + old_h + extra_h + doy + 0.12,
+             '2', ha='center', va='bottom', fontsize=10.5, color=GREY)
+    ax2.text(1.08, 3.55, '同样厚的右薄片，多了哪一块？', ha='center',
+             va='top', fontsize=10.7, color=NAVY)
+    footer = HPacker(children=[
+        TextArea('体积差 = ', textprops=dict(fontsize=10.5, color=GREEN)),
+        TextArea(r'$2\times b\times u=2bu$',
+                 textprops=dict(fontsize=11.0, color=GREEN, **math_style)),
+    ], align='center', pad=0, sep=0)
+    ax2.add_artist(AnnotationBbox(footer, (1.08, 0.08), frameon=False,
+                                  box_alignment=(0.5, 0.0)))
+    ax2.set_xlim(-0.12, 2.34); ax2.set_ylim(-0.12, 3.68)
+    ax2.set_aspect('equal'); ax2.axis('off')
+
+    # 不变量：楔形体 V(x)=x²；同厚薄片的体积差恰为 2bu。
+    x = 1.73
+    assert abs((0.5 * x * x) * 2 - x ** 2) < 1e-12
+    assert abs(2 * (p + b) * u - 2 * p * u - 2 * b * u) < 1e-12
     save(fig, 'fig-37-second-differential.png')
 
 
