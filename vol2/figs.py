@@ -929,11 +929,66 @@ def fig33():
     save(fig, 'fig-33-crossing-lines.png')
 
 
+def fig34():
+    """绝对值：原函数在 0 连续，但左右坡度对不上，0 点没有导数。"""
+    fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.1))
+
+    # 左：f(x)=|x| 的画像不断开，却留着一个尖角
+    ax = axs[0]
+    ax.annotate('', xy=(2.25, 0), xytext=(-2.25, 0),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.4))
+    ax.annotate('', xy=(0, 2.25), xytext=(0, -0.18),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.4))
+    xl = np.linspace(-2.05, 0, 100)
+    xr = np.linspace(0, 2.05, 100)
+    ax.plot(xl, -xl, color=ORANGE, lw=2.5, zorder=3)
+    ax.plot(xr, xr, color=GREEN, lw=2.5, zorder=3)
+    ax.plot([0], [0], 'o', ms=7, color=NAVY, zorder=5)
+    ax.text(-2.0, 2.05, r'$f(x)=|x|$', fontsize=12, color=NAVY)
+    ax.text(-1.0, 0.52, '左边陡度负 1', fontsize=9.5, color=ORANGE,
+            ha='center', rotation=-31)
+    ax.text(1.0, 0.52, '右边陡度 1', fontsize=9.5, color=GREEN,
+            ha='center', rotation=31)
+    ax.text(0, -0.30, '0', fontsize=9.5, color=NAVY, ha='center')
+    ax.text(0, -0.58, '画像接得上，却有尖角', fontsize=10, color=NAVY, ha='center')
+    ax.set_xlim(-2.35, 2.35); ax.set_ylim(-0.68, 2.38); ax.axis('off')
+
+    # 右：x<0 时导数为 −1，x>0 时导数为 1；0 点两边合不成一个值
+    ax = axs[1]
+    ax.annotate('', xy=(2.25, 0), xytext=(-2.25, 0),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.4))
+    ax.annotate('', xy=(0, 1.55), xytext=(0, -1.55),
+                arrowprops=dict(arrowstyle='-|>', color=NAVY, lw=1.4))
+    ax.plot([-2.05, -0.05], [-1, -1], color=ORANGE, lw=2.5, zorder=3)
+    ax.plot([0.05, 2.05], [1, 1], color=GREEN, lw=2.5, zorder=3)
+    ax.plot([0], [-1], marker='o', ms=8, markerfacecolor='white',
+            markeredgecolor=ORANGE, markeredgewidth=2.0, zorder=5)
+    ax.plot([0], [1], marker='o', ms=8, markerfacecolor='white',
+            markeredgecolor=GREEN, markeredgewidth=2.0, zorder=5)
+    ax.plot([0, 0], [-0.85, 0.85], color=GREY, lw=1.1, ls=':', zorder=2)
+    ax.text(-2.0, 1.37, '坡度地图', fontsize=11, color=NAVY)
+    ax.text(-2.0, 1.08, r"$f'(x)$", fontsize=11, color=NAVY)
+    ax.text(1.15, 1.12, '右边一直是 1', fontsize=9.5, color=GREEN, ha='center')
+    ax.text(-1.15, -1.25, '左边一直是负 1', fontsize=9.5, color=ORANGE, ha='center')
+    ax.text(0.14, 0.14, '？', fontsize=15, color=NAVY, ha='left')
+    ax.text(0, -1.70, '0 点没有一个值能接住两边', fontsize=10,
+            color=NAVY, ha='center')
+    ax.set_xlim(-2.35, 2.35); ax.set_ylim(-1.80, 1.65); ax.axis('off')
+
+    # 不变量：左右平均变化率分别固定为 −1 与 1，绝不可能合成同一个极限
+    h_left = np.array([-1.0, -0.1, -0.001])
+    h_right = -h_left
+    q_left = np.abs(h_left) / h_left
+    q_right = np.abs(h_right) / h_right
+    assert np.all(q_left == -1) and np.all(q_right == 1)
+    save(fig, 'fig-34-absolute-value-derivative.png')
+
+
 if __name__ == '__main__':
     print('generating ->', OUT)
     for f in (fig01, fig02, fig03, fig04, fig05, fig06, fig07, fig08, fig09,
               fig10, fig11, fig12, fig13, fig14, fig15, fig16, fig17, fig18,
               fig19, fig20, fig21, fig22, fig23, fig24, fig25, fig26, fig27,
-              fig28, fig29, fig30, fig31, fig32, fig33):
+              fig28, fig29, fig30, fig31, fig32, fig33, fig34):
         f()
     print('done:', len([a for a in os.listdir(OUT) if a.endswith('.png')]), 'figures')
