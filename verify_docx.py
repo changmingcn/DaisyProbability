@@ -112,12 +112,13 @@ for ch, cp, ctx in nonbmp[:5]:
 bodies = {}
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     body = open(f, encoding='utf-8').read()
-    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', body)
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
     if m:
         bodies[m.group(1)] = body
 dangling = []
-appendix = os.path.join(CONTENT, '10-appendix.md')
-if os.path.exists(appendix):
+appendix = next((f for f in sorted(glob.glob(os.path.join(CONTENT, '*.md')))
+                 if '# 附录 B' in open(f, encoding='utf-8').read()), None)
+if appendix:
     in_glossary = False
     for line in open(appendix, encoding='utf-8'):
         if line.startswith('# 附录 B'):
@@ -146,13 +147,13 @@ CN = '一二三四五六七八九十'
 chapters = {}            # 篇名 -> 该篇的小节序号集合
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     body = open(f, encoding='utf-8').read()
-    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', body)
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
     if m:
         chapters[m.group(1)] = set(re.findall(r'(?m)^## ([一二三四五六七八九零])、', body))
 bad_refs = []
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     text = open(f, encoding='utf-8').read()
-    for m in re.finditer(r'(第[一二三四五六七八九十]篇)第([一二三四五六七八九十])节', text):
+    for m in re.finditer(r'(第[一二三四五六七八九十]+篇)第([一二三四五六七八九十])节', text):
         # 跨册引用（"第一册第二篇第六节"）说的是另一册的小节，本册无从校验 —— 必须豁免。
         # 由来（2026-08-01 第二册拆篇）：这条以前一直"通过"，纯属巧合——当时本册第二篇
         # 恰好也有第六节。拆篇后本册第二篇只剩三节，它立刻误报。[3.92]/[3.93] 早就做了
@@ -179,7 +180,7 @@ for b in sorted(set(bad_refs)):
 bare = []
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     body = open(f, encoding='utf-8').read()
-    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', body)
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
     if not m:
         continue                      # 前言/附录没有"本篇"，裸引用无从校验
     own = m.group(1)
@@ -200,7 +201,7 @@ for b in bare[:8]:
 selfref = []
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     body = open(f, encoding='utf-8').read()
-    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', body)
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
     if not m:
         continue
     own = m.group(1)
@@ -322,19 +323,19 @@ FORMULA = re.compile(r'\d[\d\s]*(?:[＋－×÷]\s*\d[\d\s]*){2,}')
 bodies = {}
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     b = open(f, encoding='utf-8').read()
-    m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', b)
+    m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', b)
     if m:
         bodies[m.group(1)] = re.sub(r'\s+', '', b)
 stale = []
 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
     own = None
     for ln, line in enumerate(open(f, encoding='utf-8'), 1):
-        m = re.match(r'^# (第[一二三四五六七八九十]篇)', line)
+        m = re.match(r'^# (第[一二三四五六七八九十]+篇)', line)
         if m:
             own = m.group(1)
         for fm in FORMULA.finditer(line):
             expr = re.sub(r'\s+', '', fm.group(0))
-            for cm in re.finditer(r'(第[一二三四五六七八九十]篇)', line):
+            for cm in re.finditer(r'(第[一二三四五六七八九十]+篇)', line):
                 ch = cm.group(1)
                 # 跨册引用查不了；指向本篇的不算引用（公式就在眼前）
                 if ch == own or re.search(r'[一二三两上下本]册\s*$', line[:cm.start()]):

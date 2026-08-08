@@ -50,7 +50,7 @@ def load(vol, sub):
     book, loose = {}, []
     for f in sorted(glob.glob(os.path.join(content, '*.md'))):
         body = open(f, encoding='utf-8').read()
-        m = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)(.*)$', body)
+        m = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)(.*)$', body)
         if not m:
             loose.append((os.path.basename(f), body))
             continue
@@ -78,7 +78,7 @@ ALLTEXT = {v: norm('\n'.join(d['body'] for d in BOOKS[v].values())
                    + '\n'.join(b for _, b in LOOSE[v])) for v in BOOKS}
 
 # 引用：可带册前缀、可带节号
-REF = re.compile(r'(?:(第[一二三]册)\s*)?(第[一二三四五六七八九十]篇)'
+REF = re.compile(r'(?:(第[一二三]册)\s*)?(第[一二三四五六七八九十]+篇)'
                  r'(?:第([一二三四五六七八九十])节)?')
 BARE = re.compile(r'(?<![篇册])第([一二三四五六七八九十])节')
 
@@ -149,7 +149,7 @@ def main():
         content = os.path.join(HERE, sub, 'content') if sub else os.path.join(HERE, 'content')
         for f in sorted(glob.glob(os.path.join(content, '*.md'))):
             body = open(f, encoding='utf-8').read()
-            own = re.search(r'(?m)^# (第[一二三四五六七八九十]篇)', body)
+            own = re.search(r'(?m)^# (第[一二三四五六七八九十]+篇)', body)
             own = own.group(1) if own else None
             for ln, line in enumerate(body.split('\n'), 1):
                 refs = [(m.start(), m.group(1), m.group(2), m.group(3))
@@ -170,7 +170,7 @@ def main():
                         if tok in STOP or not re.search(r'[一-鿿0-9]', tok):
                             continue
                         # 引用串本身不是承诺：「第五篇第五节」「第一册第二篇」都要滤掉
-                        if re.fullmatch(r'[^一-鿿]*(第[一二三]册)?(第[一二三四五六七八九十]篇)?'
+                        if re.fullmatch(r'[^一-鿿]*(第[一二三]册)?(第[一二三四五六七八九十]+篇)?'
                                         r'(第[一二三四五六七八九十]节)?[^一-鿿]*', tok):
                             continue
                         ntok += 1
