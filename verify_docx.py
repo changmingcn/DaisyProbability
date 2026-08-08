@@ -434,9 +434,9 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
     for x in termbad[:8]:
         print('        ->', x)
 
-# ---- 3.987 第二册以 dy＝f′(p)dx 为主，分数式只在指定位置解释传统记号
+# ---- 3.987 第二册以 dy＝f′(p)dx 为主，分数式只在指定位置解释倍率
 #   2026-08-07 用户放松旧禁令：第五篇可用 dy/dx 解释两把 1-形式尺的倍率；
-#   第十篇可用 d/dx、dy/dx、d²y/dx² 解释反复求导的算子记号；附录 A 收录。
+#   第十篇可用 d²f/dx² 解释二阶微分相对于 dx² 的倍率；附录 A 收录。
 #   两个故事必须分开，裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
 DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*d[^\]]*\]\]')
 DIFFQUOT_BARE = re.compile(r'\bd[^\s/|]{0,12}\s*/\s*d[^\s/|]{1,12}')
@@ -444,8 +444,8 @@ diffquotbad = []
 diffquot_seen = {}
 diffquot_allowed = {
     '05-differential.md': {'[[dy|dx]]'},
-    '10-shape.md': {'[[d|dx]]', '[[dy|dx]]', '[[d^{2}y|dx^{2}]]'},
-    '14-appendix.md': {'[[dy|dx]]', '[[d^{2}y|dx^{2}]]'},
+    '10-shape.md': {'[[d^{2}f|dx^{2}]]'},
+    '14-appendix.md': {'[[dy|dx]]', '[[d^{2}f|dx^{2}]]'},
 }
 if BOOK.rstrip(os.sep).endswith('vol2'):
     for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
