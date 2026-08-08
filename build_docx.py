@@ -275,7 +275,9 @@ def add_rich(par, text, size=11, color=BLACK, bold_all=False):
     粗体必须**递归**解析：否则 `**s~n~ ＝ 1/2^n^**` 会被整块吞成一个 run，
     里面的上下标标记原样留在纸面上。
     """
-    text = text.replace('{{', '').replace('}}', '')   # 转义标记只对转换脚本有意义
+    # 只拆真正成对的 {{...}} 保护标记；不能全局删掉每个 "}}"，否则
+    # \frac{2}{x_{n}} 这类嵌套 LaTeX 会被误伤成 \frac{2}{x_{n}。
+    text = re.sub(r'\{\{(.*?)\}\}', r'\1', text)
     for piece in TOKEN.split(text):
         if not piece:
             continue

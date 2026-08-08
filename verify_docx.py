@@ -419,6 +419,22 @@ check(not badslash, '正文里没有"数字 / 数字"式的裸斜杠 (%d 处)' %
 for x in badslash[:5]:
     print('        ->', x)
 
+# ---- 3.9855 第二册不用除号：凡是除法都排成真正的上下分数
+#   2026-08-08 用户在第 48 页挑出：外层已经有分数线，分子里却又写“2 ÷ x_n”，
+#   视觉上成了“分数线上还有除号”。这不只是嵌套分数的问题；同一册若一会儿写 ÷、
+#   一会儿写上下分数，孩子会把同一个关系读成两套动作。因此第二册所有可见的 ÷ 一律禁用。
+divsignbad = []
+if BOOK.rstrip(os.sep).endswith('vol2'):
+    for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+        for ln, line in enumerate(open(f, encoding='utf-8'), 1):
+            if '÷' in line:
+                divsignbad.append('%s:%d  %s' %
+                                  (os.path.basename(f), ln, line.strip()[:72]))
+    print('\n[3.9855] 第二册不用除号')
+    check(not divsignbad, '所有除法都用上下分数线，不写 ÷ (%d 处)' % len(divsignbad))
+    for x in divsignbad[:8]:
+        print('        ->', x)
+
 # ---- 3.986 第二册不许再用“导函数”这个名称
 #   2026-08-07 最终口径：求导是 f → f′ 的操作；f′(x) 是某一点的导数（一个数）；
 #   微分 dx → dy＝f′(x)dx 才是局部线性替身。f′ 仍然是函数，但不另称“导函数”。

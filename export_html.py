@@ -109,7 +109,8 @@ def matrix_html(body, where=''):
 
 def rich(text, where=''):
     """行内标记 → HTML。粗体递归解析（**s~n~** 里的下标不能被吞掉）。"""
-    text = text.replace('{{', '').replace('}}', '')
+    # 只拆真正成对的 {{...}} 保护标记，保留 LaTeX 嵌套花括号。
+    text = re.sub(r'\{\{(.*?)\}\}', r'\1', text)
     out = []
     for piece in TOKEN.split(text):
         if not piece:
