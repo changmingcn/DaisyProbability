@@ -434,21 +434,38 @@ if BOOK.rstrip(os.sep).endswith('vol2'):
     for x in termbad[:8]:
         print('        ->', x)
 
-# ---- 3.987 第二册微分一律写成向量式，不写成分数
-#   差商仍可写成上下排分数；这里只拦截分子、分母都以 d 开头的莱布尼兹式，
-#   以及 dy/dx、ds/dt 一类裸写法。这样导数仍是点值，微分始终显成线性函数。
+# ---- 3.987 第二册以 dy＝f′(p)dx 为主，分数式只在指定位置解释传统记号
+#   2026-08-07 用户放松旧禁令：第五篇可用 dy/dx 解释两把 1-形式尺的倍率；
+#   第十篇可用 d/dx、dy/dx、d²y/dx² 解释反复求导的算子记号；附录 A 收录。
+#   两个故事必须分开，裸斜杠仍禁，其他篇也不得让莱布尼兹式悄悄蔓延。
 DIFFQUOT_BOX = re.compile(r'\[\[\s*d[^\]|]*\|\s*d[^\]]*\]\]')
 DIFFQUOT_BARE = re.compile(r'\bd[^\s/|]{0,12}\s*/\s*d[^\s/|]{1,12}')
 diffquotbad = []
+diffquot_seen = {}
+diffquot_allowed = {
+    '05-differential.md': {'[[dy|dx]]'},
+    '10-shape.md': {'[[d|dx]]', '[[dy|dx]]', '[[d^{2}y|dx^{2}]]'},
+    '14-appendix.md': {'[[dy|dx]]', '[[d^{2}y|dx^{2}]]'},
+}
 if BOOK.rstrip(os.sep).endswith('vol2'):
     for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
         base = os.path.basename(f)
         for ln, line in enumerate(open(f, encoding='utf-8'), 1):
-            for m in list(DIFFQUOT_BOX.finditer(line)) + list(DIFFQUOT_BARE.finditer(line)):
-                diffquotbad.append('%s:%d  %s（改写成 dx → dy＝f′(x)dx）'
+            for m in DIFFQUOT_BOX.finditer(line):
+                token = re.sub(r'\s+', '', m.group(0))
+                diffquot_seen.setdefault(base, set()).add(token)
+                if token not in diffquot_allowed.get(base, set()):
+                    diffquotbad.append('%s:%d  %s（不在受控白名单）'
+                                        % (base, ln, m.group(0)))
+            for m in DIFFQUOT_BARE.finditer(line):
+                diffquotbad.append('%s:%d  %s（必须用上下排记号，且只在指定篇解释）'
                                     % (base, ln, m.group(0)))
+    for base, required in diffquot_allowed.items():
+        missing = required - diffquot_seen.get(base, set())
+        for token in sorted(missing):
+            diffquotbad.append('%s  缺少应有的受控记号 %s' % (base, token))
     print('\n[3.987] 第二册微分记号')
-    check(not diffquotbad, '没有微分的分数形式 (%d 处)' % len(diffquotbad))
+    check(not diffquotbad, '分数式只在第五、十篇和附录解释指定记号 (%d 处越界/缺失)' % len(diffquotbad))
     for x in diffquotbad[:8]:
         print('        ->', x)
 

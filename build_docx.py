@@ -10,6 +10,7 @@
   BOX[kind]: 标题 :: 正文（正文里用 // 换行）
   TABLE:  紧跟若干 | a | b | 行，首行为表头，空行结束
   - 列表项
+  PAGEBREAK          下一段从新页开始
   ---                分隔线
   其余非空行 = 正文段落
 行内：**粗体**  a~n~ 下标  2^n^ 上标
@@ -475,6 +476,8 @@ def build():
                 continue
             elif s.startswith('- '):
                 bullet(doc, s[2:])
+            elif s == 'PAGEBREAK':
+                doc.add_page_break()
             elif s == '---':
                 para(doc, '· · ·', 12, GREY, align=WD_ALIGN_PARAGRAPH.CENTER,
                      space_before=6, space_after=6)

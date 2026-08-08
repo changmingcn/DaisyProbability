@@ -932,28 +932,60 @@ def fig32():
 
 
 def fig33():
-    """微分的输入输出：同样的 dx 经不同导数倍率，得到不同 dy。"""
-    fig, ax = plt.subplots(figsize=(6.2, 3.4))
-    xmax, ymax = 2.35, 4.7
-    axes(ax, xmax, ymax, '', '')
-    for gx in np.arange(0.0, 2.21, 0.5):
-        ax.plot([gx, gx], [0, 4.4], color=LIGHT, lw=1.0, zorder=1)
-    for gy in np.arange(0.0, 4.41, 0.5):
-        ax.plot([0, 2.2], [gy, gy], color=LIGHT, lw=1.0, zorder=1)
-    t = np.linspace(0, 2.08, 300)
-    ax.plot(t, t ** 2, color=NAVY, lw=2.2, zorder=3)
-    for a, dx in ((0.5, 0.5), (1.55, 0.5)):
-        y0, k = a * a, 2 * a
-        ax.annotate('', xy=(a + dx, y0 + k * dx), xytext=(a, y0),
-                    arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.2), zorder=4)
-        # 不变量：同样横跨一格（一条竖线），缓处跨 1 条横线、陡处跨 3 条
-        assert int(k * dx / 0.5) in (1, 3), (a, k * dx)
-    ax.text(0.18, 1.55, '缓处：输入同样的 dx，', fontsize=9.5, color=ORANGE)
-    ax.text(0.18, 1.15, '输出较小的 dy', fontsize=9.5, color=ORANGE)
-    ax.text(1.28, 3.95, '陡处：输入同样的 dx，', fontsize=9.5, color=ORANGE)
-    ax.text(1.28, 3.55, '输出较大的 dy', fontsize=9.5, color=ORANGE)
-    ax.text(0.16, 4.35, '地图给出倍率，p 点微分 dx → dy', fontsize=10, color=NAVY)
-    ax.text(0.30, -0.50, '坡越陡，同一个 dx 线性换出的 dy 越大', fontsize=9.5, color=NAVY)
+    """两把 1-形式尺：同一箭头的横纵读数，以及方格纸跨线计数。"""
+    fig, axs = plt.subplots(1, 2, figsize=(7.4, 3.35))
+
+    # 左：曲线上同一支切向箭头，dx 与 dy 分别读横、纵有向变化。
+    ax = axs[0]
+    t = np.linspace(-0.15, 2.35, 300)
+    curve = 0.42 * t ** 2 + 0.22
+    ax.plot(t, curve, color=NAVY, lw=2.2, zorder=2)
+    p, step = 0.72, 0.82
+    y0, slope = 0.42 * p ** 2 + 0.22, 0.84 * p
+    x1, y1 = p + step, y0 + slope * step
+    ax.plot([p], [y0], 'o', ms=6.5, color=NAVY, zorder=5)
+    ax.annotate('', xy=(x1, y1), xytext=(p, y0),
+                arrowprops=dict(arrowstyle='-|>', color=ORANGE, lw=2.4), zorder=4)
+    ax.annotate('', xy=(x1, y0 - 0.16), xytext=(p, y0 - 0.16),
+                arrowprops=dict(arrowstyle='<->', color=GREEN, lw=1.8), zorder=4)
+    ax.annotate('', xy=(x1 + 0.13, y1), xytext=(x1 + 0.13, y0),
+                arrowprops=dict(arrowstyle='<->', color=ORANGE, lw=1.8), zorder=4)
+    ax.plot([p, x1], [y0, y0], color=LIGHT, lw=1.0, ls='--', zorder=1)
+    ax.plot([x1, x1], [y0, y1], color=LIGHT, lw=1.0, ls='--', zorder=1)
+    ax.text(p - 0.10, y0 + 0.09, 'p', fontsize=10, color=NAVY)
+    ax.text((p + x1) / 2, y0 - 0.36, 'dx 尺读横向', fontsize=9.5,
+            color=GREEN, ha='center')
+    ax.text(x1 + 0.22, (y0 + y1) / 2, 'dy 尺\n读竖向', fontsize=9.5,
+            color=ORANGE, va='center')
+    ax.text(1.08, 2.52, '同一支箭头，两把尺子', fontsize=10.5,
+            color=NAVY, ha='center')
+    assert np.isclose(y1 - y0, slope * (x1 - p))
+    ax.set_xlim(-0.18, 2.45); ax.set_ylim(-0.02, 2.75); ax.axis('off')
+
+    # 右：1-形式的标准“平行线族”直觉；横跨相同一格，陡箭头跨更多横线。
+    ax = axs[1]
+    for gx in np.arange(0, 4.1, 1.0):
+        ax.plot([gx, gx], [0, 4], color=LIGHT, lw=1.05, zorder=1)
+    for gy in np.arange(0, 4.1, 1.0):
+        ax.plot([0, 4], [gy, gy], color=LIGHT, lw=1.05, zorder=1)
+    arrows = [((0.45, 0.45), (1.45, 1.45), GREEN, '缓：跨 1 竖格、1 横格'),
+              ((2.25, 0.45), (3.25, 3.45), ORANGE, '陡：跨 1 竖格、3 横格')]
+    for (x0, yy0), (xx1, yy1), color, label in arrows:
+        ax.annotate('', xy=(xx1, yy1), xytext=(x0, yy0),
+                    arrowprops=dict(arrowstyle='-|>', color=color, lw=2.3), zorder=4)
+        ax.text((x0 + xx1) / 2, yy1 + 0.20, label, fontsize=8.8,
+                color=color, ha='center')
+    # 不变量：两箭都横跨一格；缓箭跨一横格，陡箭跨三横格。
+    assert arrows[0][1][0] - arrows[0][0][0] == 1
+    assert arrows[1][1][0] - arrows[1][0][0] == 1
+    assert arrows[0][1][1] - arrows[0][0][1] == 1
+    assert arrows[1][1][1] - arrows[1][0][1] == 3
+    ax.text(2.0, 4.28, '跨线就是尺子的读数', fontsize=10.5,
+            color=NAVY, ha='center')
+    ax.text(2.0, -0.38, '竖线给 dx 刻度，横线给 dy 刻度', fontsize=9.3,
+            color=NAVY, ha='center')
+    ax.set_xlim(-0.08, 4.08); ax.set_ylim(-0.58, 4.52); ax.axis('off')
+
     save(fig, 'fig-33-crossing-lines.png')
 
 
