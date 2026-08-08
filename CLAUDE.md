@@ -1,77 +1,9 @@
-# 《数学概念笔记》——给这棵树上的 AI 会话
+# DaisyProbability
 
-写给用户两个孩子（**姐姐和妹妹**，小学五到六年级）的一套数学书。**四册全稿已成、已交付。**
+You are working only on the independent probability project in `~/DaisyProbability`; the book source is at `vol4/`. Read `manuals/DaisyProbability.md` as the sole authoritative handoff.
 
-## 一个仓库，三个独立项目
+Hard boundary: do not inspect or change `~/DaisyCalculus`, `~/DaisyAlgebra`, or the archived `~/math-notes` repository unless the user explicitly asks for cross-project work. Do not propagate a new rule, wording, build change, or delivery action to another Daisy project merely for consistency.
 
-四册放在同一个仓库，也共用一部分构建和发布工具；但内容工作严格分成**三个独立项目**。
-每次任务先判断当前属于哪一个项目，然后只加载它自己的手册：
+Before editing, check this repository's `git status` and recent log. Stage only the paths changed for the current task. Build locally with `./publish.sh`; upload only when the task authorizes delivery. If the manual is edited, run `./publish.sh --relink` afterward.
 
-| 项目 | 册 | 书名 | 源码 | 唯一应加载的权威手册 |
-|---|---|---|---|---|
-| 微积分 | 一 | 给小学生讲微积分（上） | 仓库根 `content/` | `manuals/DaisyCalculus.md` |
-| 微积分 | 二 | 给小学生讲微积分（下） | `vol2/` | `manuals/DaisyCalculus.md` |
-| 线性代数 | 三 | 给小学生讲线性代数 | `vol3/` | `manuals/DaisyAlgebra.md` |
-| 概率论 | 四 | 给小学生讲概率论 | `vol4/` | `manuals/DaisyProbability.md` |
-
-三本手册的真身都在 `manuals/`，硬链接到 `~/.claude/agents/`，Drive 上是镜像。
-
-### 单项目加载边界
-
-- **默认一次任务只属于一个项目。**要动哪一册，先完整读上表中唯一对应的手册。
-- **不要顺手读取另外两本手册**，也不要为了“了解全套书”“保持一致”而扫描、比较或总结其他项目的正文、
-  插图、待办和历史教训。
-- 共用同一个仓库、Git 历史、构建脚本或发布出口，**不等于共享内容上下文**；查看共用工程文件时，
-  仍只把当前项目所需的信息带入上下文。
-- 只有用户明确要求跨项目比较、统一或联动修改时，才加载相关的第二本或第三本手册；并且只扩大到
-  用户点名的范围。
-- 若用户直接点名 `DaisyCalculus.md`、`DaisyAlgebra.md` 或 `DaisyProbability.md`，该文件本身就确定了
-  当前项目，不再读取其他两本来“补充背景”。
-
-当前项目的每篇安排、记号体例、教训、校验清单、还欠着的账和工程管线，都以它自己的手册为准，
-而且通常比这份路牌新。
-
-**这份 CLAUDE.md 只是路牌，不要在这里复述手册。**理由是有案底的：08-01 在 `DaisyCalculus.md` 里
-抄了一份第三册索引，到 08-03 就和源码漂开了（它写"一只眼睛"，实际 `vol3/figs.py` 的 `EYES` 是两只）。
-**一份内容抄两处，迟早只有一处是对的，而且没有任何东西会报警。**
-
-## 三条不能违反的
-
-1. **可能有另一个 Claude 会话正在同一棵树上做另一个项目。**动手前先 `git log --oneline -3` ＋ `git status`，
-   并**重新 Read 一遍当前项目在磁盘上的那一本手册**（你上下文里那份可能是别人改之前的旧副本）；
-   **改手册只用 Edit 改局部，绝不整篇 Write**；改完只暂存本轮明确修改的路径并立刻提交，
-   **不要用 `git add -A` 把其他项目会话的改动捎进去**，也别攒着。
-   真出过事——两边各拿旧副本整篇写回，后写的把先写的**无声**盖掉。完整来龙去脉见 `并发会话必读.md`。
-2. **Edit 改手册会断硬链接**（它是"写新文件再改名"，不是就地改字节），**每改一次断一次**；
-   断了之后 `~/.claude/agents/` 那份就定格在旧内容上，下一个会话读到过期手册，**一声不响**。
-   改完立刻重连并核一眼：`rm ~/.claude/agents/X.md && ln manuals/X.md ~/.claude/agents/X.md`。
-   `publish.sh` 每次全量构建都查这一条，断了当场中止。
-3. **校验没绿，不许上传。**
-
-## 工作流
-
-```bash
-./publish.sh --vol vol2     # 改一册：生成图 → 构建 → 校验(18 项) → 节号对账 → 导稿件
-./publish.sh                # 四册全量重建 ＋ 校验 ＋ 打包，不碰 Drive
-./publish.sh --upload       # 复验全绿才推，十二件一起，不足十二件当场中止
-./publish.sh --web          # 第三册那页互动教具（三维兔子）：校验 → Drive ＋ book.changming.cyou
-```
-
-**互动页不在十二件里**，走自己那条 `--web`（细节读 `DaisyAlgebra.md`）——
-十二件那道网是防"成书半截交付"的，掺网页资产进去只会把它稀释。
-
-**本机这棵树是权威源，Drive 只是交付出口**（小改、试验、中间态一律留本机）。
-**但改完就推，每一次都推**（2026-08-02 用户当面定）：只要正文／插图／手册动过一个字、校验又是绿的，
-**当轮就 `--upload`**。理由不是勤快——**用户只在 Drive 的 Doc 上看稿**，没推上去 ＝ 他看不见 ＝
-这一轮的活等于没干。攒批还会制造本机与 Drive 的版本漂移。
-
-## 用户的工作方式
-
-- 他要的是**一起设计**：大结构先给方案、拿到"可以"再动手；细节自己判断。
-- 他会问很尖的具体问题。**先去查，不要先辩解**；查出来是错就认、改掉，并尽量
-  **把它做成一条会自动失败的检查**（这个循环已经跑了五轮，每次新检查当场都能再抓出同类的）。
-- 他改方向时改得很彻底，**不要心疼已写的内容**。
-- 汇报时**先说没做到的、没验的、最可能出错的**，再说做了什么。
-- **排版不归 AI 验**（分页、盒子底色、分数的垂直位置），他自己翻 Doc——
-  但**每次交付都要明说这一项没验**，别含糊过去。本机没有 LibreOffice，`--headless` 渲 PDF 是死路，别试。
-- 每一轮结尾给一条**具体的减负建议**（"读着还重的话，最容易切的是 X，因为它不伤主线"）。
+The user prefers collaborative design: propose large structural changes first; handle small details directly. Mathematical explanations must pair intuition with rigorous justification, or explicitly record where the debt will be repaid.
