@@ -818,6 +818,8 @@ def fig31():
     assert abs(y_tan - y0 - 2 * dx) < 1e-12 and abs(y_true - y_tan - dx * dx) < 1e-12
     ax.plot([a, a + dx], [y0, y0], color=GREY, lw=1.3, zorder=2)
     ax.plot([a], [y0], 'o', ms=7, color=ORANGE, zorder=5)
+    ax.text(a - 0.08, y0 + 0.18, 'p：图钉钉在这里', ha='right', va='bottom',
+            fontsize=9.2, color=ORANGE)
     ax.plot([a + dx, a + dx], [y0, y_tan], color=GREEN, lw=3.4, zorder=4,
             solid_capstyle='butt')
     ax.plot([a + dx, a + dx], [y_tan, y_true], color=ORANGE, lw=3.4, zorder=4,
@@ -846,8 +848,8 @@ def fig31():
         ax.plot([lo], [m ** 2 + 2 * m * (lo - m)], 'o', ms=3.5, color=ORANGE, zorder=5)
     ax.plot([xs[-1]], [((xs[-2] + xs[-1]) / 2) ** 2 + 2 * ((xs[-2] + xs[-1]) / 2)
             * (xs[-1] - (xs[-2] + xs[-1]) / 2)], 'o', ms=3.5, color=ORANGE, zorder=5)
-    ax.text(0.18, 4.15, '每一小段，都用它自己的', fontsize=9.5, color=ORANGE)
-    ax.text(0.18, 3.75, '切线小段顶替', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 4.15, '沿坡度地图每到一处，换一把', fontsize=9.5, color=ORANGE)
+    ax.text(0.18, 3.75, '微分直尺顶替', fontsize=9.5, color=ORANGE)
     ax.text(0.18, 3.2, '段切得越细，贴得越紧', fontsize=9.5, color=NAVY)
     # 不变量：段数翻倍，折线偏差缩到四分之一（眼睛判构图，这个判几何）
     def polyerr(n):
@@ -922,7 +924,7 @@ def fig33():
     ax.text(0.18, 1.15, '输出较小的 dy', fontsize=9.5, color=ORANGE)
     ax.text(1.28, 3.95, '陡处：输入同样的 dx，', fontsize=9.5, color=ORANGE)
     ax.text(1.28, 3.55, '输出较大的 dy', fontsize=9.5, color=ORANGE)
-    ax.text(0.16, 4.35, '导数给倍率，微分 dx → dy', fontsize=10, color=NAVY)
+    ax.text(0.16, 4.35, '地图给出倍率，p 点微分 dx → dy', fontsize=10, color=NAVY)
     ax.text(0.30, -0.50, '坡越陡，同一个 dx 线性换出的 dy 越大', fontsize=9.5, color=NAVY)
     save(fig, 'fig-33-crossing-lines.png')
 
