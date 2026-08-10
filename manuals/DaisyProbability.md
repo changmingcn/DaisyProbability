@@ -249,7 +249,7 @@ Durrett 的原句已按《Probability: Theory and Examples》第五版 §2.1 核
 > 只要第四册正文／插图／手册动过一个字、并且校验是绿的，**当轮就 `./publish.sh --upload`**，不许攒批。
 > **用户只在 Drive 的 Doc 上看稿**——没推上去 ＝ 他看不见 ＝ 这一轮的活等于没干。
 > 这个入口只处理四件：**概率论 Google Doc ＋ 第四册稿件.md ＋ DaisyProbability.md ＋ DaisyProbability 独立源码包**；不构建、不上传另外三个册位。
-> 固定动作：**改完 → 校验绿 → 立刻 `--upload` → 核四件齐、概率论 Doc 图片数和 id**。
+> 固定动作：**改完 → 校验绿 → 立刻 `--upload` → 核四件齐、概率论 Doc 图片数和 id、05-成书PDF 的概率论 PDF md5 一致（脚本自动核）**。
 > （校验没绿**不许**上传，这两条不冲突。）
 
 ### 出 Doc 的固定方式（本项目执行）
@@ -269,6 +269,10 @@ Durrett 的原句已按《Probability: Theory and Examples》第五版 §2.1 核
 > **三条错误猜想已排除，别重走**：不是沙箱／不是 quarantine／不是首次运行慢（挂满 7 分钟零输出）。`SAL_USE_VCLPLUGIN=svp` 也无效。
 > 真要渲，只能**由用户在自己的终端里跑**。**教训：`--headless` 不等于不需要 GUI 会话。**
 
+### 成书 PDF（08-10 加入交付流）
+
+`--upload` 收尾自动跑 `deliver_pdfs`（单独刷新用 `./publish.sh --pdf`——不构建、不动 Doc）：把 Drive 上的概率论 Doc 用 `rclone --drive-export-formats pdf` 导出到本地 `vol4/给小学生讲概率论.pdf`（已 gitignore），再传回 `数学概念笔记/05-成书PDF/`，上传后核 md5。两条硬知识：**真 PDF 绝不能放进 `01-三册成书/`**（Doc 在 pdf 导出视图下会化名成同名 `.pdf`，与真文件撞名，下一轮导出会抓错对象——`05-成书PDF/` 就是为避开这个别名坑单设的）；**Google Doc 导出单件上限 10 MB**（本册 08-10 实测约 2 MB，余量大），超限脚本会中止，**别静默跳过**。上面 LibreOffice 那条死路与此无关：PDF 不在本地渲，直接用 Google Docs 的排版导出。
+
 ### vol4 当初是怎么接进管线的（已全部做完，留给第五册抄）
 
 **下面这六处 08-02 已经全部做完了**（留着是给"再开第五册"的人抄，也给你核对用；判据：源码包件数 49 → 53）：
@@ -284,7 +288,7 @@ Durrett 的原句已按《Probability: Theory and Examples》第五版 §2.1 核
 
 **件数**：合仓时代的十二件总账已经废止。**DaisyProbability 只管本项目四件**；`./publish.sh --upload` 会单独点数，并用自己的中断安全网。不要为了第四册的一处修改去刷新其他项目。
 
-**本地检查一条命令**：`./publish.sh --vol vol4`（生成图 → 构建 → 校验 → 导稿件）。**正式交付一条命令**：`./publish.sh --upload`（在同一条单册管线上再加项目源码打包、四件上传、回读验图与 id 核对）。手工跑**顺序不能乱**：`figs.py` → `build_docx.py vol4` → `verify_docx.py vol4` → `export_manuscript.py vol4`（并发跑过一次，校验读到写了一半的 docx）。
+**本地检查一条命令**：`./publish.sh --vol vol4`（生成图 → 构建 → 校验 → 导稿件）。**正式交付一条命令**：`./publish.sh --upload`（在同一条单册管线上再加项目源码打包、四件上传、回读验图与 id 核对，收尾再导出成书 PDF 传 `05-成书PDF/`）。手工跑**顺序不能乱**：`figs.py` → `build_docx.py vol4` → `verify_docx.py vol4` → `export_manuscript.py vol4`（并发跑过一次，校验读到写了一半的 docx）。
 
 ### 交叉引用语义对账（`audit_refs.py`）
 

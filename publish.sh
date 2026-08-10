@@ -24,6 +24,7 @@ Usage:
   ./publish.sh --vol VOL       build one volume owned by this project
   ./publish.sh --upload        build, verify, package, and upload only this project
   ./publish.sh --relink        restore only the $MANUAL_NAME agent hard link
+  ./publish.sh --pdf           re-export this project's Drive Docs to PDF and refresh them on Drive
   ./publish.sh --web [--check-only]  project web asset, when configured
 EOF
 }
@@ -176,6 +177,35 @@ PYCHK
   rmdir "$tmp_dir"
 }
 
+# Derive the delivered PDFs from the Google Docs on Drive (WYSIWYG for the user),
+# never from a local render: headless docx->pdf is a dead end on this machine.
+# The real .pdf files must live outside 01-三册成书/ — under --drive-export-formats pdf
+# a Doc aliases to the same visible name and a co-located real PDF becomes ambiguous.
+deliver_pdfs() {
+  [ -n "${PDF_DRIVE_DIR:-}" ] || die "PDF_DRIVE_DIR is missing from project.conf"
+  [ -x "$RCLONE" ] || die "rclone not found at $RCLONE"
+  local item src dst kind base pdf_local pdf_dst local_md5 remote_md5
+  say "export Google Docs to PDF and deliver"
+  for item in "${DRIVE_ITEMS[@]}"; do
+    IFS='|' read -r src dst kind <<<"$item"
+    [ "$kind" = "docx" ] || continue
+    base="${dst##*/}"; base="${base%.docx}"
+    pdf_local="${src%.docx}.pdf"
+    pdf_dst="$PDF_DRIVE_DIR/${base}.pdf"
+    "$RCLONE" copyto "Gdrive:${dst%.docx}.pdf" "$pdf_local" --drive-root-folder-id="$DRIVE_ID" \
+      --drive-export-formats pdf || die "PDF export failed for $dst (Google caps Doc exports at 10 MB)"
+    head -c 5 "$pdf_local" | grep -q "%PDF" || die "$pdf_local is not a PDF"
+    "$RCLONE" copyto "$pdf_local" "Gdrive:$pdf_dst" --drive-root-folder-id="$DRIVE_ID" \
+      || die "PDF upload failed for $pdf_dst"
+    local_md5="$(md5 -q "$pdf_local" 2>/dev/null || md5sum "$pdf_local" | cut -d' ' -f1)"
+    remote_md5="$("$RCLONE" lsjson "Gdrive:$pdf_dst" --drive-root-folder-id="$DRIVE_ID" --stat --hash |
+      python3 -c 'import json,sys; print(json.load(sys.stdin).get("Hashes",{}).get("md5",""))')" \
+      || die "cannot re-read Drive md5 for $pdf_dst"
+    [ -n "$remote_md5" ] && [ "$remote_md5" = "$local_md5" ] || die "$pdf_dst md5 mismatch after upload"
+    echo "  ✓ $pdf_dst ($(du -h "$pdf_local" | cut -f1 | tr -d ' '), md5 verified)"
+  done
+}
+
 upload_project() {
   local item src dst kind id total="${#DRIVE_ITEMS[@]}" uploaded=0 doc_index=0
   local doc_ids=()
@@ -213,6 +243,7 @@ upload_project() {
     doc_index=$((doc_index + 1))
   done
   trap - EXIT
+  deliver_pdfs
   echo; echo "✓ uploaded $PROJECT_NAME only; no sibling project was built or uploaded"
 }
 
@@ -260,6 +291,10 @@ case "${1:-}" in
     ;;
   --relink)
     relink_manual
+    ;;
+  --pdf)
+    deliver_pdfs
+    echo; echo "✓ refreshed $PROJECT_NAME PDF snapshots from the current Drive Docs; nothing was built"
     ;;
   --web)
     publish_web "$@"
