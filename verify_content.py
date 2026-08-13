@@ -116,6 +116,70 @@ check(not dangling, '名词表里每个词都在它标注的那一篇出现过 (
 for d in dangling:
     print('        ->', d)
 
+# ---- 3.85 名词表词条要有加粗首现：出处那一篇必须出现过 **词** 本身
+#   由来（2026-08-13 全书概念引入排查）：第一册主角"极限"在附录 B 挂着"第一篇"，
+#   第一篇却从没写过 **极限** 的正式命名句——[3.8] 只查"出现过"，查不出"没被命名"。
+#   最高级教学指引第 4 步：正式命名＝第一次只加粗被命名的词语本身。出处篇里连一次
+#   **词** 都没有，就是术语冷启动。斜杠/顿号变体与括号注释里的别名，任一加粗即可。
+unbolded = []
+if appendix:
+    in_glossary = False
+    for line in open(appendix, encoding='utf-8'):
+        if line.startswith('# 附录 B'):
+            in_glossary = True
+        elif line.startswith('# 附录 C'):
+            in_glossary = False
+        elif in_glossary and line.strip().startswith('|'):
+            cells = [c.strip() for c in line.strip().strip('|').split('|')]
+            if len(cells) < 3 or cells[0] in ('词',):
+                continue
+            term, where = cells[0], cells[-1]
+            if where not in bodies:
+                continue
+            bare = re.sub(r'[（(][^）)]*[）)]', '', term)
+            variants = [t.strip() for t in re.split(r'[/、]', bare) if t.strip()]
+            variants += re.findall(r'[（(]([^）)]+)[）)]', term)
+            if not any(re.search(r'[\u4e00-\u9fff]', v) for v in variants):
+                continue              # 纯符号词条（√2、π）按读法＋图介绍，不走加粗命名
+            btitles = set(re.findall(r'(?m)^BOX\[[a-z]+\]:\s*([^:]*?)\s*::', bodies[where]))
+            if not any(('**%s**' % v) in bodies[where] or v in btitles for v in variants):
+                unbolded.append('%s —— %s里从未加粗过它；正式命名句在哪？' % (term, where))
+print('\n[3.85] 名词表加粗首现')
+check(not unbolded, '名词表里每个词都在出处篇加粗命名过 (%d 处冷启动)' % len(unbolded))
+for d in unbolded:
+    print('        ->', d)
+
+# ---- 3.88 命名句只加粗术语本身："**……叫X。**"整句涂黑违规，正确形态是 ……叫**X**。
+#   由来（2026-08-13 全书概念引入排查）：三处命名句整句涂黑（弦/一件事/随机变量），
+#   同一模式一抓一个准。判据：同一段粗体内部，命名动词后面跟着短名字和句号——
+#   即名字没有从句子里被单独加粗出来。两条豁免：符号起名（叫它 p／叫 x~1~）不算；
+#   名字已在本篇被单独 **加粗** 过的，这里只是重点强调，不算。
+NAMING_IN_BOLD = re.compile(r'(就叫|叫做|叫作|大名叫|统称|称为|管它叫|叫)([^，。；：]{1,16})。')
+allbold = []
+for f in SOURCE_FILES:
+    fbody = open(f, encoding='utf-8').read()
+    for ln, line in enumerate(fbody.split('\n'), 1):
+        parts = line.split('**')
+        for i in range(1, len(parts), 2):          # 奇数段＝粗体内部（[1] 保证每行成对闭合）
+            for m in NAMING_IN_BOLD.finditer(parts[i]):
+                name = m.group(2).strip().strip('「」『』“”"\'')
+                if not name or re.search(r'[A-Za-z0-9~^√×÷]', name):
+                    continue
+                if m.group(1) == '叫':
+                    if m.group(2).startswith(('法', '声')):
+                        continue                   # "叫法／叫声"是名词，不是命名动词
+                    j = m.start(1)
+                    if j and parts[i][j - 1] in '配才不别莫白':
+                        continue                   # "配叫／才叫"是修辞，不是命名仪式
+                if ('**%s**' % name) in fbody:
+                    continue
+                allbold.append('%s:%d  粗体命名句把"%s%s。"整个涂黑，名字没被单独加粗'
+                               % (os.path.basename(f), ln, m.group(1), m.group(2)))
+print('\n[3.88] 命名句涂黑')
+check(not allbold, '命名句没有整句涂黑，只加粗被命名的词本身 (%d 处)' % len(allbold))
+for d in allbold[:8]:
+    print('        ->', d)
+
 # ---- 3.9 "第X篇第Y节"必须真的存在（拆分/改序以后最容易失效的就是这个）
 CN = '一二三四五六七八九十'
 chapters = {}            # 篇名 -> 该篇的小节序号集合
@@ -249,6 +313,51 @@ print('\n[3.92] 自指的篇引用')
 check(not selfref, '没有"某篇引用它自己"的残留 (%d 处)' % len(selfref))
 for b in selfref[:8]:
     print('        ->', b)
+
+# ---- 3.925 复合篇引用不得自含本篇："第五、六篇已练熟"写在第六篇里，就是改号漏改
+#   由来（2026-08-13 第二册排查）：挖出一族 9 处历史改号漏改，其中"第X、Y篇"与
+#   "第X到第Y篇"复合写法不匹配 [3.9]/[3.92] 的正则，四道闸全部漏过。枚举与区间都
+#   展开成数字集合，本篇篇号落在集合里就报。跨册引用照 [3.9] 豁免；表格行照 [3.92]
+#   豁免（按篇索引的总表指到自己是正常的）。
+def _cn2int(s):
+    digits = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+              '六': 6, '七': 7, '八': 8, '九': 9}
+    if s == '十':
+        return 10
+    if s.startswith('十'):
+        return 10 + digits[s[1:]]
+    if s.endswith('十'):
+        return digits[s[0]] * 10
+    if '十' in s:
+        head, tail = s.split('十')
+        return digits[head] * 10 + digits[tail]
+    return digits[s]
+compound_self = []
+for f in SOURCE_FILES:
+    body = open(f, encoding='utf-8').read()
+    m = re.search(r'(?m)^# 第([一二三四五六七八九十]+)篇', body)
+    if not m:
+        continue                      # 前言/开篇/尾声/附录没有篇号
+    own_cn, own = m.group(1), _cn2int(m.group(1))
+    for ln, line in enumerate(body.split('\n'), 1):
+        if line.lstrip().startswith('|'):
+            continue
+        for mm in re.finditer(r'第((?:[一二三四五六七八九十]+、)+[一二三四五六七八九十]+)篇'
+                              r'|第([一二三四五六七八九十]+)[到至]第?([一二三四五六七八九十]+)篇', line):
+            if re.search(r'[一二三四两上下本]册.{0,4}$', line[:mm.start()]):
+                continue
+            if mm.group(1):
+                nums = [_cn2int(x) for x in mm.group(1).split('、')]
+            else:
+                lo, hi = _cn2int(mm.group(2)), _cn2int(mm.group(3))
+                nums = list(range(min(lo, hi), max(lo, hi) + 1))
+            if own in nums:
+                compound_self.append('%s:%d  本篇是第%s篇，却写着"%s"——改号漏改？'
+                                     % (os.path.basename(f), ln, own_cn, mm.group(0)))
+print('\n[3.925] 复合篇引用自含本篇')
+check(not compound_self, '"第X、Y篇"与"第X到第Y篇"都不包含本篇 (%d 处)' % len(compound_self))
+for d in compound_self[:8]:
+    print('        ->', d)
 
 # ---- 3.945 第二册自变量已于 08-07 全册改回 x（用户定：大家习惯 dx；数字挨 x 省乘号）
 #   反向抓残留的独立 a（"2ah"这类字母连写的 a 由第二遍替换处理过，这里连它一起抓）。
