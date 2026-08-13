@@ -1,7 +1,7 @@
 #!/bin/bash
 # Project-local build and delivery pipeline. Its scope comes only from project.conf.
 
-set -u
+set -euo pipefail
 cd "$(dirname "$0")" || exit 1
 ROOT="$PWD"
 CONFIG="$ROOT/project.conf"
@@ -24,8 +24,9 @@ Usage:
   ./publish.sh --vol VOL       build one volume owned by this project
   ./publish.sh --upload        build, verify, package, and upload only this project
   ./publish.sh --relink        restore only the $MANUAL_NAME agent hard link
-  ./publish.sh --pdf           re-export this project's Drive Docs to PDF and refresh them on Drive
-  ./publish.sh --web [--check-only]  project web asset, when configured
+  ./publish.sh --help          show this help
+
+This project publishes raw HTML and never generates Google Docs, DOCX, or PDF files.
 EOF
 }
 
@@ -71,19 +72,19 @@ run_book_tool() {
 build_one() {
   local vol="$1" dir="$2" part="$3"
   local figs="${dir:+$dir/}figs.py"
-  local verify_log="$LOGDIR/verify-$vol.log"
+  local verify_log="$LOGDIR/verify-content-$vol.log"
+  local html_log="$LOGDIR/html-$vol.log"
   local sections_log="$LOGDIR/sections-$vol.log"
   local refs_log="$LOGDIR/refs-$vol.log"
 
   say "$vol"
   python3 "$figs" >/dev/null || die "$vol image generation failed"
-  run_book_tool build_docx.py "$dir" >/dev/null || die "$vol DOCX build failed"
-  if run_book_tool verify_docx.py "$dir" >"$verify_log" 2>&1; then
+  if run_book_tool verify_content.py "$dir" >"$verify_log" 2>&1; then
     grep -E "WARN" "$verify_log" || true
-    echo "  ✓ $vol verification passed ($(grep -c PASS "$verify_log") PASS)"
+    echo "  ✓ $vol source-content verification passed ($(grep -c PASS "$verify_log") PASS)"
   else
     grep -E "FAIL" "$verify_log" || true
-    die "$vol verification failed; see $verify_log"
+    die "$vol source-content verification failed; see $verify_log"
   fi
   if python3 audit_sections.py --vol "$vol" >"$sections_log" 2>&1; then
     echo "  ✓ $vol section-reference audit passed"
@@ -98,6 +99,20 @@ build_one() {
     die "$vol semantic-reference audit failed"
   fi
   run_book_tool export_manuscript.py "$dir" >/dev/null || die "$vol manuscript export failed"
+  if [ -n "$dir" ]; then
+    python3 export_html.py "$dir" --all >/dev/null || die "$vol HTML build failed"
+    python3 verify_html.py "$dir" >"$html_log" 2>&1 || {
+      grep -E "FAIL" "$html_log" || true
+      die "$vol HTML verification failed; see $html_log"
+    }
+  else
+    python3 export_html.py --all >/dev/null || die "$vol HTML build failed"
+    python3 verify_html.py >"$html_log" 2>&1 || {
+      grep -E "FAIL" "$html_log" || true
+      die "$vol HTML verification failed; see $html_log"
+    }
+  fi
+  echo "  ✓ $vol MathJax HTML verification passed ($(grep -c '^PASS ' "$html_log") PASS)"
   [ -n "$part" ] || die "$vol has no manuscript label in project.conf"
 }
 
@@ -139,93 +154,28 @@ verify_delivery_items() {
   echo "  ✓ $total project-local delivery items present"
 }
 
-push_one() {
-  local src="$1" dst="$2" kind="$3"
-  if [ "$kind" = "docx" ]; then
-    "$RCLONE" copyto "$src" "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID" --drive-import-formats docx
-  else
-    "$RCLONE" copyto "$src" "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID"
-  fi
-}
-
-remote_doc_id() {
-  local dst="$1"
-  "$RCLONE" lsjson "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID" --stat --metadata |
-    python3 -c 'import json,sys; print(json.load(sys.stdin)["ID"])'
-}
-
-check_remote_doc() {
-  local src="$1" dst="$2" expected_id="$3"
-  local tmp_dir tmp remote_id
-  tmp_dir="$(mktemp -d -t daisy-docrt)" || die "cannot create temporary directory"
-  tmp="$tmp_dir/roundtrip.docx"
-  "$RCLONE" copyto "Gdrive:$dst" "$tmp" --drive-root-folder-id="$DRIVE_ID" \
-    --drive-export-formats docx >/dev/null 2>&1 || die "$dst round-trip download failed"
-  python3 - "$src" "$tmp" <<'PYCHK'
-import sys, zipfile
-local = len([n for n in zipfile.ZipFile(sys.argv[1]).namelist() if n.startswith('word/media/')])
-remote = len([n for n in zipfile.ZipFile(sys.argv[2]).namelist() if n.startswith('word/media/')])
-print(f"  local {local} images / Drive {remote} images", end=" ")
-raise SystemExit(0 if local == remote else 1)
-PYCHK
-  [ "$?" -eq 0 ] || die "$dst lost images during Drive conversion"
-  echo "✓"
-  remote_id="$(remote_doc_id "$dst")" || die "cannot re-read Drive id for $dst"
-  [ "$remote_id" = "$expected_id" ] || die "$dst Drive id changed: $expected_id -> $remote_id"
-  echo "  ✓ $dst retained Drive id $remote_id"
-  rm -f "$tmp"
-  rmdir "$tmp_dir"
-}
-
-# Derive the delivered PDFs from the Google Docs on Drive (WYSIWYG for the user),
-# never from a local render: headless docx->pdf is a dead end on this machine.
-# The real .pdf files must live outside 01-三册成书/ — under --drive-export-formats pdf
-# a Doc aliases to the same visible name and a co-located real PDF becomes ambiguous.
-deliver_pdfs() {
-  [ -n "${PDF_DRIVE_DIR:-}" ] || die "PDF_DRIVE_DIR is missing from project.conf"
-  [ -x "$RCLONE" ] || die "rclone not found at $RCLONE"
-  local item src dst kind base pdf_local pdf_dst local_md5 remote_md5
-  say "export Google Docs to PDF and deliver"
-  for item in "${DRIVE_ITEMS[@]}"; do
-    IFS='|' read -r src dst kind <<<"$item"
-    [ "$kind" = "docx" ] || continue
-    base="${dst##*/}"; base="${base%.docx}"
-    pdf_local="${src%.docx}.pdf"
-    pdf_dst="$PDF_DRIVE_DIR/${base}.pdf"
-    "$RCLONE" copyto "Gdrive:${dst%.docx}.pdf" "$pdf_local" --drive-root-folder-id="$DRIVE_ID" \
-      --drive-export-formats pdf || die "PDF export failed for $dst (Google caps Doc exports at 10 MB)"
-    head -c 5 "$pdf_local" | grep -q "%PDF" || die "$pdf_local is not a PDF"
-    "$RCLONE" copyto "$pdf_local" "Gdrive:$pdf_dst" --drive-root-folder-id="$DRIVE_ID" \
-      || die "PDF upload failed for $pdf_dst"
-    local_md5="$(md5 -q "$pdf_local" 2>/dev/null || md5sum "$pdf_local" | cut -d' ' -f1)"
-    remote_md5="$("$RCLONE" lsjson "Gdrive:$pdf_dst" --drive-root-folder-id="$DRIVE_ID" --stat --hash |
-      python3 -c 'import json,sys; print(json.load(sys.stdin).get("Hashes",{}).get("md5",""))')" \
-      || die "cannot re-read Drive md5 for $pdf_dst"
-    [ -n "$remote_md5" ] && [ "$remote_md5" = "$local_md5" ] || die "$pdf_dst md5 mismatch after upload"
-    echo "  ✓ $pdf_dst ($(du -h "$pdf_local" | cut -f1 | tr -d ' '), md5 verified)"
-  done
+check_remote_raw() {
+  local src="$1" dst="$2" local_md5 remote_md5
+  local_md5="$(md5 -q "$src" 2>/dev/null || md5sum "$src" | cut -d' ' -f1)" \
+    || die "cannot hash $src"
+  remote_md5="$("$RCLONE" lsjson "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID" \
+    --stat --hash | python3 -c 'import json,sys; print(json.load(sys.stdin).get("Hashes",{}).get("md5",""))')" \
+    || die "cannot re-read Drive hash for $dst"
+  [ -n "$remote_md5" ] && [ "$remote_md5" = "$local_md5" ] \
+    || die "$dst md5 mismatch after upload"
+  echo "  ✓ $dst md5 verified"
 }
 
 upload_project() {
-  local item src dst kind id total="${#DRIVE_ITEMS[@]}" uploaded=0 doc_index=0
-  local doc_ids=()
+  local item src dst kind total="${#DRIVE_ITEMS[@]}" uploaded=0
   [ -x "$RCLONE" ] || die "rclone not found at $RCLONE"
-
-  say "capture current Drive document ids"
-  for item in "${DRIVE_ITEMS[@]}"; do
-    IFS='|' read -r src dst kind <<<"$item"
-    if [ "$kind" = "docx" ]; then
-      id="$(remote_doc_id "$dst")" || die "cannot read Drive id for $dst"
-      doc_ids+=("$id")
-      echo "  ✓ $dst ($id)"
-    fi
-  done
 
   say "upload only $PROJECT_NAME"
   trap '[ "${uploaded:-0}" -gt 0 ] && [ "${uploaded:-0}" -lt "${total:-0}" ] && echo "⚠ uploaded ${uploaded}/${total} items; rerun this project upload to finish" >&2' EXIT
   for item in "${DRIVE_ITEMS[@]}"; do
     IFS='|' read -r src dst kind <<<"$item"
-    if push_one "$src" "$dst" "$kind"; then
+    [ "$kind" = "raw" ] || die "unsupported delivery kind: $kind"
+    if "$RCLONE" copyto "$src" "Gdrive:$dst" --drive-root-folder-id="$DRIVE_ID"; then
       uploaded=$((uploaded + 1))
       echo "  ✓ $dst"
     else
@@ -234,16 +184,12 @@ upload_project() {
   done
   [ "$uploaded" -eq "$total" ] || die "uploaded only $uploaded/$total project items"
 
-  say "Drive conversion and identity check"
-  sleep 20
+  say "Drive byte verification"
   for item in "${DRIVE_ITEMS[@]}"; do
     IFS='|' read -r src dst kind <<<"$item"
-    [ "$kind" = "docx" ] || continue
-    check_remote_doc "$src" "$dst" "${doc_ids[$doc_index]}"
-    doc_index=$((doc_index + 1))
+    check_remote_raw "$src" "$dst"
   done
   trap - EXIT
-  deliver_pdfs
   echo; echo "✓ uploaded $PROJECT_NAME only; no sibling project was built or uploaded"
 }
 
@@ -292,9 +238,8 @@ case "${1:-}" in
   --relink)
     relink_manual
     ;;
-  --pdf)
-    deliver_pdfs
-    echo; echo "✓ refreshed $PROJECT_NAME PDF snapshots from the current Drive Docs; nothing was built"
+  --docx|--pdf|--deliver)
+    die "$1 is retired: this project now produces raw HTML and never creates Google Docs, DOCX, or PDF"
     ;;
   --web)
     publish_web "$@"

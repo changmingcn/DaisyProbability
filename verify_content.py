@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""对生成的 docx 做可失败的结构检查。任何一项 FAIL 都说明编译出了问题。"""
+"""对 Markdown 源稿做可失败的内容检查；不依赖任何发布格式。"""
 import os
 import re
 import sys
 import glob
-import zipfile
-from docx import Document
-
-import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 第二个参数指定分册目录（默认当前册）；两册共用同一套管线
 BOOK = os.path.join(HERE, sys.argv[1]) if len(sys.argv) > 1 else HERE
 IS_VOL2 = os.path.basename(os.path.normpath(BOOK)) == 'vol2'
-TITLE = (open(os.path.join(BOOK, 'TITLE'), encoding='utf-8').read().strip()
-        if os.path.exists(os.path.join(BOOK, 'TITLE')) else '给小学生讲微积分（上）')
-DOCX = os.path.join(BOOK, TITLE + '.docx')
 CONTENT = os.path.join(BOOK, 'content')
 FIGDIR = os.path.join(BOOK, 'figs')
+SOURCE_FILES = sorted(glob.glob(os.path.join(CONTENT, '*.md')))
 
 fails, warns = [], []
 
@@ -26,103 +20,65 @@ def check(cond, msg):
     (print('  PASS  ' + msg) if cond else (fails.append(msg), print('  FAIL  ' + msg)))
 
 
-doc = Document(DOCX)
+# ---- 1. 源稿与强调标记
+print('\n[1] 源稿与强调标记')
+check(bool(SOURCE_FILES), 'content/ 中至少有一份 Markdown 源稿')
+bad_bold = []
+for filename in SOURCE_FILES:
+    for lineno, line in enumerate(open(filename, encoding='utf-8'), 1):
+        if line.count('**') % 2:
+            bad_bold.append('%s:%d' % (os.path.basename(filename), lineno))
+check(not bad_bold, '每行 ** 强调标记成对闭合 (%d 处异常)' % len(bad_bold))
+for item in bad_bold[:10]:
+    print('        ->', item)
 
-# ---- 1. 残留标记：解析失败的确凿信号
-LEFTOVER = re.compile(r'\*\*|(?<!\w)~|\^|^FIG:|^BOX\[|^TABLE:|^CENTER:|^TITLE:|^SUB:')
-bad = []
-def walk_paragraphs():
-    for p in doc.paragraphs:
-        yield p
-    for t in doc.tables:
-        for row in t.rows:
-            for c in row.cells:
-                for p in c.paragraphs:
-                    yield p
-
-for p in walk_paragraphs():
-    if LEFTOVER.search(p.text):
-        bad.append(p.text[:70])
-print('\n[1] 残留标记')
-check(not bad, '正文中没有未解析的标记 (%d 处)' % len(bad))
-for b in bad[:10]:
-    print('        ->', b)
-
-# ---- 2. 上下标真的生效了
-def vert_count(attr):
-    if not IS_VOL2:
-        return sum(1 for p in walk_paragraphs() for r in p.runs if getattr(r.font, attr))
-    # 下册的上标 n−1 会按字体拆成 Georgia 的 n 与正体的 −1；它们仍是同一个上标。
-    # 因此按每段里连续的上下标组计数，而不是把字体切换误算成新的标记。
-    total = 0
-    for p in walk_paragraphs():
-        active = False
-        for r in p.runs:
-            current = bool(getattr(r.font, attr))
-            if current and not active:
-                total += 1
-            active = current
-    return total
-
-
-subs = vert_count('subscript')
-sups = vert_count('superscript')
-# 和源文件对账。注意 [[...]] 里的 ^ 是 mathtext（画进分数图里），不产生 docx 上标。
+# ---- 2. 上下标标记成对闭合
 SKIP_SPAN = re.compile(r'\[\[[^\]]+\]\]|\{\{.*?\}\}')
 src_sub = src_sup = 0
-for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+bad_vertical = []
+for f in SOURCE_FILES:
     body = SKIP_SPAN.sub('', open(f, encoding='utf-8').read())
     src_sub += len(re.findall(r'~[^~\n]+~', body))
     src_sup += len(re.findall(r'\^[^^\n]+\^', body))
-print('\n[2] 上下标')
-unit = '组' if IS_VOL2 else 'run'
-check(subs == src_sub, '下标%s %d ＝ 源文件 ~…~ 标记 %d' % (unit, subs, src_sub))
-check(sups == src_sup, '上标%s %d ＝ 源文件 ^…^ 标记 %d（其余已并入分数图）'
-      % (unit, sups, src_sup))
+    for lineno, line in enumerate(body.splitlines(), 1):
+        if line.count('~') % 2 or line.count('^') % 2:
+            bad_vertical.append('%s:%d' % (os.path.basename(f), lineno))
+print('\n[2] 上下标标记')
+check(not bad_vertical, '~…~ 与 ^…^ 标记逐行成对闭合 (%d 处异常)' % len(bad_vertical))
+print('        下标 %d 处；上标 %d 处' % (src_sub, src_sup))
+for item in bad_vertical[:10]:
+    print('        ->', item)
 
-# ---- 3. 插图：源文件里引用的每一张都被嵌进去了
+# ---- 3. 插图引用与数学标记
 refs = []
-for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
+for f in SOURCE_FILES:
     for line in open(f, encoding='utf-8'):
         m = re.match(r'\s*FIG:\s*([^|]+)', line)
         if m:
             refs.append(m.group(1).strip())
-with zipfile.ZipFile(DOCX) as z:
-    embedded = [n for n in z.namelist() if n.startswith('word/media/')]
 fracs = []
-for f in sorted(glob.glob(os.path.join(CONTENT, '*.md'))):
-    # [[1/2]] 数字简写，[[1|2^n]] 通式 —— 两种都要数
+for f in SOURCE_FILES:
     fracs += re.findall(r'\[\[([^\]]+)\]\]', open(f, encoding='utf-8').read())
 
-print('\n[3] 插图与行内分数')
-# 同一张图被引用多次时，docx 只存一份媒体文件 —— 放置次数和唯一文件数要分开算
-check(len(doc.inline_shapes) == len(refs) + len(fracs),
-      '内嵌图片总数 %d ＝ 插图 %d ＋ 行内分数 %d'
-      % (len(doc.inline_shapes), len(refs), len(fracs)))
-# 分数图按 (分子, 分母, 颜色) 缓存：同一个分数在正文(黑)和居中行(藏青)是两个文件
-frac_files = [f for f in os.listdir(os.path.join(FIGDIR, 'frac'))
-              if f.endswith('.png')] if os.path.isdir(os.path.join(FIGDIR, 'frac')) else []
-check(len(embedded) == len(set(refs)) + len(frac_files),
-      '媒体文件 %d ＝ 去重插图 %d ＋ 分数图文件 %d（同一分数按颜色分别缓存）'
-      % (len(embedded), len(set(refs)), len(frac_files)))
-print('        分数出现 %d 次，%d 种：%s' %
-      (len(fracs), len(set(fracs)), '、'.join(sorted(set(fracs)))))
+print('\n[3] 插图引用与数学标记')
 missing = [r for r in refs if not os.path.exists(os.path.join(FIGDIR, r))]
 check(not missing, '所有被引用的图都存在于 figs/ (%s)' % (missing or '无缺失'))
-unused = sorted(f for f in set(os.listdir(FIGDIR)) - set(refs) if f.endswith('.png'))
+print('        插图引用 %d 处；[[…]] 数学标记 %d 处' % (len(refs), len(fracs)))
+unused = sorted(f for f in set(os.listdir(FIGDIR)) - set(refs) if f.endswith('.png')) if os.path.isdir(FIGDIR) else []
 if unused:
     warns.append('未被引用的图: %s' % ', '.join(unused))
 
-# ---- 3.5 平面外字符：Google Docs 转换时会变乱码
-nonbmp = []
-for p in walk_paragraphs():
-    for ch in p.text:
-        if ord(ch) > 0xFFFF:
-            nonbmp.append((ch, hex(ord(ch)), p.text[:40]))
+# ---- 3.5 HTML 源稿不应含不可见控制字符；非 BMP 字符本身合法
+bad_controls = []
+for filename in SOURCE_FILES:
+    for lineno, line in enumerate(open(filename, encoding='utf-8'), 1):
+        for ch in line:
+            if ord(ch) < 32 and ch not in '\n\r\t':
+                bad_controls.append((os.path.basename(filename), lineno, hex(ord(ch))))
 print('\n[3.5] 字符安全')
-check(not nonbmp, '没有 BMP 平面外字符（会在 Docs 转换时变乱码）(%d 处)' % len(nonbmp))
-for ch, cp, ctx in nonbmp[:5]:
-    print('        ->', repr(ch), cp, ctx)
+check(not bad_controls, '没有不可见控制字符 (%d 处)' % len(bad_controls))
+for item in bad_controls[:10]:
+    print('        -> %s:%d %s' % item)
 
 # ---- 3.8 名词表的"在哪"必须兑现：附录说某个词出自某一篇，那一篇就得真的讲过它
 # 篇名→正文，从文件里现扫。**不能写死文件名**：写死以后换一册就全都匹配不上，
@@ -531,27 +487,27 @@ check(not role_bad, '妹妹出招以后，接招的都是姐姐 (%d 处写成了
 for b in role_bad[:8]:
     print('        ->', b)
 
-# ---- 4. 盒子与表格
-print('\n[4] 盒子与表格')
-box_ct = sum(1 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md')))
+# ---- 4. 盒子与表格标记
+print('\n[4] 盒子与表格标记')
+box_ct = sum(1 for f in SOURCE_FILES
              for line in open(f, encoding='utf-8') if line.strip().startswith('BOX['))
-tbl_ct = sum(1 for f in sorted(glob.glob(os.path.join(CONTENT, '*.md')))
+tbl_ct = sum(1 for f in SOURCE_FILES
              for line in open(f, encoding='utf-8') if line.strip() == 'TABLE:')
-check(len(doc.tables) == box_ct + tbl_ct,
-      '盒子 %d + 表格 %d = %d，docx 中表格数 %d' %
-      (box_ct, tbl_ct, box_ct + tbl_ct, len(doc.tables)))
+check(box_ct + tbl_ct > 0, '源稿含盒子 %d 个、表格 %d 个' % (box_ct, tbl_ct))
 
 # ---- 5. 每篇都有标题
 print('\n[5] 篇章')
-h1 = [p.text for p in doc.paragraphs if p.paragraph_format.page_break_before]
-check(len(h1) >= 3, '一级标题（另起一页）%d 个' % len(h1))
-for t in h1:
-    print('        ·', t)
+h1 = []
+for filename in SOURCE_FILES:
+    h1.extend(re.findall(r'(?m)^# (.+)$', open(filename, encoding='utf-8').read()))
+check(len(h1) >= 3, '一级标题 %d 个' % len(h1))
+for title in h1:
+    print('        ·', title)
 
 # ---- 6. 字数
-words = sum(len(p.text) for p in walk_paragraphs())
+words = sum(len(open(f, encoding='utf-8').read()) for f in SOURCE_FILES)
 print('\n[6] 篇幅')
-print('        正文字符数 ≈ %d' % words)
+print('        Markdown 源稿字符数 ≈ %d' % words)
 
 print('\n' + '=' * 46)
 for w in warns:
