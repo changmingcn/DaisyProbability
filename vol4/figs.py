@@ -683,6 +683,88 @@ WAYS = 2 ** 36                       # 每格可圈可不圈
 assert WAYS == 68719476736, WAYS     # 正文说的「六百八十七亿多」
 
 
+# ---------------------------------------------------------------- 第十二篇：袋里的两种硬币
+# 倒着走那一篇印的每个格数，都由下面这个笨办法数出来：把"摸哪一枚"和"抛出什么"
+# 摊成一样大的份，一份一份地数。改了正文的份数，这里的 assert 会当场翻脸。
+def bag_cells(n_fair, n_two, tosses):
+    """袋里 n_fair 枚公平币、n_two 枚双面正；抛 tosses 次。每枚占同样多份。"""
+    per = 2 ** tosses
+    cells = []
+    for _ in range(n_fair):
+        cells += [tuple(p) for p in _tosses(tosses)]
+    for _ in range(n_two):
+        cells += [tuple(['正'] * tosses)] * per
+    return cells
+
+
+def _tosses(n):
+    if n == 0:
+        return [[]]
+    return [[a] + rest for a in ('正', '反') for rest in _tosses(n - 1)]
+
+
+def all_heads(cells, k):
+    return [c for c in cells if all(x == '正' for x in c[:k])]
+
+
+# 两枚（1 公平 ＋ 1 双面正）抛三次：16 份，三次全正的 9 份，双面正占 8 份
+BAG2 = bag_cells(1, 1, 3)
+BAG2_ALL = all_heads(BAG2, 3)
+assert (len(BAG2), len(BAG2_ALL)) == (16, 9), (len(BAG2), len(BAG2_ALL))
+# 同样两枚抛四次：32 份；前三次全正的 18 份，其中第四次也是正的 17 份
+BAG2_4 = all_heads(bag_cells(1, 1, 4), 3)
+BAG2_NEXT = [c for c in BAG2_4 if c[3] == '正']
+assert (len(BAG2_4), len(BAG2_NEXT)) == (18, 17), (len(BAG2_4), len(BAG2_NEXT))
+# 99 枚公平 ＋ 1 枚双面正抛三次：800 份，三次全正 107 份，双面正仍只占 8 份
+BAG100_ALL = all_heads(bag_cells(99, 1, 3), 3)
+assert (len(bag_cells(99, 1, 3)), len(BAG100_ALL)) == (800, 107), len(BAG100_ALL)
+
+
+# ---------------------------------------------------------------- p18
+def fig_p18():
+    """十六份怎样变成九份：划掉不是三次全正的，剩下的重新分。"""
+    from matplotlib.patches import Rectangle
+    fig, axs = plt.subplots(1, 2, figsize=(9.8, 3.9),
+                            gridspec_kw={'width_ratios': [1.55, 1]})
+
+    ax = axs[0]
+    for k in range(8):                       # 上排：摸到双面正，八份全是三次正
+        ax.add_patch(Rectangle((k, 1.15), 1, 1, facecolor=BAND,
+                               edgecolor=ORANGE, lw=1.2))
+    for k in range(8):                       # 下排：摸到公平币，八条路只有一条全正
+        ax.add_patch(Rectangle((k, 0), 1, 1,
+                               facecolor=LIGHT if k == 0 else 'white',
+                               edgecolor=NAVY if k == 0 else GREY, lw=1.2))
+        if k:
+            ax.plot([k + 0.18, k + 0.82], [0.18, 0.82], color=GREY, lw=1.1)
+    ax.text(4, 2.42, '摸到双面正：八份，份份都是三次全正',
+            ha='center', fontsize=10.5, color=ORANGE)
+    ax.text(0.5, 0.5, '正正正', ha='center', va='center', fontsize=8.5, color=NAVY)
+    ax.text(4.6, -0.62, '摸到公平币：八份，只有正正正那一份对得上',
+            ha='center', fontsize=10.5, color=NAVY)
+    ax.text(4, 3.05, '抛三次以前：一共十六份，两枚各一半',
+            ha='center', fontsize=11.5, color=NAVY)
+    ax.set_xlim(-0.5, 8.5); ax.set_ylim(-1.15, 3.35)
+
+    ax = axs[1]
+    for k in range(9):                       # 剩下的九份，排成一条
+        two = k < 8
+        ax.add_patch(Rectangle((k, 0.575), 1, 1,
+                               facecolor=BAND if two else LIGHT,
+                               edgecolor=ORANGE if two else NAVY, lw=1.2))
+    ax.text(4, 2.42, '划掉对不上的，只剩九份', ha='center',
+            fontsize=10.5, color=NAVY)
+    ax.text(4, -0.62, '双面正八份，公平币一份：八比一',
+            ha='center', fontsize=10.5, color=ORANGE)
+    ax.text(4, 3.05, '三次全正以后：在九份里重新分',
+            ha='center', fontsize=11.5, color=NAVY)
+    ax.set_xlim(-0.5, 9.5); ax.set_ylim(-1.15, 3.35)
+
+    for ax in axs:
+        ax.set_aspect('equal'); ax.axis('off')
+    save(fig, 'fig-p18-two-coins.png')
+
+
 # ---------------------------------------------------------------- p14
 def fig_p14():
     """造点的机器：正面留左半、反面留右半，剩下的段一半一半地短下去。"""
@@ -843,8 +925,11 @@ if __name__ == '__main__':
     print('  30 次：', THIRTY, ' 一万次：', TEN_K, ' 分金重打 40 遍：', SPLIT40)
     print('  翻倍下注 200 回合：赔光', DBL_CRASHES, '回，净', DBL_PATH[-1])
     print('  36 格上三块：', BLOCK_COUNTS, ' 圈法：', WAYS)
+    print('  两枚硬币三次全正：', len(BAG2_ALL), '份里双面正 8 份；',
+          '四次那问：', len(BAG2_NEXT), '比', len(BAG2_4),
+          '；一百枚那袋：', len(BAG100_ALL), '份')
     for f in (fig_p00, fig_p01, fig_p02, fig_p03, fig_p04, fig_p05, fig_p06,
               fig_p07, fig_p08, fig_p09, fig_p10, fig_p11, fig_p12, fig_p13,
-              fig_p14, fig_p15, fig_p16, fig_p17):
+              fig_p18, fig_p14, fig_p15, fig_p16, fig_p17):
         f()
     print('done:', len(os.listdir(OUT)), 'files')
