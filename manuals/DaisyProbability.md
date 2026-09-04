@@ -15,7 +15,7 @@ tools: Bash, Read, Edit, Write, Grep, Glob
 
 全书统一走这条链：**旧经验／旧概念 → 真问题或冲突 → 观察、操作与猜测 → 正式命名和定义 → 当场图示与完整实例 → 误区预演与边界反例 → 算式或证明 → 孩子复述或迁移。**这条指引优先于简短、篇幅均衡和术语覆盖；一小节装不下就拆节，不能压掉中间的认知台阶。
 
-**职责边界（2026-08-08 用户定）：只做第四册。**第一条动作是进入 `~/DaisyProbability`。日常修订、构建和交付都不得读取、重建或上传第一、二、三册；不要回到归档仓库 `~/math-notes` 工作。本仓库的独立交付命令是 `./publish.sh --upload`，它只认识 DaisyProbability。
+**职责边界（2026-08-08 用户定）：只做第四册。**第一条动作是进入 `~/Projects/books/DaisyProbability`。日常修订、构建和交付都不得读取、重建或上传第一、二、三册；不要回到归档仓库 `~/Projects/books/math-notes` 工作。本仓库的独立交付命令是 `./publish.sh --upload`，它只认识 DaisyProbability。
 
 前三册各有自己的手册（`DaisyCalculus.md` 管一、二册，`DaisyAlgebra.md` 管第三册）。**第四册也已全稿写完**，这一份既是交接手册，也留着当年的设计理由——**改动结构前先读 §二、§五，那里写着每个安排是为什么。**
 
@@ -23,11 +23,11 @@ tools: Bash, Read, Edit, Write, Grep, Glob
 
 ## ⚠ 手册在 git 里，改之前先看一眼
 
-本手册的**真身在 `~/DaisyProbability/manuals/DaisyProbability.md`**（独立仓库内，git 管着）；`~/.claude/agents/DaisyProbability.md` 只与它构成一对硬链接——两条路径、一份内容。另外两本 Daisy 手册属于另外两个仓库。Drive 上的是交付镜像，**不是源**。
+本手册的**真身在 `~/Projects/books/DaisyProbability/manuals/DaisyProbability.md`**（独立仓库内，git 管着）；`~/.claude/agents/DaisyProbability.md` 只与它构成一对硬链接——两条路径、一份内容。另外两本 Daisy 手册属于另外两个仓库。Drive 上的是交付镜像，**不是源**。
 
 **可能有另一个 Claude 会话也在做本项目**（真出过事：两边各拿旧副本整篇写回，后写的把先写的悄悄盖掉）。所以：
 
-1. **动手前**看一眼 `git -C ~/DaisyProbability log --oneline -3` 和 `git -C ~/DaisyProbability status`，并**重新 Read 一遍磁盘上的手册**；
+1. **动手前**看一眼 `git -C ~/Projects/books/DaisyProbability log --oneline -3` 和 `git -C ~/Projects/books/DaisyProbability status`，并**重新 Read 一遍磁盘上的手册**；
 2. **只用 Edit 改局部，绝不整篇 Write**；
 3. **改完只 `git add` 本轮明确修改的路径，再 `git commit`**，别用 `git add -A`，也别攒着。
 
@@ -294,7 +294,7 @@ Durrett 的原句已按《Probability: Theory and Examples》第五版 §2.1 核
 
 ## 八、工程管线
 
-源码在独立仓库 `~/DaisyProbability/`；`~/math-notes` 只留作迁移回滚，不能继续编辑。**Drive 只是交付出口，不是源头。**
+源码在独立仓库 `~/Projects/books/DaisyProbability/`；`~/Projects/books/math-notes` 只留作迁移回滚，不能继续编辑。**Drive 只是交付出口，不是源头。**
 
 ### 现行成书与交付
 
